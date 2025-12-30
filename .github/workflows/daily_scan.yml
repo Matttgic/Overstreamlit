@@ -38,37 +38,3 @@ jobs:
           else
             echo "Pas de fichier historique créé aujourd'hui."
           fi
-name: Daily Football Scan
-on:
-  schedule:
-    - cron: '0 8 * * *' # 9h00 France
-  workflow_dispatch:
-
-jobs:
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          persist-credentials: true # Autorise l'écriture sur le dépôt
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      - name: Install dependencies
-        run: pip install pandas numpy requests scipy streamlit
-
-      - name: Run Scan
-        env:
-          FOOT_API_KEY: ${{ secrets.FOOT_API_KEY }}
-        run: python app.py # On lance directement l'app en mode script
-
-      - name: Commit and Push changes
-        run: |
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
-          git add historique_paris.csv
-          git commit -m "Auto-update: Nouveaux paris et résultats" || echo "Pas de changements"
-          git push
