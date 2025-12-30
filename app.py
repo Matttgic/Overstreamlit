@@ -20,7 +20,7 @@ if not API_KEY:
         API_KEY = None
 
 BASE_URL = "https://v3.football.api-sports.io"
-BANKROLL = 1000
+BANKROLL_INITIALE = 1000
 LIGUES = {"Angleterre": 39, "France": 61, "Espagne": 140, "Italie": 135, "Allemagne": 78}
 
 # --- FONCTIONS MOTEUR ---
@@ -62,6 +62,7 @@ def log_bet(fid, date, match, cote, mise, proba):
     if not os.path.isfile(file): 
         new_data.to_csv(file, index=False)
     else: 
+        # On ajoute sans réécrire le header pour éviter le bug ParserError
         new_data.to_csv(file, mode='a', header=False, index=False)
 
 def update_results_auto():
@@ -81,7 +82,6 @@ def update_results_auto():
     return updated
 
 def run_background_scan():
-    """Fonction utilisée par GitHub Actions sans interface Streamlit"""
     ratings = get_all_ratings()
     date_now = datetime.now().strftime("%Y-%m-%d")
     for pays, l_id in LIGUES.items():
@@ -101,17 +101,14 @@ def run_background_scan():
                             p = predict_over_25(h_m[0], a_m[0], ratings)
                             if (p - (1/cote)) >= 0.05:
                                 f_kelly = ((p * cote) - 1) / (cote - 1)
-                                mise = round(BANKROLL * min(f_kelly * 0.25, 0.02), 2)
+                                mise = round(BANKROLL_INITIALE * min(f_kelly * 0.25, 0.02), 2)
                                 log_bet(fid, date_now, f"{h_m[0]} vs {a_m[0]}", cote, mise, p)
         except: continue
 
 # --- LOGIQUE D'AFFICHAGE ---
 if os.getenv("STREAMLIT_RUN_MODE") == "bare":
-    # Mode Robot (GitHub Actions)
-    if API_KEY:
-        run_background_scan()
+    if API_KEY: run_background_scan()
 else:
-    # Mode Application (Streamlit Cloud)
     st.title("⚽ FootPredictor Pro")
     if not API_KEY:
         st.error("❌ Clé API introuvable.")
@@ -123,15 +120,27 @@ else:
         if st.button("🚀 Lancer le Scan Europe"):
             with st.spinner("Analyse en cours..."):
                 run_background_scan()
-                st.success("Scan terminé et historique mis à jour.")
+                st.success("Scan terminé. Si des values ont été trouvées, elles sont dans le Bilan.")
 
     with tab2:
         if st.button("🔄 Actualiser les scores"):
-            if update_results_auto(): st.rerun()
+            with st.spinner("Vérification des résultats..."):
+                if update_results_auto(): st.rerun()
+        
         if os.path.exists('historique_paris.csv'):
             df = pd.read_csv('historique_paris.csv')
             st.dataframe(df)
-            clos = df[df['Statut'].isin([1, 2])]
+            
+            clos = df[df['Statut'].isin([1, 2])].copy()
             if not clos.empty:
-                profit = sum([(r['Mise']*r['Cote']-r['Mise']) if r['Statut']==1 else -r['Mise'] for _,r in clos.iterrows()])
+                # Graphique de Bankroll
+                clos['Gain'] = clos.apply(lambda r: (float(r['Mise'])*float(r['Cote'])-float(r['Mise'])) if r['Statut']==1 else -float(r['Mise']), axis=1)
+                clos['Evolution'] = BANKROLL_INITIALE + clos['Gain'].cumsum()
+                
+                st.subheader("📈 Évolution de la Bankroll")
+                st.line_chart(clos['Evolution'])
+                
+                profit = clos['Gain'].sum()
                 st.metric("Profit Net", f"{profit:.2f}€")
+        else:
+            st.info("Aucun pari dans l'historique.")
