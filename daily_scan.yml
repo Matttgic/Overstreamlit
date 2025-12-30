@@ -1,0 +1,21 @@
+name: Daily Football Scan
+on:
+  schedule:
+    - cron: '0 8 * * *' # 9h00 en France (8h00 UTC)
+  workflow_dispatch: # Permet de le lancer à la main aussi
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install pandas numpy requests scipy
+      - name: Run Scan
+        env:
+          FOOT_API_KEY: ${{ secrets.FOOT_API_KEY }}
+        run: python ton_script_de_scan.py
