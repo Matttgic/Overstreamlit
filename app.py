@@ -11,7 +11,6 @@ from scipy.stats import poisson
 # --- CONFIGURATION & SECRETS ---
 st.set_page_config(page_title="FootPredictor Pro", layout="centered")
 
-# Gestion de la clé API pour Streamlit ET GitHub Actions
 API_KEY = os.getenv("FOOT_API_KEY")
 if not API_KEY:
     try:
@@ -62,7 +61,6 @@ def log_bet(fid, date, match, cote, mise, proba):
     if not os.path.isfile(file): 
         new_data.to_csv(file, index=False)
     else: 
-        # On ajoute sans réécrire le header pour éviter le bug ParserError
         new_data.to_csv(file, mode='a', header=False, index=False)
 
 def update_results_auto():
@@ -105,10 +103,16 @@ def run_background_scan():
                                 log_bet(fid, date_now, f"{h_m[0]} vs {a_m[0]}", cote, mise, p)
         except: continue
 
-# --- LOGIQUE D'AFFICHAGE ---
+# --- LOGIQUE PRINCIPALE ---
 if os.getenv("STREAMLIT_RUN_MODE") == "bare":
-    if API_KEY: run_background_scan()
+    # MODE ROBOT (GITHUB ACTIONS)
+    if API_KEY:
+        print("🤖 Démarrage du Robot...")
+        update_results_auto()  # 1. Vérifie les scores d'hier
+        run_background_scan()  # 2. Cherche les matchs d'aujourd'hui
+        print("✅ Robot terminé.")
 else:
+    # MODE INTERFACE (SMARTPHONE)
     st.title("⚽ FootPredictor Pro")
     if not API_KEY:
         st.error("❌ Clé API introuvable.")
@@ -120,27 +124,37 @@ else:
         if st.button("🚀 Lancer le Scan Europe"):
             with st.spinner("Analyse en cours..."):
                 run_background_scan()
-                st.success("Scan terminé. Si des values ont été trouvées, elles sont dans le Bilan.")
+                st.success("Scan terminé.")
 
     with tab2:
         if st.button("🔄 Actualiser les scores"):
-            with st.spinner("Vérification des résultats..."):
+            with st.spinner("Mise à jour..."):
                 if update_results_auto(): st.rerun()
         
         if os.path.exists('historique_paris.csv'):
-            df = pd.read_csv('historique_paris.csv')
+            # Lecture sécurisée
+            df = pd.read_csv('historique_paris.csv', on_bad_lines='skip')
             st.dataframe(df)
             
             clos = df[df['Statut'].isin([1, 2])].copy()
             if not clos.empty:
-                # Graphique de Bankroll
-                clos['Gain'] = clos.apply(lambda r: (float(r['Mise'])*float(r['Cote'])-float(r['Mise'])) if r['Statut']==1 else -float(r['Mise']), axis=1)
-                clos['Evolution'] = BANKROLL_INITIALE + clos['Gain'].cumsum()
+                # Calculs Statistiques
+                clos['Mise'] = pd.to_numeric(clos['Mise'])
+                clos['Cote'] = pd.to_numeric(clos['Cote'])
+                clos['Gain'] = clos.apply(lambda r: (r['Mise']*r['Cote']-r['Mise']) if r['Statut']==1 else -r['Mise'], axis=1)
                 
-                st.subheader("📈 Évolution de la Bankroll")
-                st.line_chart(clos['Evolution'])
-                
+                # Metrics
                 profit = clos['Gain'].sum()
-                st.metric("Profit Net", f"{profit:.2f}€")
+                roi = (profit / clos['Mise'].sum()) * 100
+                winrate = (len(clos[clos['Statut']==1]) / len(clos)) * 100
+                
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Profit", f"{profit:.2f}€")
+                c2.metric("ROI", f"{roi:.1f}%")
+                c3.metric("Winrate", f"{winrate:.1f}%")
+                
+                # Graphique
+                clos['Evolution'] = BANKROLL_INITIALE + clos['Gain'].cumsum()
+                st.line_chart(clos['Evolution'])
         else:
-            st.info("Aucun pari dans l'historique.")
+            st.info("Aucun historique.")
