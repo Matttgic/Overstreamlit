@@ -1,6 +1,13 @@
 FID,Date,Match,Cote,Mise,Proba,Statut
-1379159,2026-01-03,Aston Villa vs Nott'm Forest,1.85,20.0,76.4%,0
-1379168,2026-01-03,Wolves vs West Ham,2.05,20.0,67.0%,0
-1378034,2026-01-03,Atalanta vs Roma,2.25,20.0,66.9%,0
-1378038,2026-01-03,Genoa vs Paris SG,2.55,20.0,54.2%,0
-1378042,2026-01-03,Sassuolo vs Parma,2.1,20.0,53.8%,0
+1379159,2026-01-03,Aston Villa vs Nott'm Forest,1.85,20.0,76.4%,1
+1379168,2026-01-03,Wolves vs West Ham,2.05,20.0,67.0%,1
+1378034,2026-01-03,Atalanta vs Roma,2.25,20.0,66.9%,2
+1378038,2026-01-03,Genoa vs Paris SG,2.55,20.0,54.2%,2
+1378042,2026-01-03,Sassuolo vs Parma,2.1,20.0,53.8%,2
+1379163,2026-01-04,Fulham vs Liverpool,1.83,20.0,60.1%,0
+1379165,2026-01-04,Man City vs Chelsea,1.5,20.0,78.4%,0
+1379166,2026-01-04,Newcastle vs Crystal Palace,1.83,20.0,66.1%,0
+1379167,2026-01-04,Tottenham vs Salernitana,2.2,20.0,76.1%,0
+1387845,2026-01-04,Lorient vs Metz,1.85,20.0,70.3%,0
+1378037,2026-01-04,Fiorentina vs Clermont,2.0,20.0,68.1%,0
+1378043,2026-01-04,Verona vs Torino,2.6,20.0,43.7%,0
