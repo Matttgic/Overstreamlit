@@ -19,9 +19,13 @@ FID,Date,Match,Cote,Mise,Proba,Statut
 1379173,2026-01-07,Crystal Palace vs Aston Villa,1.9,20.0,69.2%,2
 1379175,2026-01-07,Fulham vs Chelsea,1.75,20.0,67.0%,1
 1391001,2026-01-09,Getafe vs Sociedad,3.2,20.0,38.8%,1
-1391002,2026-01-10,Girona vs Osasuna,2.2,20.0,77.0%,0
-1391008,2026-01-10,Villarreal vs Alaves,1.85,20.0,60.7%,0
-1378054,2026-01-10,Atalanta vs Torino,2.0,20.0,58.7%,0
-1378061,2026-01-10,Roma vs Sassuolo,2.0,20.0,73.0%,0
-1378062,2026-01-10,Udinese vs Paris SG,2.25,20.0,64.8%,0
+1391002,2026-01-10,Girona vs Osasuna,2.2,20.0,77.0%,2
+1391008,2026-01-10,Villarreal vs Alaves,1.85,20.0,60.7%,1
+1378054,2026-01-10,Atalanta vs Torino,2.0,20.0,58.7%,2
+1378061,2026-01-10,Roma vs Sassuolo,2.0,20.0,73.0%,2
+1378062,2026-01-10,Udinese vs Paris SG,2.25,20.0,64.8%,1
 1388451,2026-01-10,Werder Bremen vs Hoffenheim,1.57,20.0,81.6%,0
+1378056,2026-01-11,Fiorentina vs Milan,1.95,20.0,82.9%,0
+1378058,2026-01-11,Inter vs Napoli,2.25,20.0,50.7%,0
+1378063,2026-01-11,Verona vs Lazio,2.8,20.0,49.4%,0
+1388445,2026-01-11,M'gladbach vs Augsburg,1.83,20.0,69.6%,0
