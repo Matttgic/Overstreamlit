@@ -1,8 +1,8 @@
-name: Scan quotidien des value bets
+name: Scan football (manuel)
 
+# Remplacé par « Tableau de bord - quoi parier aujourd'hui » (dashboard.yml), qui couvre
+# tous les sports, règle les paris et publie le site. Gardé en lancement manuel.
 on:
-  schedule:
-    - cron: '0 7 * * *'     # tous les jours à 07:00 UTC
   workflow_dispatch:
 
 permissions:
