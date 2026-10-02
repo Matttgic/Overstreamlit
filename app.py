@@ -1,160 +1,109 @@
-import streamlit as st
+"""Overstreamlit — tableau de bord de la bibliothèque de prédiction sportive.
+
+Lancer : streamlit run app.py
+Mode robot (GitHub Actions) : python scripts/daily_scan.py
+Aucune clé API n'est nécessaire.
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
 import pandas as pd
-import numpy as np
-import requests
-import difflib
-import time
-import os
-from datetime import datetime
-from scipy.stats import poisson
+import streamlit as st
 
-# --- CONFIGURATION & SECRETS ---
-st.set_page_config(page_title="FootPredictor Pro", layout="centered")
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
 
-API_KEY = os.getenv("FOOT_API_KEY")
-if not API_KEY:
-    try:
-        API_KEY = st.secrets["FOOT_API_KEY"]
-    except:
-        API_KEY = None
+from sportpred.live import scanner as sc  # noqa: E402
 
-BASE_URL = "https://v3.football.api-sports.io"
-BANKROLL_INITIALE = 1000
-LIGUES = {"Angleterre": 39, "France": 61, "Espagne": 140, "Italie": 135, "Allemagne": 78}
+st.set_page_config(page_title="Overstreamlit — value bets", layout="wide")
+RES = ROOT / "results"
+PICKS = ROOT / "picks"
 
-# --- FONCTIONS MOTEUR ---
-@st.cache_data(ttl=86400)
-def get_all_ratings():
-    ratings = {}
-    codes = ["E0", "F1", "SP1", "I1", "D1"]
-    saisons = ["2425", "2324"]
-    for s in saisons:
-        for c in codes:
-            url = f"https://www.football-data.co.uk/mmz4281/{s}/{c}.csv"
-            try:
-                df = pd.read_csv(url)[['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG']].dropna()
-                for t in pd.concat([df['HomeTeam'], df['AwayTeam']]).unique():
-                    if t not in ratings: ratings[t] = {'att_h': 1.2, 'def_h': 0.8, 'att_a': 1.1, 'def_a': 0.9}
-                for _ in range(5):
-                    for _, row in df.iterrows():
-                        h, a, gh, ga = row['HomeTeam'], row['AwayTeam'], row['FTHG'], row['FTAG']
-                        lh, la = ratings[h]['att_h']*ratings[a]['def_a']*1.1, ratings[a]['att_a']*ratings[h]['def_h']
-                        ratings[h]['att_h'] += (gh-lh)*0.05; ratings[a]['def_a'] += (gh-lh)*0.05
-                        ratings[a]['att_a'] += (ga-la)*0.05; ratings[h]['def_h'] += (ga-la)*0.05
-            except: continue
-    return ratings
 
-def predict_over_25(home, away, ratings):
-    lh, la = ratings[home]['att_h']*ratings[away]['def_a']*1.1, ratings[away]['att_a']*ratings[home]['def_h']
-    prob_matrix = np.zeros((6, 6))
-    for i in range(6):
-        for j in range(6):
-            p = poisson.pmf(i, lh) * poisson.pmf(j, la)
-            if i==0 and j==0: p *= 0.9
-            prob_matrix[i, j] = p
-    return 1 - (prob_matrix[0,0]+prob_matrix[1,0]+prob_matrix[0,1]+prob_matrix[1,1]+prob_matrix[2,0]+prob_matrix[0,2])
+@st.cache_data(ttl=3600, show_spinner="Téléchargement des matchs à venir…")
+def fixtures():
+    return sc.load_fixtures()
 
-def log_bet(fid, date, match, cote, mise, proba):
-    file = 'historique_paris.csv'
-    new_data = pd.DataFrame([[fid, date, match, cote, mise, f"{proba:.1%}", 0]], 
-                            columns=['FID', 'Date', 'Match', 'Cote', 'Mise', 'Proba', 'Statut'])
-    if not os.path.isfile(file): 
-        new_data.to_csv(file, index=False)
-    else: 
-        new_data.to_csv(file, mode='a', header=False, index=False)
 
-def update_results_auto():
-    file = 'historique_paris.csv'
-    if not os.path.isfile(file): return False
-    df = pd.read_csv(file)
-    updated = False
-    for idx, row in df[df['Statut'] == 0].iterrows():
-        try:
-            res = requests.get(f"{BASE_URL}/fixtures", headers={'x-apisports-key': API_KEY}, params={'id': int(row['FID'])}).json().get('response', [])
-            if res and res[0]['fixture']['status']['short'] == 'FT':
-                total = res[0]['goals']['home'] + res[0]['goals']['away']
-                df.at[idx, 'Statut'] = 1 if total > 2.5 else 2
-                updated = True
-        except: continue
-    if updated: df.to_csv(file, index=False)
-    return updated
+@st.cache_data(ttl=6 * 3600, show_spinner="Mise à jour du modèle Dixon-Coles…")
+def dc_predictions(fx: pd.DataFrame):
+    s = sc.current_season_code()
+    y = int(s[:2])
+    seasons = [f"{(y - 2) % 100:02d}{(y - 1) % 100:02d}", f"{(y - 1) % 100:02d}{y:02d}", s]
+    res = sc.load_recent_results(seasons)
+    return sc.dixon_coles_today(res, fx)
 
-def run_background_scan():
-    ratings = get_all_ratings()
-    date_now = datetime.now().strftime("%Y-%m-%d")
-    for pays, l_id in LIGUES.items():
-        try:
-            odds = requests.get(f"{BASE_URL}/odds", headers={'x-apisports-key': API_KEY}, params={'league': l_id, 'season': 2025, 'date': date_now, 'bet': 5}).json().get('response', [])
-            fixs = requests.get(f"{BASE_URL}/fixtures", headers={'x-apisports-key': API_KEY}, params={'league': l_id, 'season': 2025, 'date': date_now}).json().get('response', [])
-            f_map = {f['fixture']['id']: (f['teams']['home']['name'], f['teams']['away']['name']) for f in fixs}
-            for item in odds:
-                fid = item['fixture']['id']
-                if fid in f_map:
-                    h_raw, a_raw = f_map[fid]
-                    h_m = difflib.get_close_matches(h_raw, ratings.keys(), n=1, cutoff=0.4)
-                    a_m = difflib.get_close_matches(a_raw, ratings.keys(), n=1, cutoff=0.4)
-                    if h_m and a_m:
-                        cote = next((float(v['odd']) for b in item['bookmakers'] for bet in b['bets'] if bet['id']==5 for v in bet['values'] if v['value']=='Over 2.5'), None)
-                        if cote:
-                            p = predict_over_25(h_m[0], a_m[0], ratings)
-                            if (p - (1/cote)) >= 0.05:
-                                f_kelly = ((p * cote) - 1) / (cote - 1)
-                                mise = round(BANKROLL_INITIALE * min(f_kelly * 0.25, 0.02), 2)
-                                log_bet(fid, date_now, f"{h_m[0]} vs {a_m[0]}", cote, mise, p)
-        except: continue
 
-# --- LOGIQUE PRINCIPALE ---
-if os.getenv("STREAMLIT_RUN_MODE") == "bare":
-    # MODE ROBOT (GITHUB ACTIONS)
-    if API_KEY:
-        print("🤖 Démarrage du Robot...")
-        update_results_auto()  # 1. Vérifie les scores d'hier
-        run_background_scan()  # 2. Cherche les matchs d'aujourd'hui
-        print("✅ Robot terminé.")
-else:
-    # MODE INTERFACE (SMARTPHONE)
-    st.title("⚽ FootPredictor Pro")
-    if not API_KEY:
-        st.error("❌ Clé API introuvable.")
-        st.stop()
+def csv(path: Path) -> pd.DataFrame | None:
+    return pd.read_csv(path) if path.exists() else None
 
-    tab1, tab2 = st.tabs(["🔍 Scan", "📊 Bilan"])
 
-    with tab1:
-        if st.button("🚀 Lancer le Scan Europe"):
-            with st.spinner("Analyse en cours..."):
-                run_background_scan()
-                st.success("Scan terminé.")
+st.title("⚽🎾🏀 Overstreamlit — bibliothèque de stratégies de paris")
+st.caption("Recherche reproductible, données gratuites, protocole walk-forward. "
+           "Les paris sportifs comportent des risques : jouez de façon responsable (09 74 75 13 13).")
 
-    with tab2:
-        if st.button("🔄 Actualiser les scores"):
-            with st.spinner("Mise à jour..."):
-                if update_results_auto(): st.rerun()
-        
-        if os.path.exists('historique_paris.csv'):
-            # Lecture sécurisée
-            df = pd.read_csv('historique_paris.csv', on_bad_lines='skip')
-            st.dataframe(df)
-            
-            clos = df[df['Statut'].isin([1, 2])].copy()
-            if not clos.empty:
-                # Calculs Statistiques
-                clos['Mise'] = pd.to_numeric(clos['Mise'])
-                clos['Cote'] = pd.to_numeric(clos['Cote'])
-                clos['Gain'] = clos.apply(lambda r: (r['Mise']*r['Cote']-r['Mise']) if r['Statut']==1 else -r['Mise'], axis=1)
-                
-                # Metrics
-                profit = clos['Gain'].sum()
-                roi = (profit / clos['Mise'].sum()) * 100
-                winrate = (len(clos[clos['Statut']==1]) / len(clos)) * 100
-                
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Profit", f"{profit:.2f}€")
-                c2.metric("ROI", f"{roi:.1f}%")
-                c3.metric("Winrate", f"{winrate:.1f}%")
-                
-                # Graphique
-                clos['Evolution'] = BANKROLL_INITIALE + clos['Gain'].cumsum()
-                st.line_chart(clos['Evolution'])
-        else:
-            st.info("Aucun historique.")
+tab_scan, tab_suivi, tab_res, tab_lib = st.tabs(
+    ["🎯 Value bets du jour", "📊 Suivi des paris", "🔬 Résultats de recherche", "📚 Bibliothèque"])
+
+with tab_scan:
+    c1, c2, c3, c4 = st.columns(4)
+    min_ev = c1.slider("EV minimale", 0.0, 0.15, 0.03, 0.01, help="Espérance de gain minimale vs proba juste")
+    books = c2.multiselect("Bookmakers (agréés ANJ)", ["B365", "BW"], default=["B365", "BW"])
+    w = c3.slider("Poids du modèle Dixon-Coles", 0.0, 0.5, 0.0, 0.1,
+                  help="0 = marché sharp seul (recommandé par le backtest)")
+    bankroll = c4.number_input("Bankroll (€)", 50.0, 1e6, 1000.0, 50.0)
+    if st.button("🔍 Scanner les matchs à venir", type="primary"):
+        fx = fixtures()
+        if w > 0:
+            fx = fx.join(dc_predictions(fx))
+        cfg = sc.ScanConfig(min_ev=min_ev, soft_books=books or ["B365"], model_weight=w, bankroll=bankroll)
+        picks = sc.find_value(fx, cfg)
+        st.write(f"**{len(fx)}** matchs à venir analysés, **{len(picks)}** value bets.")
+        if len(picks):
+            st.dataframe(picks, use_container_width=True, hide_index=True)
+        st.info("Référence « juste » : Betfair Exchange sans marge (méthode power). "
+                "Vérifiez la cote sur votre bookmaker français avant de miser : "
+                "les cotes .fr peuvent être inférieures à celles du fichier.")
+
+with tab_suivi:
+    h = csv(PICKS / "history.csv")
+    if h is None or h.empty:
+        st.info("Pas encore d'historique : il sera créé par la GitHub Action quotidienne.")
+    else:
+        done = h[h["statut"] != "en attente"].copy()
+        if len(done):
+            mise, prof = done["mise_€"].sum(), done["profit_€"].sum()
+            a, b, c = st.columns(3)
+            a.metric("Paris réglés", len(done))
+            b.metric("Profit", f"{prof:.2f} €")
+            c.metric("ROI", f"{100 * prof / mise:.2f} %")
+            done["cumul"] = done["profit_€"].cumsum()
+            st.line_chart(done.set_index("date")["cumul"])
+        st.dataframe(h.iloc[::-1], use_container_width=True, hide_index=True)
+    old = csv(ROOT / "archives" / "historique_paris_ancien_systeme.csv")
+    if old is not None:
+        with st.expander("Ancien système (janvier-février 2026) — ROI −6,95 %, voir l'audit"):
+            st.dataframe(old, use_container_width=True, hide_index=True)
+
+with tab_res:
+    st.subheader("Football : qualité des prédictions (RPS, plus bas = meilleur)")
+    q = csv(RES / "football" / "qualite_predictions.csv")
+    if q is not None:
+        st.dataframe(q, use_container_width=True, hide_index=True)
+    st.subheader("Football : meilleures stratégies (choisies sur 2012-2019, validées sur 2019-2026)")
+    s = csv(RES / "football" / "selection_dev_validation_test.csv")
+    if s is not None:
+        st.dataframe(s, use_container_width=True, hide_index=True)
+    for img in sorted((RES / "football").glob("*.png")):
+        st.image(str(img), caption=img.stem)
+    st.subheader("Autres sports (tennis, NBA, NHL, NFL, MLB, MMA)")
+    for f in ("qualite_all.csv", "strategies_all.csv"):
+        d = csv(RES / "multisport" / f)
+        if d is not None:
+            st.dataframe(d, use_container_width=True, hide_index=True)
+
+with tab_lib:
+    st.markdown((ROOT / "docs" / "00_INDEX.md").read_text(encoding="utf-8")
+                if (ROOT / "docs" / "00_INDEX.md").exists() else "Documentation : dossier docs/")

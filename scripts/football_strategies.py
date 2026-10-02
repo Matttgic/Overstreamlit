@@ -34,10 +34,13 @@ OUT = ROOT / "results" / "football"
 OUT.mkdir(parents=True, exist_ok=True)
 DEV = (2012, 2018)
 TEST = (2019, 2026)
+# EV > 30 % = quasi toujours une erreur de cote (« palpable error ») que le bookmaker
+# annulerait : on exclut ces paris pour ne pas gonfler artificiellement le ROI.
+MAX_EV = 0.30
 
 
-def load():
-    df = pd.read_parquet(ROOT / "data" / "processed" / "football_main_predictions.parquet")
+def load(tag: str = "main"):
+    df = pd.read_parquet(ROOT / "data" / "processed" / f"football_{tag}_predictions.parquet")
     # marché Betfair Exchange (référence « sharp » après la disparition de Pinnacle)
     for name, cols in {"bfe": ("BFEH", "BFED", "BFEA"), "bfec": ("BFECH", "BFECD", "BFECA")}.items():
         if all(c in df for c in cols):
@@ -47,6 +50,10 @@ def load():
             p[ok] = devig(o[ok], "power")
             df[[f"mk_{name}_ph", f"mk_{name}_pd", f"mk_{name}_pa"]] = p
             df[[f"fair_{name}_H", f"fair_{name}_D", f"fair_{name}_A"]] = 1 / p
+    # proxy « bookmakers français » : meilleure cote entre bwin et bet365 (tous deux agréés
+    # ANJ ; bet365 seulement depuis mai 2026) — approximation, les cotes .fr peuvent différer
+    for o in st.OUT:
+        df[f"FR{o}"] = df[[f"B365{o}", f"BW{o}"]].max(axis=1, skipna=True)
     # référence de clôture « sharp » : Pinnacle si dispo, sinon Betfair Exchange
     for o in st.OUT:
         df[f"fair_sharpc_{o}"] = df[f"fair_psc_{o}"].fillna(df.get(f"fair_bfec_{o}"))
@@ -134,20 +141,25 @@ def strategy_grid(df):
     configs = []
     # (a) value betting sur modèle
     for prob, book, ev, mo in itertools.product(["dc", "elo", "pi", "gbm", "gbmh"],
-                                                ["Avg", "Max", "BW", "PS"],
+                                                ["Avg", "Max", "BW", "PS", "FR"],
                                                 [0.02, 0.05, 0.10], [3.5, 10.0]):
         configs.append(dict(famille="modèle", prob=prob, book=book, min_ev=ev, max_odds=mo))
     # (b) sharp vs soft : proba Pinnacle/Betfair ouverture contre bookmakers « soft »
-    for book, ev, mo in itertools.product(["Max", "BW", "B365", "WH", "IW", "VC", "Avg", "1XB"],
+    for book, ev, mo in itertools.product(["Max", "FR", "BW", "B365", "WH", "IW", "VC", "Avg", "1XB"],
                                           [0.0, 0.02, 0.05], [3.5, 10.0]):
         configs.append(dict(famille="sharp", prob="mk_sharp", book=book, min_ev=ev, max_odds=mo))
+    # (b') sharp = Betfair Exchange (seule référence sharp restante depuis fin 2025)
+    for book, ev, mo in itertools.product(["Max", "FR", "BW", "B365", "Avg"],
+                                          [0.0, 0.02, 0.05], [3.5, 10.0]):
+        configs.append(dict(famille="sharp_betfair", prob="mk_bfe", book=book, min_ev=ev,
+                            max_odds=mo))
     # (c) consensus Kaunitz
     for ev, mo in itertools.product([0.0, 0.02, 0.05], [3.5, 10.0]):
         configs.append(dict(famille="consensus", prob="kz", book="Max", min_ev=ev, max_odds=mo))
         configs.append(dict(famille="consensus", prob="mk_avg", book="Max", min_ev=ev, max_odds=mo))
     # (d) hybrides modèle + marché sharp
     for prob, book, ev, mo in itertools.product(["hyb_gbm20", "hyb_gbm40", "hyb_dc20", "hyb_dc40"],
-                                                ["Max", "BW", "PS"], [0.02, 0.05], [3.5, 10.0]):
+                                                ["Max", "FR", "PS"], [0.02, 0.05], [3.5, 10.0]):
         configs.append(dict(famille="hybride", prob=prob, book=book, min_ev=ev, max_odds=mo))
 
     df = st.kaunitz_probs(df, 0.034, "Avg", "kz")
@@ -163,7 +175,7 @@ def strategy_grid(df):
         c = cache[key]
         if c.empty:
             continue
-        sel = st.select_value(c, min_ev=cfg["min_ev"], max_odds=cfg["max_odds"])
+        sel = st.select_value(c, min_ev=cfg["min_ev"], max_ev=MAX_EV, max_odds=cfg["max_odds"])
         sel = sel.sort_values("ev", ascending=False).drop_duplicates(["date", "match"])
         r = dict(cfg)
         for pn, p in {"dev": DEV, "test": TEST}.items():
@@ -182,7 +194,7 @@ def ou_grid(df):
         c = st.candidates_ou(df, prob, book, close_ref="ou_pc")
         if c.empty:
             continue
-        sel = st.select_value(c, min_ev=ev)
+        sel = st.select_value(c, min_ev=ev, max_ev=MAX_EV)
         r = {"prob": prob, "book": book, "min_ev": ev}
         for pn, p in {"dev": DEV, "test": TEST}.items():
             for k, v in stats(period(sel, p)).items():
@@ -213,7 +225,7 @@ def select_and_validate(grid: pd.DataFrame, min_n: int = 300) -> pd.DataFrame:
 
 def staking_comparison(df, prob, book, min_ev, max_odds, label):
     c = st.candidates_1x2(df, prob, book, close_ref="sharpc")
-    sel = st.select_value(c, min_ev=min_ev, max_odds=max_odds)
+    sel = st.select_value(c, min_ev=min_ev, max_ev=MAX_EV, max_odds=max_odds)
     sel = period(sel, TEST)
     rows, curves = [], {}
     for name, kw in {"mise fixe 1%": dict(staking="flat", flat_frac=0.01),
@@ -275,7 +287,7 @@ def cumulative_plot(sel_dict: dict, path: Path, title: str):
 
 def league_breakdown(df, prob, book, min_ev, max_odds, label):
     c = st.candidates_1x2(df, prob, book, close_ref="sharpc")
-    sel = st.select_value(c, min_ev=min_ev, max_odds=max_odds)
+    sel = st.select_value(c, min_ev=min_ev, max_ev=MAX_EV, max_odds=max_odds)
     sel = sel.sort_values("ev", ascending=False).drop_duplicates(["date", "match"])
     sel = sel[sel["season"] >= DEV[0]]
     rows = []
@@ -290,9 +302,14 @@ def league_breakdown(df, prob, book, min_ev, max_odds, label):
     return res, sb
 
 
-if __name__ == "__main__":
+def main():
+    global OUT
     t0 = time.time()
-    df = load()
+    tag = sys.argv[1] if len(sys.argv) > 1 else "main"
+    if tag != "main":
+        OUT = ROOT / "results" / f"football_{tag}"
+        OUT.mkdir(parents=True, exist_ok=True)
+    df = load(tag)
     print("chargé", df.shape, f"{time.time()-t0:.0f}s")
     q = prediction_quality(df)
     print(q.round(4).to_string())
@@ -311,3 +328,7 @@ if __name__ == "__main__":
     json.dump({"n_configs_1x2": int(len(grid)), "n_configs_ou": int(len(ou))},
               open(OUT / "meta.json", "w"))
     print(f"fini {time.time()-t0:.0f}s")
+
+
+if __name__ == "__main__":
+    main()

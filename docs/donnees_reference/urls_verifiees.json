@@ -1,0 +1,391 @@
+{
+  "_meta": {
+    "tested_from": "conteneur Linux via proxy HTTPS (IP datacenter, hors France)",
+    "tested_on": "2026-10-02",
+    "note": "HTTP 200 vérifié + échantillon téléchargé et parsé avec pandas pour chaque entrée ci-dessous"
+  },
+  "tennis": [
+    {
+      "name": "Miroir tennis-data.co.uk (nick-benelli/Tennis-Data-Pipeline) - ATP",
+      "url_pattern": "https://raw.githubusercontent.com/nick-benelli/Tennis-Data-Pipeline/main/data/raw/uk/atp/uk_atp_singles_raw_{YYYY}.csv",
+      "example_url": "https://raw.githubusercontent.com/nick-benelli/Tennis-Data-Pipeline/main/data/raw/uk/atp/uk_atp_singles_raw_2025.csv",
+      "columns": ["ATP","Location","Tournament","Date","Series","Court","Surface","Round","Best of","Winner","Loser","WRank","LRank","WPts","LPts","W1..L5","Wsets","Lsets","Comment","B365W","B365L","PSW","PSL","MaxW","MaxL","AvgW","AvgL","BFEW","BFEL"],
+      "years": "2000-2026 (2026 jusqu'au 2026-09-13)",
+      "has_odds": true,
+      "odds_detail": "Cotes de clôture/pré-match B365, Pinnacle (PS, absent depuis fév. 2026), Max, Avg (Oddsportal), Betfair Exchange (BFE, depuis août 2025). Anciennes années: EX, LB, SJ, CB, UB, IW...",
+      "license": "Code MIT ; données tennis-data.co.uk (usage non commercial, attribution)"
+    },
+    {
+      "name": "Miroir tennis-data.co.uk (nick-benelli/Tennis-Data-Pipeline) - WTA",
+      "url_pattern": "https://raw.githubusercontent.com/nick-benelli/Tennis-Data-Pipeline/main/data/raw/uk/wta/uk_wta_singles_raw_{YYYY}.csv",
+      "example_url": "https://raw.githubusercontent.com/nick-benelli/Tennis-Data-Pipeline/main/data/raw/uk/wta/uk_wta_singles_raw_2026.csv",
+      "columns": ["WTA","Location","Tournament","Date","Tier","Court","Surface","Round","Best of","Winner","Loser","WRank","LRank","...","B365W","B365L","PSW","PSL","MaxW","MaxL","AvgW","AvgL","BFEW","BFEL"],
+      "years": "2007-2026",
+      "has_odds": true,
+      "license": "idem ATP"
+    },
+    {
+      "name": "Miroir tennis-data ATP (DanielSzakacs/atp_data) - secours",
+      "url_pattern": "https://raw.githubusercontent.com/DanielSzakacs/atp_data/main/{YYYY}.csv",
+      "example_url": "https://raw.githubusercontent.com/DanielSzakacs/atp_data/main/2024.csv",
+      "columns": ["format tennis-data.co.uk"],
+      "years": "2005-2024",
+      "has_odds": true,
+      "license": "non précisée (données tennis-data.co.uk)"
+    },
+    {
+      "name": "Miroir tennis-data WTA (DanielSzakacs/wta_data) - secours",
+      "url_pattern": "https://raw.githubusercontent.com/DanielSzakacs/wta_data/main/{YYYY}.csv",
+      "example_url": "https://raw.githubusercontent.com/DanielSzakacs/wta_data/main/2024.csv",
+      "columns": ["format tennis-data.co.uk"],
+      "years": "~2007-2024 (2024 vérifié)",
+      "has_odds": true,
+      "license": "non précisée"
+    },
+    {
+      "name": "ATP 2000-2026 (miroir HF du Kaggle dissfya 'ATP Tennis daily pull')",
+      "url_pattern": "https://huggingface.co/datasets/groundhog2107/atp_tennis/resolve/main/atp_tennis.csv",
+      "example_url": "https://huggingface.co/datasets/groundhog2107/atp_tennis/resolve/main/atp_tennis.csv",
+      "columns": ["Tournament","Date","Series","Court","Surface","Round","Best of","Player_1","Player_2","Winner","Rank_1","Rank_2","Pts_1","Pts_2","Odd_1","Odd_2","Score"],
+      "years": "2000-01-03 -> 2026-03-15 (67 288 matchs, fichier unique 9 Mo)",
+      "has_odds": true,
+      "odds_detail": "une seule cote par joueur (Odd_1/Odd_2, -1 si manquante)",
+      "license": "non précisée (dérivé de tennis-data)"
+    },
+    {
+      "name": "Archive Jeff Sackmann (Aneeshers/tennis-sackmann-archive) - résultats + stats, sans cotes",
+      "url_pattern": "https://raw.githubusercontent.com/Aneeshers/tennis-sackmann-archive/main/{atp|wta}/{atp|wta}_matches_{YYYY}.csv",
+      "example_url": "https://raw.githubusercontent.com/Aneeshers/tennis-sackmann-archive/main/atp/atp_matches_2026.csv",
+      "columns": ["tourney_id","tourney_name","surface","draw_size","tourney_level","tourney_date","match_num","winner_id","winner_name","...","score","best_of","round","minutes","w_ace","w_df","w_svpt","...","winner_rank","loser_rank"],
+      "years": "1968-2026 (instantané juin 2026 ; 2026 jusqu'au 2026-05-25)",
+      "has_odds": false,
+      "license": "CC BY-NC-SA 4.0 (Jeff Sackmann)"
+    },
+    {
+      "name": "TML-Database (Tennismylife) - résultats ATP format Sackmann",
+      "url_pattern": "https://raw.githubusercontent.com/Tennismylife/TML-Database/master/{YYYY}.csv",
+      "example_url": "https://raw.githubusercontent.com/Tennismylife/TML-Database/master/2025.csv",
+      "columns": ["tourney_id","tourney_name","surface","indoor","tourney_date","winner_id","winner_name","...","w_ace","..."],
+      "years": "1968-2026 (2026.csv peu rempli au 2026-10-02 : mi-janvier) + ongoing_tourneys.csv",
+      "has_odds": false,
+      "license": "CC BY-NC-SA"
+    },
+    {
+      "name": "Match Charting Project (Sackmann, seul dépôt Sackmann encore en ligne)",
+      "url_pattern": "https://raw.githubusercontent.com/JeffSackmann/tennis_MatchChartingProject/master/charting-{m|w}-matches.csv",
+      "example_url": "https://raw.githubusercontent.com/JeffSackmann/tennis_MatchChartingProject/master/charting-m-matches.csv",
+      "columns": ["match_id","Player 1","Player 2","Date","Tournament","Round","..."],
+      "years": "point par point codé à la main, ~1970s-2026",
+      "has_odds": false,
+      "license": "CC BY-NC-SA 4.0"
+    }
+  ],
+  "basketball_nba": [
+    {
+      "name": "SportsbookReviewsOnline (SBR) archive HTML",
+      "url_pattern": "https://www.sportsbookreviewsonline.com/scoresoddsarchives/nba-odds-{YYYY}-{YY}",
+      "example_url": "https://www.sportsbookreviewsonline.com/scoresoddsarchives/nba-odds-2021-22",
+      "columns": ["Date(MMDD)","Rot","VH","Team","1st","2nd","3rd","4th","Final","Open","Close","ML","2H"],
+      "years": "2007-08 -> 2022-23",
+      "has_odds": true,
+      "odds_detail": "Open/Close = spread ou total selon la ligne (le plus grand nombre = total), ML clôture, 2H ; parser avec pandas.read_html (lxml)",
+      "license": "site public, robots.txt Allow / (sauf /go/)"
+    },
+    {
+      "name": "flancast90/sportsbookreview-scraper (JSON SBR propre)",
+      "url_pattern": "https://raw.githubusercontent.com/flancast90/sportsbookreview-scraper/main/data/nba_archive_10Y.json",
+      "example_url": "https://raw.githubusercontent.com/flancast90/sportsbookreview-scraper/main/data/nba_archive_10Y.json",
+      "columns": ["season","date","home_team","away_team","home_1stQtr..away_4thQtr","home_final","away_final","home_close_ml","away_close_ml","home_open_spread","away_open_spread","home_close_spread","away_close_spread","home_2H_spread","away_2H_spread","2H_total","open_over_under","close_over_under"],
+      "years": "2011-12 -> 2021-22 (13 903 matchs, 7 Mo)",
+      "has_odds": true,
+      "license": "MIT"
+    },
+    {
+      "name": "wippa-studios/wippa-nba-data (cotes décimales clôture ML)",
+      "url_pattern": "https://raw.githubusercontent.com/wippa-studios/wippa-nba-data/main/seasons/{YYYY}-{YYYY+1}/nba_{YYYY}-{YYYY+1}_results_odds.csv",
+      "example_url": "https://raw.githubusercontent.com/wippa-studios/wippa-nba-data/main/seasons/2025-2026/nba_2025-2026_results_odds.csv",
+      "columns": ["date","round","home_team","away_team","home_score","away_score","home_odds","away_odds","overtime","home_win","total_points","point_diff","is_allstar"],
+      "years": "2016-2017 -> 2025-2026 (2025-26 jusqu'au 2026-06-14)",
+      "has_odds": true,
+      "license": "MIT"
+    },
+    {
+      "name": "ESPN core API - cotes par match (multi-bookmakers US, open/close récents)",
+      "url_pattern": "https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/events/{event_id}/competitions/{event_id}/odds",
+      "example_url": "https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/events/401705123/competitions/401705123/odds",
+      "columns": ["provider.name","details","spread","overUnder","homeTeamOdds.moneyLine","awayTeamOdds.moneyLine","open","close","current"],
+      "years": "~2014-15 -> présent (multi-books dès 2015 ; open/close structurés surtout depuis 2023)",
+      "has_odds": true,
+      "odds_detail": "event_id via https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=YYYYMMDD",
+      "license": "API non documentée ESPN, usage personnel/recherche ; pas de garantie"
+    }
+  ],
+  "ice_hockey_nhl": [
+    {
+      "name": "SportsbookReviewsOnline (SBR) archive HTML",
+      "url_pattern": "https://www.sportsbookreviewsonline.com/scoresoddsarchives/nhl-odds-{YYYY}-{YY}",
+      "example_url": "https://www.sportsbookreviewsonline.com/scoresoddsarchives/nhl-odds-2022-23",
+      "columns": ["Date","Rot","VH","Team","1st","2nd","3rd","Final","Open","Close","PuckLine","(odds)","OpenOU","(odds)","CloseOU","(odds)"],
+      "years": "2007-08 -> 2022-23 (saison 2020-21 = slug nhl-odds-2021)",
+      "has_odds": true,
+      "license": "site public"
+    },
+    {
+      "name": "flancast90/sportsbookreview-scraper NHL JSON",
+      "url_pattern": "https://raw.githubusercontent.com/flancast90/sportsbookreview-scraper/main/data/nhl_archive_10Y.json",
+      "example_url": "https://raw.githubusercontent.com/flancast90/sportsbookreview-scraper/main/data/nhl_archive_10Y.json",
+      "columns": ["season","date","home_team","away_team","home_1stPeriod..away_3rdPeriod","home_final","away_final","home_open_ml","away_open_ml","home_close_ml","away_close_ml","home_close_spread","away_close_spread","home_close_spread_odds","away_close_spread_odds","open_over_under","open_over_under_odds","close_over_under","close_over_under_odds"],
+      "years": "2011-12 -> 2021-22 (13 678 matchs)",
+      "has_odds": true,
+      "license": "MIT"
+    },
+    {
+      "name": "ESPN core API - cotes NHL",
+      "url_pattern": "https://sports.core.api.espn.com/v2/sports/hockey/leagues/nhl/events/{event_id}/competitions/{event_id}/odds",
+      "example_url": "https://sports.core.api.espn.com/v2/sports/hockey/leagues/nhl/events/401559900/competitions/401559900/odds",
+      "columns": ["provider.name (Bet365, DraftKings, MGM, Caesars, ESPN BET...)","moneyLine","overUnder","open","close"],
+      "years": "~2019-20 -> présent (open/close multi-books vérifiés jan. 2024)",
+      "has_odds": true,
+      "license": "API non documentée ESPN"
+    },
+    {
+      "name": "NHL officiel api-web.nhle.com (résultats, sans cotes)",
+      "url_pattern": "https://api-web.nhle.com/v1/score/{YYYY-MM-DD}",
+      "example_url": "https://api-web.nhle.com/v1/score/2025-01-15",
+      "columns": ["games[].homeTeam/awayTeam/score/gameState/..."],
+      "years": "historique complet",
+      "has_odds": false,
+      "license": "API publique non documentée"
+    },
+    {
+      "name": "MoneyPuck (xG, stats équipes/joueurs, tirs)",
+      "url_pattern": "https://moneypuck.com/moneypuck/playerData/seasonSummary/{YYYY}/regular/teams.csv",
+      "example_url": "https://moneypuck.com/moneypuck/playerData/seasonSummary/2024/regular/teams.csv",
+      "columns": ["team","season","situation","xGoalsPercentage","corsiPercentage","..."],
+      "years": "2008 -> présent ; tirs: https://peter-tanner.com/moneypuck/downloads/shots_{YYYY}.zip (~20 Mo)",
+      "has_odds": false,
+      "license": "usage non commercial, attribution MoneyPuck"
+    }
+  ],
+  "american_football_nfl": [
+    {
+      "name": "nflverse nfldata games.csv",
+      "url_pattern": "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
+      "example_url": "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
+      "columns": ["game_id","season","game_type","week","gameday","away_team","away_score","home_team","home_score","result","total","overtime","espn","away_rest","home_rest","away_moneyline","home_moneyline","spread_line","away_spread_odds","home_spread_odds","total_line","under_odds","over_odds","div_game","roof","surface","temp","wind","qb/coach/referee/stadium"],
+      "years": "1999 -> 2026 (spread/total dès 1999, moneyline et prix dès 2006)",
+      "has_odds": true,
+      "odds_detail": "lignes de clôture consensus ; spread_line du point de vue home",
+      "license": "CC-BY 4.0 / MIT (nflverse)"
+    },
+    {
+      "name": "nflverse-data release (même fichier, via GitHub releases)",
+      "url_pattern": "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
+      "example_url": "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
+      "columns": ["idem"],
+      "years": "1999 -> 2026",
+      "has_odds": true,
+      "license": "idem"
+    },
+    {
+      "name": "SBR NFL archive HTML",
+      "url_pattern": "https://www.sportsbookreviewsonline.com/scoresoddsarchives/nfl-odds-{YYYY}-{YY}",
+      "example_url": "https://www.sportsbookreviewsonline.com/scoresoddsarchives/nfl-odds-2021-22",
+      "columns": ["Date","Rot","VH","Team","1st","2nd","3rd","4th","Final","Open","Close","ML","2H"],
+      "years": "2007-08 -> 2021-22",
+      "has_odds": true,
+      "license": "site public"
+    },
+    {
+      "name": "Spreadspoke (miroir HF du Kaggle 'NFL scores and betting data')",
+      "url_pattern": "https://huggingface.co/datasets/tuxmx/nfl_bets_scores/resolve/main/spreadspoke_scores.csv",
+      "example_url": "https://huggingface.co/datasets/tuxmx/nfl_bets_scores/resolve/main/spreadspoke_scores.csv",
+      "columns": ["schedule_date","schedule_season","schedule_week","schedule_playoff","team_home","score_home","score_away","team_away","team_favorite_id","spread_favorite","over_under_line","stadium","weather_*"],
+      "years": "1966 -> fév. 2024 (lignes depuis 1979)",
+      "has_odds": true,
+      "license": "Kaggle (CC BY-NC-SA)"
+    }
+  ],
+  "baseball_mlb": [
+    {
+      "name": "SBR MLB xlsx",
+      "url_pattern": "https://www.sportsbookreviewsonline.com/wp-content/uploads/sportsbookreviewsonline_com_737/mlb-odds-{YYYY}.xlsx",
+      "example_url": "https://www.sportsbookreviewsonline.com/wp-content/uploads/sportsbookreviewsonline_com_737/mlb-odds-2021.xlsx",
+      "columns": ["Date","Rot","VH","Team","Pitcher","1st..9th","Final","Open","Close","RunLine","(odds)","OpenOU","(odds)","CloseOU","(odds)"],
+      "years": "2010 -> 2021",
+      "has_odds": true,
+      "license": "site public"
+    },
+    {
+      "name": "MLB moneylines Oddsportal (HF Oronto/baseball-stats-cleaned_oddsportal_mlb)",
+      "url_pattern": "https://huggingface.co/datasets/Oronto/baseball-stats-cleaned_oddsportal_mlb/resolve/main/data/train-00000-of-00001.parquet",
+      "example_url": "https://huggingface.co/datasets/Oronto/baseball-stats-cleaned_oddsportal_mlb/resolve/main/data/train-00000-of-00001.parquet",
+      "columns": ["game_id","game_datetime","home_team","home_score","away_team","away_score","Home_Win","game_date","home_odds","away_odds","records..."],
+      "years": "2006-06 -> 2024-09 (40 359 matchs)",
+      "has_odds": true,
+      "odds_detail": "moneyline américaine (1 valeur par équipe)",
+      "license": "non précisée (HF)"
+    },
+    {
+      "name": "flancast90 MLB JSON (SBR)",
+      "url_pattern": "https://raw.githubusercontent.com/flancast90/sportsbookreview-scraper/main/data/mlb_archive_10Y.json",
+      "example_url": "https://raw.githubusercontent.com/flancast90/sportsbookreview-scraper/main/data/mlb_archive_10Y.json",
+      "columns": ["season","date","home/away","scores","open/close ML","run line","O/U"],
+      "years": "2011 -> 2021",
+      "has_odds": true,
+      "license": "MIT"
+    },
+    {
+      "name": "MLB Stats API officielle (résultats, sans cotes)",
+      "url_pattern": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={YYYY-MM-DD}",
+      "example_url": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2025-07-15",
+      "columns": ["dates[].games[].teams.home/away.score, gamePk, status..."],
+      "years": "historique complet",
+      "has_odds": false,
+      "license": "usage non commercial (MLB Advanced Media)"
+    },
+    {
+      "name": "Retrosheet game logs",
+      "url_pattern": "https://www.retrosheet.org/gamelogs/gl{YYYY}.zip",
+      "example_url": "https://www.retrosheet.org/gamelogs/gl2024.zip",
+      "columns": ["161 champs sans en-tête (cf. glfields.txt)"],
+      "years": "1871 -> 2025",
+      "has_odds": false,
+      "license": "libre avec mention Retrosheet"
+    }
+  ],
+  "rugby": [
+    {
+      "name": "transientlunatic/Rugby-Data (JSON par compétition-saison, avec événements de score)",
+      "url_pattern": "https://raw.githubusercontent.com/transientlunatic/Rugby-Data/master/json/{competition}-{YYYY}-{YYYY+1}.json",
+      "example_url": "https://raw.githubusercontent.com/transientlunatic/Rugby-Data/master/json/top14-2025-2026.json",
+      "columns": ["home.team","home.score","home.scores[] (minute,type,value,player)","away.*","date/stadium..."],
+      "years": "Top14 2009-10 -> 2026-27 ; premiership, celtic (URC), currie-cup, npc, super-rugby, rugby-world-cup 1987->..., etc.",
+      "has_odds": false,
+      "license": "non précisée"
+    },
+    {
+      "name": "dirknbr/rugby-elo (tests internationaux)",
+      "url_pattern": "https://raw.githubusercontent.com/dirknbr/rugby-elo/main/match_data_{YYYYMMDD}.csv",
+      "example_url": "https://raw.githubusercontent.com/dirknbr/rugby-elo/main/match_data_20251102.csv",
+      "columns": ["date","hometeam","awayteam","home","away"],
+      "years": "~400 tests récents jusqu'au 2025-11",
+      "has_odds": false,
+      "license": "non précisée"
+    },
+    {
+      "name": "Betexplorer (rugby via OddsPortal/OddsHarvester recommandé) / ESPN rugby scoreboard",
+      "url_pattern": "https://site.api.espn.com/apis/site/v2/sports/rugby/{league_id}/scoreboard?dates={YYYYMMDD}",
+      "example_url": "https://site.api.espn.com/apis/site/v2/sports/rugby/180659/scoreboard?dates=20250315",
+      "columns": ["events[].competitions[].competitors[].score ..."],
+      "years": "ids: 180659 Six Nations, 270559 Top 14, 267979 Premiership, 270557 URC, 242041 Super Rugby, 164205 Coupe du monde ; rugby-league/3 = NRL",
+      "has_odds": false,
+      "license": "API non documentée ESPN"
+    }
+  ],
+  "handball": [
+    {
+      "name": "Betexplorer pages résultats (HTML statique avec cotes moyennes 1X2)",
+      "url_pattern": "https://www.betexplorer.com/handball/{pays}/{ligue}-{YYYY}-{YYYY+1}/results/",
+      "example_url": "https://www.betexplorer.com/handball/france/starligue-2024-2025/results/",
+      "columns": ["round","match","score","odd_1","odd_X","odd_2","date (via betexplorer_results.py)"],
+      "years": "selon ligue (~2008 -> présent) ; la page statique ne contient qu'une partie de la saison (dernières phases), cf. liens 'stage'",
+      "has_odds": true,
+      "odds_detail": "cote moyenne marché (data-odd), pas de détail par bookmaker sur la page de résultats",
+      "license": "CGU Betexplorer : scraping non autorisé explicitement ; robots.txt interdit ?year= et /bookmaker/ ; rythme lent"
+    }
+  ],
+  "volleyball": [
+    {
+      "name": "Betexplorer pages résultats volley (cotes moyennes 1/2)",
+      "url_pattern": "https://www.betexplorer.com/volleyball/{pays}/{ligue}-{YYYY}-{YYYY+1}/results/",
+      "example_url": "https://www.betexplorer.com/volleyball/france/ligue-a-2024-2025/results/",
+      "columns": ["round","match","score (sets)","odd_1","odd_2","date"],
+      "years": "selon ligue ; idem limitation 'stage'",
+      "has_odds": true,
+      "license": "idem Betexplorer"
+    }
+  ],
+  "football": [
+    {
+      "name": "football-data.co.uk (déjà intégré côté projet)",
+      "url_pattern": "https://www.football-data.co.uk/mmz4281/{SSSS}/{DIV}.csv ; https://www.football-data.co.uk/new/{CODE}.csv",
+      "example_url": "https://www.football-data.co.uk/mmz4281/2627/E0.csv",
+      "columns": ["voir notes.txt"],
+      "years": "1993/94 -> 2026/27 (22 divisions) ; 'new' 2012 -> 2026 (16 pays)",
+      "has_odds": true,
+      "license": "gratuit, usage non commercial"
+    },
+    {
+      "name": "Understat JSON (xG) via endpoint AJAX",
+      "url_pattern": "https://understat.com/getLeagueData/{EPL|La_liga|Bundesliga|Serie_A|Ligue_1|RFPL}/{YYYY}",
+      "example_url": "https://understat.com/getLeagueData/EPL/2024",
+      "columns": ["teams{id:{history[xG,xGA,npxG,ppda,deep,xpts,...]}}","players[]","dates[] (match, goals, xG, forecast w/d/l)"],
+      "years": "2014/15 -> présent",
+      "has_odds": false,
+      "odds_detail": "header X-Requested-With: XMLHttpRequest + réponse gzip ; robots.txt Disallow: /",
+      "license": "pas de licence ; robots.txt interdit tout crawl"
+    },
+    {
+      "name": "Résultats internationaux (martj42)",
+      "url_pattern": "https://raw.githubusercontent.com/martj42/international_results/master/{results|shootouts|goalscorers}.csv",
+      "example_url": "https://raw.githubusercontent.com/martj42/international_results/master/results.csv",
+      "columns": ["date","home_team","away_team","home_score","away_score","tournament","city","country","neutral"],
+      "years": "1872 -> 2026",
+      "has_odds": false,
+      "license": "CC0"
+    },
+    {
+      "name": "xgabora Club-Football-Match-Data (football-data + Elo ClubElo pré-joint)",
+      "url_pattern": "https://raw.githubusercontent.com/xgabora/Club-Football-Match-Data-2000-2025/main/data/{Matches|EloRatings}.csv",
+      "example_url": "https://raw.githubusercontent.com/xgabora/Club-Football-Match-Data-2000-2025/main/data/EloRatings.csv",
+      "columns": ["Division","MatchDate","HomeTeam","AwayTeam","HomeElo","AwayElo","Form3/5","FT/HT","stats","OddHome","OddDraw","OddAway","MaxHome..","Over25","Under25","HandiSize","HandiHome","HandiAway"],
+      "years": "2000 -> 2025 (Matches.csv 45 Mo, EloRatings.csv 11 Mo)",
+      "has_odds": true,
+      "license": "voir dépôt ; substitut partiel à api.clubelo.com (fermée)"
+    },
+    {
+      "name": "StatsBomb open data",
+      "url_pattern": "https://raw.githubusercontent.com/statsbomb/open-data/master/data/{competitions.json|matches/{comp}/{season}.json|events/{match}.json}",
+      "example_url": "https://raw.githubusercontent.com/statsbomb/open-data/master/data/competitions.json",
+      "columns": ["événements détaillés"],
+      "years": "sélection de compétitions",
+      "has_odds": false,
+      "license": "StatsBomb public data licence (attribution)"
+    }
+  ],
+  "multi_sport_odds_live": [
+    {
+      "name": "Pinnacle guest API (cotes live/pré-match, pas d'historique)",
+      "url_pattern": "https://guest.api.arcadia.pinnacle.com/0.1/leagues/{league_id}/{matchups|markets/straight}",
+      "example_url": "https://guest.api.arcadia.pinnacle.com/0.1/sports/29/leagues?all=false",
+      "columns": ["matchupId","participants","startTime","prices[designation,price(américain)]","limits"],
+      "years": "temps réel uniquement",
+      "has_odds": true,
+      "odds_detail": "Pinnacle n'est pas agréé ANJ mais sert de référence 'sharp' ; sport 29 = football",
+      "license": "API non publique ; CGU Pinnacle ; usage modéré"
+    }
+  ],
+  "mma": [
+    {
+      "name": "Ultimate UFC dataset (shortlikeafox)",
+      "url_pattern": "https://raw.githubusercontent.com/shortlikeafox/ultimate_ufc_dataset/master/ufc-master.csv",
+      "example_url": "https://raw.githubusercontent.com/shortlikeafox/ultimate_ufc_dataset/master/ufc-master.csv",
+      "columns": ["R_fighter","B_fighter","R_odds","B_odds","R_ev","B_ev","date","Winner","weight_class","...stats","r_dec_odds","b_dec_odds","r_sub_odds","b_sub_odds","r_ko_odds","b_ko_odds"],
+      "years": "2010-03 -> 2026-03",
+      "has_odds": true,
+      "license": "non précisée"
+    }
+  ],
+  "formula1": [
+    {
+      "name": "Jolpica-F1 (remplaçant d'Ergast)",
+      "url_pattern": "https://api.jolpi.ca/ergast/f1/{YYYY}/results.json",
+      "example_url": "https://api.jolpi.ca/ergast/f1/2025/results.json",
+      "columns": ["MRData.RaceTable.Races[].Results[]"],
+      "years": "1950 -> présent",
+      "has_odds": false,
+      "license": "gratuit, rate limit ~4 req/s, 500 req/h"
+    }
+  ]
+}
