@@ -85,6 +85,7 @@ Pour l'offre gratuite (500 crédits/mois), remettre dans le workflow :
 |---|---|
 | Mauvais match apparié (le bug « Salernitana » de l'ancien système) | Heures de début à ± 3 h, similarité ≥ 0,8 sur les deux équipes, abstention si deux candidats sont proches ; tests unitaires |
 | Erreur de cote (EV énorme) | EV plafonnée à 30 % : au-delà, le pari est ignoré |
+| Marchés différents sous le même nom (hockey, handball : 1N2 temps réglementaire chez Betclic/Winamax/Unibet/PMU, vainqueur à 2 issues chez Pinnacle) | Comparaison seulement si les deux marchés ont les mêmes issues (avec ou sans « Nul ») ; test unitaire. Bug vu au premier passage (02/10/2026 : 15 faux value bets NHL/handball à +4 à +27 %), corrigé et retiré du suivi |
 | Référence Pinnacle peu fiable | Marchés dont la marge Pinnacle dépasse 8 % exclus |
 | Marchés non autorisés en France | Cartons, corners, ITF, Challengers, WTA 125 exclus ; compétitions suivies alignées sur la liste ANJ |
 | Grosses cotes | Cote maximale 10 (le biais favori/outsider rend les grosses cotes perdantes) |

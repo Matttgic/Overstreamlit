@@ -93,7 +93,12 @@ def value_from_oddsapi(pin: pd.DataFrame, fr: pd.DataFrame, cfg: DashConfig) -> 
                             "pin_margin": float(pr["pin_margin"].iloc[0]), "market_key": pr["market_key"].iloc[0],
                             "pin_selection": sel, "source": "Pinnacle vs FR (The Odds API)",
                             "match_score": round(mm.score, 2)})
+            # même marché seulement : hockey et handball sont publiés en 1N2 temps réglementaire
+            # (avec « Nul ») par la plupart des opérateurs FR, en 2 issues par Pinnacle
             fe = fe[fe["market"] == "moneyline"]
+            pin_draw = bool((pe["selection"] == "Nul").any())
+            draw_books = set(fe.loc[fe["selection"] == "Nul", "book"])
+            fe = fe[fe["book"].isin(draw_books) == pin_draw]
             best = fe.sort_values("odds", ascending=False).drop_duplicates("selection")
             for r in best.itertuples():
                 pr = pe[pe["selection"] == mapping.get(r.selection)]
@@ -220,6 +225,12 @@ def football_data_fair_table() -> dict:
 def update_history(hist: list[dict], picks: pd.DataFrame, pin: pd.DataFrame,
                    now: pd.Timestamp, fd_fair: dict | None = None) -> list[dict]:
     """Ajoute les nouveaux paris et met à jour la CLV des paris dont le match n'a pas commencé."""
+    # faux value bets du 02/10/2026 (1N2 temps réglementaire FR comparé au vainqueur Pinnacle
+    # en hockey/handball, corrigé dans value_from_oddsapi) : retirés du suivi
+    hist = [h for h in hist if not (h.get("source") == "Pinnacle vs FR (The Odds API)"
+                                    and h.get("sport") in ("hockey", "handball")
+                                    and h.get("market") == "Vainqueur / 1N2"
+                                    and h["detected_at"] < "2026-10-02T21")]
     known = {(h["event"], h["selection"], h["book"]) for h in hist}
     for r in picks.itertuples():
         k = (r.event, r.selection, r.book)
