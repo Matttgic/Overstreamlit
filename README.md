@@ -76,6 +76,13 @@ Tout reproduire (données → modèles → backtests → rapports) : voir
 
 ## La méthode recommandée pour un parieur en France
 
+> **À savoir :** sur les marchés principaux, les bookmakers français paient en médiane
+> ~6 % de moins que la cote juste (mesure indépendante, août 2026, 4 342 cotes) : les
+> value bets « classiques » y sont rares. Ils apparaissent surtout sur les **cotes
+> boostées, promotions et paris joueurs**, que le tableau de bord permet de vérifier en
+> une seconde (calculateur intégré).
+
+
 1. Ouvrir des comptes chez **plusieurs** opérateurs agréés ANJ.
 2. Calculer la cote juste à partir de Betfair Exchange (le scanner le fait).
 3. Ne parier que si la meilleure cote française dépasse la cote juste d'au moins 2-3 %.

@@ -86,7 +86,9 @@ Ensuite tout tourne seul : 9 mises à jour par jour (05:07 → 21:07 UTC).
 |---|---|---|
 | 1 | Tableau de bord multi-sports, cotes minimum, value bets bet365/bwin/FR, CLV, Pages, Telegram, artefact | ✅ fait |
 | 2 | **Résultats et bilan financier** : scores ESPN (gratuit) pour régler automatiquement chaque pari (football, NBA, NHL, NFL, MLB, tennis, UFC) et afficher le ROI à côté de la CLV | ✅ fait |
-| 3 | **Modèle buteurs NHL** (tirs, temps de jeu, power play, gardien adverse, via api-web.nhle.com et MoneyPuck) en second avis des cotes Pinnacle — à **backtester avant toute utilisation**, comme tous les modèles de ce dépôt | à faire |
+| 3a | **Paris joueurs NHL/NBA** : cotes justes Pinnacle (buteur, tirs cadrés, points, passes, arrêts ; NBA points/rebonds/passes dès le 20/10) affichées avec la cote minimum à prendre, filtres par type de stat | ✅ fait |
+| 3b | **Archive quotidienne des cotes Pinnacle** (marchés principaux + paris joueurs, branche `dashboard-data`, dossier `archive/`) : il n'existe aucun historique gratuit de cotes de paris joueurs, on le construit | ✅ fait |
+| 3c | **Modèle buteurs NHL ancré sur le marché** : total d'équipe pris dans les cotes Pinnacle, seule la répartition entre joueurs est modélisée (tirs, temps de jeu, power play, gardien partant via DailyFaceoff) — idée reprise de Jejeh040/marqueurs-xiii. À évaluer sur l'archive (3b) et sur les prix Kalshi avant toute utilisation | à faire |
 | 4 | **Cotes des opérateurs français non couverts** (ParionsSport fusionné dans Unibet, bet365.fr, Betsson, Vbet…) : petit script à lancer depuis une connexion française (PC ou Raspberry Pi), car ces sites bloquent les serveurs étrangers | à étudier |
 | 5 | Alertes de cotes boostées (S09) : comparer chaque boost à la cote juste | à étudier |
 
@@ -95,5 +97,12 @@ Ensuite tout tourne seul : 9 mises à jour par jour (05:07 → 21:07 UTC).
 - Un flux constant de paris : avec deux bookmakers comparés automatiquement, il y a
   souvent 0 à 3 value bets par jour. L'essentiel de la valeur vient de la comparaison
   manuelle de vos propres opérateurs grâce au tableau des cotes minimum.
+- Beaucoup de value bets sur les marchés principaux des opérateurs français : une mesure
+  indépendante (ryan00x/Bet-Model, août 2026) n'a trouvé **aucune** cote ANJ à +2 % d'EV
+  sur 4 342 prix ; la meilleure cote française valait 0,936 × Pinnacle en médiane.
+  Priorité pratique : **cotes boostées, promotions, paris joueurs** (calculateur intégré
+  au tableau de bord), puis comparaison manuelle de plusieurs opérateurs.
+- Des paris joueurs français automatiquement comparés : aucune API gratuite ne fournit les
+  cotes joueurs de Winamax/Betclic/Unibet.fr ; on compare soi-même grâce aux cotes minimum.
 - Des gains garantis : l'avantage mesuré est de quelques pourcents, avec de longues
   séries négatives possibles (voir S07) et un risque de limitation des comptes.

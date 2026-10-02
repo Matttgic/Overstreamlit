@@ -86,6 +86,17 @@ td .take { font-family: var(--mono); font-weight: 600; color: var(--accent); bac
 .more { justify-self: start; }
 .clv-pos { color: var(--good); font-weight: 600; } .clv-neg { color: var(--bad); font-weight: 600; }
 
+/* calculateur */
+.calc-box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end; }
+.calc-box label { display: grid; gap: 4px; }
+.calc-box .search { max-width: none; }
+.calc-out { display: grid; gap: 2px; min-height: 44px; align-content: center; }
+.calc-out .verdict { font-family: var(--display); font-size: 1.3rem; font-weight: 700; }
+.calc-out .yes { color: var(--good); } .calc-out .no { color: var(--bad); }
+tbody tr[data-fair] { cursor: pointer; }
+tbody tr[data-fair]:hover td { background: var(--accent-soft); }
+
 /* mode d'emploi */
 .how { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
 .how > div { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px; display: grid; gap: 6px; align-content: start; }
@@ -120,6 +131,18 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
     <div class="slips" id="slips"></div>
   </section>
 
+  <section class="sec calc" aria-labelledby="h-calc">
+    <div class="sec-head"><h2 id="h-calc">Vérifier une cote (boost, promo, autre bookmaker)</h2>
+      <span class="small muted">Touchez une ligne du tableau ci-dessous pour remplir la cote juste, puis saisissez la cote proposée.</span></div>
+    <div class="calc-box">
+      <label for="c-fair"><span class="label">Cote juste</span><input id="c-fair" class="search mono" inputmode="decimal" placeholder="ex. 2,10"></label>
+      <label for="c-offer"><span class="label">Cote proposée</span><input id="c-offer" class="search mono" inputmode="decimal" placeholder="ex. 2,40"></label>
+      <label for="c-bank"><span class="label">Bankroll (€)</span><input id="c-bank" class="search mono" inputmode="decimal" value="1000"></label>
+      <div class="calc-out" id="c-out" aria-live="polite"><span class="muted small">Saisissez deux cotes.</span></div>
+    </div>
+    <p class="small muted" id="c-what"></p>
+  </section>
+
   <section class="sec" aria-labelledby="h-watch">
     <div class="sec-head">
       <h2 id="h-watch">Cotes minimum à prendre</h2>
@@ -127,7 +150,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
     </div>
     <div class="filters" id="filters"></div>
     <div class="filters">
-      <input class="search" id="q" type="search" placeholder="Équipe, joueur, compétition…" aria-label="Rechercher">
+      <input class="search" id="q" type="search" placeholder="Équipe, joueur, compétition (filtre aussi les paris joueurs)…" aria-label="Rechercher">
       <button class="chipbtn" id="mk-all" aria-pressed="true">Tous marchés</button>
       <button class="chipbtn" id="mk-ml" aria-pressed="false">Vainqueur / 1N2</button>
       <button class="chipbtn" id="mk-tot" aria-pressed="false">Totaux</button>
@@ -174,7 +197,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
   "use strict";
   var SPORTS = { football: "Football", tennis: "Tennis", basket: "Basket", hockey: "Hockey", football_americain: "Foot US",
     baseball: "Baseball", handball: "Handball", rugby: "Rugby", mma: "MMA", volley: "Volley" };
-  var state = { data: null, sport: "all", market: "all", q: "", limit: 120, origin: "" };
+  var state = { data: null, sport: "all", market: "all", stat: "all", q: "", limit: 120, origin: "" };
   var $ = function (id) { return document.getElementById(id); };
   var tf = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", weekday: "short", hour: "2-digit", minute: "2-digit" });
   var df = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
@@ -256,15 +279,29 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
     $("more").hidden = rows.length <= state.limit;
     $("more").textContent = "Afficher plus (" + (rows.length - state.limit) + " restantes)";
 
-    // props
+    // props (filtrables par type de stat)
     if (!pr.length) {
-      $("props").innerHTML = '<div class="empty"><b>Pas de paris joueurs publiés pour l\'instant.</b><p class="small muted">Pinnacle les ouvre en général le jour du match (buteurs et points NHL, points/rebonds/passes NBA). Ils apparaîtront ici automatiquement, avec la cote minimum à prendre.</p></div>';
+      $("props").innerHTML = '<div class="empty"><b>Pas de paris joueurs publiés pour l\'instant.</b><p class="small muted">Pinnacle les ouvre en général l\'après-midi du jour du match (buteurs, tirs, points en NHL ; points, rebonds, passes en NBA). Ils apparaîtront ici automatiquement, avec la cote minimum à prendre.</p></div>';
     } else {
-      $("props").innerHTML = '<div class="tablebox"><table><thead><tr><th class="hide-sm">Heure</th><th>Match</th><th class="hide-sm">Marché</th><th>Joueur / issue</th><th class="num hide-sm">Cote juste</th><th class="num">À prendre si ≥</th></tr></thead><tbody>' +
-        pr.slice(0, 300).map(function (r) {
-          return "<tr><td class=\"mono hide-sm\">" + esc(when(r.start)) + "</td><td>" + esc(r.event) + '<span class="show-sm small muted">' + esc(r.market_label) + "</span></td><td class=\"hide-sm\">" + esc(r.market_label) + "</td><td>" + esc(r.selection_label) +
-            '</td><td class="num mono hide-sm">' + n2(r.fair_odds) + '</td><td class="num"><span class="take">' + n2(r.min_odds) + "</span></td></tr>";
-        }).join("") + "</tbody></table></div>";
+      var stats = {}; pr.forEach(function (r) { var k = r.market_label.split(" — ")[1] || "Autre"; stats[k] = (stats[k] || 0) + 1; });
+      var chips = ["all"].concat(Object.keys(stats).sort(function (a, b) { return stats[b] - stats[a]; })).map(function (k) {
+        return '<button class="chipbtn" type="button" data-stat="' + esc(k) + '" aria-pressed="' + String(state.stat === k) + '">' +
+          (k === "all" ? "Tous (" + pr.length + ")" : esc(k) + " (" + stats[k] + ")") + "</button>";
+      }).join("");
+      var rowsP = pr.filter(function (r) {
+        if (state.stat !== "all" && (r.market_label.split(" — ")[1] || "Autre") !== state.stat) return false;
+        if (state.q) { var h = (r.event + " " + r.market_label).toLowerCase(); if (h.indexOf(state.q) < 0) return false; }
+        return true;
+      });
+      $("props").innerHTML = '<div class="filters">' + chips + '</div><div class="tablebox"><table><thead><tr><th class="hide-sm">Heure</th><th>Joueur</th><th>Pari</th><th class="num hide-sm">Cote juste</th><th class="num">À prendre si ≥</th></tr></thead><tbody>' +
+        rowsP.slice(0, 400).map(function (r) {
+          return '<tr data-fair="' + Number(r.fair_odds).toFixed(3) + '" data-what="' + esc(r.market_label + " · " + r.selection_label) + '"><td class="mono hide-sm small">' + esc(when(r.start)) +
+            "</td><td>" + esc(r.market_label) + '<span class="show-sm small muted">' + esc(r.event) + '</span><span class="hide-sm small muted" style="display:block">' + esc(r.event) +
+            "</span></td><td>" + esc(r.selection_label) + '</td><td class="num mono hide-sm">' + n2(r.fair_odds) + '</td><td class="num"><span class="take">' + n2(r.min_odds) + "</span></td></tr>";
+        }).join("") + "</tbody></table></div>" + (rowsP.length > 400 ? '<p class="small muted">400 premières lignes affichées : utilisez la recherche.</p>' : "");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-stat]"), function (b) {
+        b.onclick = function () { state.stat = b.getAttribute("data-stat"); render(); };
+      });
     }
 
     // suivi
@@ -287,7 +324,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
     var out = [], last = null;
     rows.forEach(function (r) {
       var first = r.event !== last; last = r.event;
-      out.push('<tr class="' + (first ? "ev-first" : "") + '"><td class="mono small hide-sm">' + (first ? esc(when(r.start)) : "") +
+      out.push('<tr class="' + (first ? "ev-first" : "") + '" data-fair="' + Number(r.fair_odds).toFixed(3) + '" data-what="' + esc(r.event + " · " + r.selection_label) + '"><td class="mono small hide-sm">' + (first ? esc(when(r.start)) : "") +
         '</td><td class="hide-sm small muted">' + (first ? esc(r.league) : "") + "</td><td>" +
         (first ? "<b>" + esc(r.event) + '</b><span class="show-sm small muted mono">' + esc(when(r.start)) + "</span>" : "") +
         "</td><td>" + esc(r.selection_label) + '</td><td class="num mono hide-sm">' + n2(r.fair_odds) +
@@ -307,6 +344,28 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
   $("mk-ml").onclick = function () { state.market = "ml"; render(); };
   $("mk-tot").onclick = function () { state.market = "tot"; render(); };
   $("more").onclick = function () { state.limit += 200; render(); };
+
+  // calculateur : EV = cote proposée / cote juste − 1 ; mise = ¼ Kelly plafonné à 2 %
+  function num(v) { var x = parseFloat(String(v).replace(",", ".")); return isFinite(x) ? x : NaN; }
+  function calc() {
+    var f = num($("c-fair").value), o = num($("c-offer").value), b = num($("c-bank").value);
+    var out = $("c-out");
+    if (!(f > 1) || !(o > 1)) { out.innerHTML = '<span class="muted small">Saisissez deux cotes supérieures à 1.</span>'; return; }
+    var p = 1 / f, ev = p * o - 1, k = Math.max(0, (p * o - 1) / (o - 1)) * 0.25, st = Math.min(k, 0.02);
+    out.innerHTML = ev >= 0.02
+      ? '<span class="verdict yes">Valeur : EV ' + pct(ev) + '</span><span class="small">Mise conseillée ' + (100 * st).toFixed(2) + " % · " + (isFinite(b) ? (b * st).toFixed(2) + " €" : "") + "</span>"
+      : ev > 0 ? '<span class="verdict">Juste au-dessus : EV ' + pct(ev) + '</span><span class="small muted">Écart trop faible pour compenser les erreurs d\'estimation (seuil 2 %).</span>'
+      : '<span class="verdict no">Pas de valeur : EV ' + pct(ev) + '</span><span class="small muted">Le bookmaker paie moins que la cote juste.</span>';
+  }
+  ["c-fair", "c-offer", "c-bank"].forEach(function (id) { $(id).addEventListener("input", calc); });
+  document.addEventListener("click", function (e) {
+    var tr = e.target.closest && e.target.closest("tr[data-fair]");
+    if (!tr) return;
+    $("c-fair").value = tr.getAttribute("data-fair");
+    $("c-what").textContent = "Sélection : " + tr.getAttribute("data-what");
+    calc();
+    $("c-offer").focus();
+  });
 
   // 1) instantané intégré à la page
   try { var s = document.getElementById("snapshot"); if (s) setData(JSON.parse(s.textContent), "instantané"); } catch (e) { /* pas d'instantané */ }

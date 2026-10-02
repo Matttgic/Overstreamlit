@@ -14,6 +14,8 @@
 | 10 | [Autocritique](10_autocritique.md) | Ce qui peut être faux dans ce travail, et comment le vérifier |
 | 11 | [Guide d'utilisation](11_guide_utilisation.md) | Installer, lancer le scanner, l'app, les backtests ; routine du parieur |
 | 12 | [Plan d'automatisation](12_plan_automatisation.md) | Tableau de bord « quoi parier aujourd'hui » : architecture, 5 actions à faire une fois, routine de 2 minutes, feuille de route |
+| 13 | [Dépôts : paris joueurs, buteurs, NHL/NBA, tableaux de bord](13_depots_paris_props_buteurs.md) | ~90 projets open source vérifiés, top 15, alerte sur les bookmakers ANJ, architecture de tableau de bord |
+| 14 | [Sources : paris joueurs et cotes en direct](14_sources_props_et_cotes_live.md) | Pinnacle (props NHL/NBA), ESPN, Kambi, Kalshi, API NHL, MoneyPuck, DailyFaceoff, Understat — 72 URLs testées, helpers Python |
 
 ## Fiches stratégies (`strategies/`)
 

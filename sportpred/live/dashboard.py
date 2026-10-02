@@ -109,9 +109,50 @@ def value_from_football_data(cfg: DashConfig) -> pd.DataFrame:
         "match_score": 1.0})
 
 
+PROP_STATS = [("Total Shots On Goal", "Tirs cadrés"), ("Total Goals", "Buts"), ("Total Points", "Points"),
+              ("Total Assists", "Passes décisives"), ("Total Saves", "Arrêts"), ("Total Rebounds", "Rebonds"),
+              ("Total Threes", "Paniers à 3 points"), ("Total 3 Point FG", "Paniers à 3 points"),
+              ("Pts+Rebs+Asts", "Points + rebonds + passes"), ("Total Steals", "Interceptions"),
+              ("Total Blocks", "Contres"), ("Total Hits", "Mises en échec"), ("Total Strikeouts", "Retraits au bâton")]
+
+
+def props_table(pin: pd.DataFrame, cfg: DashConfig) -> pd.DataFrame:
+    """Paris joueurs Pinnacle (« Player Props ») avec libellés lisibles et cote minimum."""
+    if pin.empty:
+        return pin
+    w = pin[pin["is_prop"] & pin["market"].str.startswith("Player Props:")].copy()
+    w = w[(w["pin_margin"] <= cfg.max_pin_margin + 0.02) & (w["fair_odds"] >= 1.05)]
+    if w.empty:
+        return w
+    desc = w["market"].str.replace("Player Props: ", "", regex=False)
+    players, stats = [], []
+    for d in desc:
+        for en, fr in PROP_STATS:
+            if d.endswith(en):
+                players.append(d[: -len(en)].strip())
+                stats.append(fr)
+                break
+        else:
+            players.append(d)
+            stats.append("")
+    w["player"], w["stat"] = players, stats
+    goal_yes = (w["stat"] == "Buts") & (w["line"] == 0.5)
+    w = w[~(goal_yes & (w["selection"] == "Under"))]          # « buteur » : on garde le « oui »
+    goal_yes = (w["stat"] == "Buts") & (w["line"] == 0.5)
+    w["market_label"] = w["player"] + " — " + w["stat"].where(w["stat"] != "", "stat")
+    w["market_label"] = w["market_label"].where(~goal_yes, w["player"] + " — Buteur")
+    w["selection_label"] = [("Marque (au moins 1 but)" if g else
+                             f"{'Plus' if s_ == 'Over' else 'Moins'} de {l:g}")
+                            for g, s_, l in zip(goal_yes, w["selection"], w["line"])]
+    w["min_odds"] = (w["fair_odds"] * (1 + cfg.min_ev)).round(2)
+    return w.sort_values(["start", "event", "player", "stat", "selection"])
+
+
 def watchlist(pin: pd.DataFrame, cfg: DashConfig, props: bool = False) -> pd.DataFrame:
     if pin.empty:
         return pin
+    if props:
+        return props_table(pin, cfg)
     w = pin[pin["is_prop"] == props].copy()
     if not props:
         w = w[w["market"].isin(["moneyline", "total"])]
@@ -214,11 +255,32 @@ def load_fr_odds(out_dir: Path, now: pd.Timestamp, budget: "oddsapi.Budget",
     return pd.DataFrame(), None
 
 
+def archive_odds(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp) -> None:
+    """Archive les cotes Pinnacle (marchés principaux + paris joueurs) : un fichier gzip
+    par jour, une ligne par issue et par relevé. Aucun historique gratuit de cotes de
+    paris joueurs n'existe : cette archive permettra de futurs backtests (CLV, props)."""
+    if pin.empty:
+        return
+    keep = pin[(pin["market"].isin(["moneyline", "total"])) | pin["market"].str.startswith("Player Props:")]
+    a = keep[["sport", "league", "start", "event", "market", "selection", "line", "pin_odds", "fair_odds"]].copy()
+    a.insert(0, "captured_at", now.strftime("%Y-%m-%dT%H:%MZ"))
+    a["pin_odds"] = a["pin_odds"].round(3)
+    a["fair_odds"] = a["fair_odds"].round(3)
+    d = out_dir / "archive"
+    d.mkdir(parents=True, exist_ok=True)
+    f = d / f"pinnacle_{now.strftime('%Y-%m-%d')}.csv.gz"
+    a.to_csv(f, mode="a", header=not f.exists(), index=False, compression="gzip")
+
+
 def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None = None) -> dict:
     cfg = cfg or DashConfig()
     now = now or pd.Timestamp.now(tz="UTC")
     out_dir.mkdir(parents=True, exist_ok=True)
     pin = _upcoming(pinnacle.all_odds(), cfg, now)
+    try:
+        archive_odds(pin, out_dir, now)
+    except Exception as e:  # noqa: BLE001
+        print("archivage impossible :", e)
     budget = oddsapi.Budget()
     fr, fr_at = load_fr_odds(out_dir, now, budget)
     fr = _upcoming(fr, cfg, now)

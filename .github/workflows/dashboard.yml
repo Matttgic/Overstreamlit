@@ -29,10 +29,12 @@ jobs:
 
       - name: Récupérer l'historique (branche dashboard-data)
         run: |
-          git fetch --depth=1 origin dashboard-data || echo "Première exécution : pas encore d'historique"
-          for f in history.json fr_odds_cache.json notified.json; do
-            git show origin/dashboard-data:$f > site/data/$f 2>/dev/null || rm -f site/data/$f
-          done
+          if git fetch --depth=1 origin dashboard-data; then
+            # restaure historique, cache des cotes FR, notifications et archive des cotes
+            git --work-tree=site/data checkout origin/dashboard-data -- . && git reset -q
+          else
+            echo "Première exécution : pas encore d'historique"
+          fi
 
       - name: Construire le tableau de bord
         env:

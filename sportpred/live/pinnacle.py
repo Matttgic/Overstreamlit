@@ -83,10 +83,14 @@ def league_odds(league_id: int, sport: str = "", league_name: str = "",
     by_id = {m["id"]: m for m in matchups}
     rows = []
     for mk in markets:
-        if mk.get("status") != "open" or mk.get("isAlternate"):
+        if mk.get("status", "open") != "open":
             continue
         mu = by_id.get(mk.get("matchupId"))
         if mu is None or mu.get("isLive"):
+            continue
+        # lignes alternatives ignorées pour les matchs ; les props joueurs sont souvent
+        # marquées « alternate » chez Pinnacle, on les garde
+        if mk.get("isAlternate") and mu.get("type") != "special":
             continue
         prices = mk.get("prices") or []
         if len(prices) < 2:

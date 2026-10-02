@@ -17,6 +17,15 @@ France). Contre un seul bookmaker (bet365, bwin), l'avantage devient faible ou n
   mesurer combien de fois la meilleure cote FR dépasse la cote juste Betfair. Le scanner
   quotidien mesure cette performance sur bet365 et bwin, avec la CLV de chaque pari.
 
+### Confirmation externe (ajoutée le 02/10/2026)
+
+Un test indépendant sur les 5 opérateurs ANJ couverts par The Odds API (ryan00x/Bet-Model,
+août 2026, 4 342 cotes, 99 matchs) n'a trouvé **aucune** cote à +2 % d'EV contre
+Pinnacle ; la meilleure cote française valait 0,936 × Pinnacle en médiane. Le risque n°1
+ci-dessus est donc réel : en France, l'avantage mesuré sur la « meilleure cote mondiale »
+ne se transpose presque pas aux marchés principaux. Il reste les cotes boostées, les
+promotions, les paris joueurs et la réactivité à l'information.
+
 ## 2. Erreurs de cotes et cotes périmées
 
 Une partie des « value bets » à la cote Max sont des cotes erronées ou périmées qui

@@ -44,6 +44,28 @@ cotes justes de Pinnacle. Voir [02_etudes_scientifiques.md](../02_etudes_scienti
    divisions inférieures, tennis. En Premier League, l'avantage a fortement diminué
    depuis 2021.
 
+## ⚠️ Alerte : les bookmakers français sont rarement au-dessus de la cote juste
+
+Mesure indépendante (dépôt ryan00x/Bet-Model, fichier `STRATEGY.md`, vérifié le
+02/10/2026) : en août 2026, sur **4 342 cotes de 99 matchs chez les 5 opérateurs ANJ**
+couverts par The Odds API (Betclic, Winamax, Unibet, PMU, NetBet), la meilleure cote
+française valait en médiane **0,936 × la cote Pinnacle**, et **aucune** n'a atteint +2 %
+d'EV (la meilleure : +0,25 %). C'est cohérent avec le plafond légal de TRJ à 85 % et avec
+nos propres résultats instables sur bet365/bwin.
+
+Conséquence : sur les **marchés principaux** (1N2, vainqueur, totaux), la comparaison
+automatique trouvera **peu de paris** chez les opérateurs français. Les terrains où la
+méthode reste utile en France :
+
+1. **Cotes boostées et promotions** (S09) : le boost fait passer la cote au-dessus de la
+   cote juste ; le calculateur du tableau de bord le vérifie en une seconde.
+2. **Paris joueurs et marchés secondaires** (buteurs, points, tirs) : les opérateurs les
+   ajustent plus lentement et avec plus d'erreurs.
+3. **Réactivité à l'information** (gardien annoncé, composition, forfait) : la cote juste
+   Pinnacle bouge avant les bookmakers français.
+4. **bet365.fr et les opérateurs non couverts par l'API** : à vérifier soi-même avec le
+   tableau des cotes minimum.
+
 ## Mise en œuvre en France
 
 - Ouvrir des comptes chez plusieurs des 16 opérateurs agréés (liste dans

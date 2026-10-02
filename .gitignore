@@ -7,3 +7,4 @@ data/raw/
 .DS_Store
 data/processed/cache_*
 data/processed/*.parquet
+site/data/archive/
