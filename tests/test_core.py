@@ -194,3 +194,17 @@ def test_oddsapi_parse_and_value():
     v = value_from_oddsapi(pin, fr, DashConfig())
     lm = v[v["selection"] == "Le Mans"].iloc[0]
     assert abs(lm["ev"] - (0.08 * 15 - 1)) < 1e-9 and lm["book"] == "Winamax"
+
+
+def test_results_pick_side_and_settle(monkeypatch):
+    from sportpred.live import results as rs
+    assert rs._pick_side({"selection": "domicile (Auxerre)"}, "Auxerre", "Brest") == "home"
+    assert rs._pick_side({"selection": "Nul"}, "Auxerre", "Brest") == "draw"
+    assert rs._pick_side({"selection": "Vancouver Canucks"}, "Colorado Avalanche", "Vancouver Canucks") == "away"
+    fake = [{"event_id": "1", "start": pd.Timestamp("2026-09-20T13:00Z"), "home": "AJ Auxerre", "away": "Brest",
+             "completed": True, "winner": "home", "home_score": "2", "away_score": "1"}]
+    monkeypatch.setattr(rs, "scoreboard", lambda path, day: fake)
+    h = [{"event": "Auxerre - Brest", "league": "F1", "sport": "football", "start": "2026-09-20T13:00:00+00:00",
+          "selection": "Nul", "odds": 3.4, "status": "commencé (CLV figée)"}]
+    out = rs.settle(h, pd.Timestamp("2026-09-21T12:00Z"))
+    assert out[0]["result"] == "perdu" and out[0]["profit_units"] == -1.0

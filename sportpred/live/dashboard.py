@@ -22,6 +22,7 @@ import pandas as pd
 
 from ..betting.kelly import kelly_fraction
 from . import oddsapi, pinnacle
+from . import results as results_mod
 from . import scanner as fd_scanner
 from .matching import match_events
 
@@ -163,6 +164,7 @@ def update_history(hist: list[dict], picks: pd.DataFrame, pin: pd.DataFrame,
                      "selection": r.selection, "book": r.book, "odds": float(r.odds),
                      "fair_odds_at_pick": float(r.fair_odds), "fair_odds_last": float(r.fair_odds),
                      "ev_at_pick": float(r.ev), "market_key": r.market_key, "source": r.source,
+                     "stake_pct": float(getattr(r, "stake_pct", 0) or 0),
                      "clv": None, "status": "en attente"})
     latest = {}
     if not pin.empty:
@@ -237,6 +239,10 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
     hist = json.loads(hist_path.read_text()) if hist_path.exists() else []
     hist = update_history(hist, vb if not vb.empty else pd.DataFrame(columns=["event"]), pin, now,
                           football_data_fair_table())
+    try:
+        hist = results_mod.settle(hist, now)
+    except Exception as e:  # noqa: BLE001 — un échec ESPN ne doit pas bloquer le tableau
+        print("règlement ESPN impossible :", e)
     hist_path.write_text(json.dumps(hist, ensure_ascii=False, indent=0), encoding="utf-8")
 
     def rec(df, cols):
@@ -250,6 +256,7 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
 
     clvs = [h["clv"] for h in hist if h.get("clv") is not None and h["status"] != "en attente"]
     clv_any = [h["clv"] for h in hist if h.get("clv") is not None]
+    settled = [h["profit_units"] for h in hist if h.get("profit_units") is not None]
     data = {
         "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "config": cfg.__dict__,
@@ -262,6 +269,8 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
         "props": rec(pr, ["sport", "league", "start", "event", "market_label", "selection_label",
                           "fair_odds", "min_odds", "pin_odds"]),
         "tracking": {"n_picks": len(hist), "n_closed": len(clvs), "n_with_clv": len(clv_any),
+                     "n_settled": len(settled), "profit_units": round(sum(settled), 2) if settled else None,
+                     "roi_flat": round(sum(settled) / len(settled), 4) if settled else None,
                      "clv_mean": round(float(np.mean(clvs)), 4) if clvs else None,
                      "clv_positive_share": round(float(np.mean([c > 0 for c in clvs])), 3) if clvs else None,
                      "recent": hist[-30:][::-1]},

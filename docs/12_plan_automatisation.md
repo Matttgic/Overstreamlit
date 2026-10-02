@@ -85,7 +85,7 @@ Ensuite tout tourne seul : 9 mises à jour par jour (05:07 → 21:07 UTC).
 | Phase | Contenu | Statut |
 |---|---|---|
 | 1 | Tableau de bord multi-sports, cotes minimum, value bets bet365/bwin/FR, CLV, Pages, Telegram, artefact | ✅ fait |
-| 2 | **Résultats et bilan financier tous sports** : récupérer les scores (API ESPN gratuite, API officielle NHL) pour régler automatiquement chaque pari et afficher le ROI à côté de la CLV | à faire |
+| 2 | **Résultats et bilan financier** : scores ESPN (gratuit) pour régler automatiquement chaque pari (football, NBA, NHL, NFL, MLB, tennis, UFC) et afficher le ROI à côté de la CLV | ✅ fait |
 | 3 | **Modèle buteurs NHL** (tirs, temps de jeu, power play, gardien adverse, via api-web.nhle.com et MoneyPuck) en second avis des cotes Pinnacle — à **backtester avant toute utilisation**, comme tous les modèles de ce dépôt | à faire |
 | 4 | **Cotes des opérateurs français non couverts** (ParionsSport fusionné dans Unibet, bet365.fr, Betsson, Vbet…) : petit script à lancer depuis une connexion française (PC ou Raspberry Pi), car ces sites bloquent les serveurs étrangers | à étudier |
 | 5 | Alertes de cotes boostées (S09) : comparer chaque boost à la cote juste | à étudier |

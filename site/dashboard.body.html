@@ -205,7 +205,9 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
       '<div><span class="label">Matchs analysés</span><span class="num">' + Object.keys(events).length + "</span></div>" +
       '<div><span class="label">Paris joueurs</span><span class="num">' + pr.length + "</span></div>" +
       '<div><span class="label">CLV moyenne</span><span class="num">' + (tr.clv_mean == null ? "–" : pct(tr.clv_mean)) +
-        '</span><span class="small muted">' + (tr.n_with_clv || 0) + " paris suivis</span></div>";
+        '</span><span class="small muted">' + (tr.n_with_clv || 0) + " paris suivis</span></div>" +
+      '<div><span class="label">ROI réel (mise fixe)</span><span class="num">' + (tr.roi_flat == null ? "–" : pct(tr.roi_flat)) +
+        '</span><span class="small muted">' + (tr.n_settled || 0) + " paris réglés</span></div>";
 
     // bulletins
     var cfg = d.config || {};
@@ -270,11 +272,11 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
     if (!rec.length) {
       $("track").innerHTML = '<div class="empty"><b>Le suivi démarre avec les premiers paris proposés.</b><p class="small muted">Chaque pari est horodaté puis comparé à la dernière cote juste avant le match.</p></div>';
     } else {
-      $("track").innerHTML = '<div class="tablebox"><table><thead><tr><th>Match</th><th>Pari</th><th class="hide-sm">Bookmaker</th><th class="num">Cote</th><th class="num">CLV</th><th class="hide-sm">Statut</th></tr></thead><tbody>' +
+      $("track").innerHTML = '<div class="tablebox"><table><thead><tr><th>Match</th><th>Pari</th><th class="hide-sm">Bookmaker</th><th class="num">Cote</th><th class="num">CLV</th><th class="hide-sm">Résultat</th></tr></thead><tbody>' +
         rec.map(function (h) {
           var c = h.clv == null ? '<span class="muted">en cours</span>' : '<span class="' + (h.clv >= 0 ? "clv-pos" : "clv-neg") + '">' + pct(h.clv) + "</span>";
           return "<tr><td>" + esc(h.event) + '<div class="small muted">' + esc(when(h.start)) + "</div></td><td>" + esc(h.selection) + '</td><td class="hide-sm">' + esc(h.book) +
-            '</td><td class="num mono">' + n2(h.odds) + '</td><td class="num mono">' + c + '</td><td class="hide-sm small">' + esc(h.status) + "</td></tr>";
+            '</td><td class="num mono">' + n2(h.odds) + '</td><td class="num mono">' + c + '</td><td class="hide-sm small">' + esc(h.result ? h.result + (h.score && h.score.indexOf("None") < 0 ? " (" + h.score + ")" : "") : h.status) + "</td></tr>";
         }).join("") + "</tbody></table></div>";
     }
     $("foot-src").textContent = "Sources : Pinnacle (cote juste, " + (src.pinnacle_outcomes || 0) + " issues), football-data.co.uk (bet365, bwin, Betfair)" +
