@@ -52,11 +52,15 @@ def _upcoming(df: pd.DataFrame, cfg: DashConfig, now: pd.Timestamp) -> pd.DataFr
 
 
 def value_from_oddsapi(pin: pd.DataFrame, fr: pd.DataFrame, cfg: DashConfig) -> pd.DataFrame:
-    """Compare les cotes FR (The Odds API) aux cotes justes Pinnacle, marché vainqueur/1N2."""
+    """Compare les cotes FR (The Odds API) aux cotes justes Pinnacle : vainqueur/1N2 et,
+    si relevés, totaux (même ligne exacte seulement)."""
     if pin.empty or fr.empty:
         return pd.DataFrame()
     out = []
-    pm = pin[(pin["market"] == "moneyline") & ~pin["is_prop"]]
+    unit = pin["unit"] if "unit" in pin else pd.Series(None, index=pin.index)
+    # en tennis, Pinnacle publie un second « match » en jeux : on l'exclut de l'appariement
+    pm = pin[(pin["market"] == "moneyline") & ~pin["is_prop"] & (unit.fillna("") != "jeux")]
+    ptot = pin[(pin["market"] == "total") & ~pin["is_prop"]].assign(_unit=unit.fillna(""))
     for sport, frs in fr.groupby("sport"):
         ps = pm[pm["sport"] == sport]
         if ps.empty:
@@ -69,6 +73,27 @@ def value_from_oddsapi(pin: pd.DataFrame, fr: pd.DataFrame, cfg: DashConfig) -> 
             h_fr, a_fr = fe["home"].iloc[0], fe["away"].iloc[0]
             h_p, a_p = pe["home"].iloc[0], pe["away"].iloc[0]
             mapping = {h_fr: (a_p if mm.swapped else h_p), a_fr: (h_p if mm.swapped else a_p), "Nul": "Nul"}
+            # totaux : Odds API « Over/Under » + ligne <-> Pinnacle « Plus/Moins » même ligne
+            # (tennis : totaux en jeux, publiés par Pinnacle sur le match « (Games) »)
+            ev_name, ev_start = pe["event"].iloc[0], pe["start"].iloc[0]
+            pt = ptot[(ptot["start"] == ev_start) & (ptot["event"] == ev_name)]
+            pt = pt[pt["_unit"] == ("jeux" if sport == "tennis" else "")]
+            ft = fe[fe["market"] == "total"].sort_values("odds", ascending=False) \
+                .drop_duplicates(["selection", "line"])
+            for r in ft.itertuples():
+                sel = {"Over": "Plus", "Under": "Moins"}.get(r.selection)
+                pr = pt[(pt["selection"] == sel) & (pt["line"] == r.line)]
+                if pr.empty or sel is None:
+                    continue
+                p = float(pr["fair_prob"].iloc[0])
+                out.append({"sport": sport, "league": pe["league"].iloc[0], "start": ev_start, "event": ev_name,
+                            "market": "Total" + (" de jeux" if sport == "tennis" else ""),
+                            "selection": f"{sel} {r.line:g}", "book": r.book, "odds": r.odds,
+                            "fair_odds": round(1 / p, 3), "fair_prob": p, "ev": p * r.odds - 1,
+                            "pin_margin": float(pr["pin_margin"].iloc[0]), "market_key": pr["market_key"].iloc[0],
+                            "pin_selection": sel, "source": "Pinnacle vs FR (The Odds API)",
+                            "match_score": round(mm.score, 2)})
+            fe = fe[fe["market"] == "moneyline"]
             best = fe.sort_values("odds", ascending=False).drop_duplicates("selection")
             for r in best.itertuples():
                 pr = pe[pe["selection"] == mapping.get(r.selection)]
@@ -81,8 +106,8 @@ def value_from_oddsapi(pin: pd.DataFrame, fr: pd.DataFrame, cfg: DashConfig) -> 
                             "selection": mapping[r.selection], "book": r.book, "odds": r.odds,
                             "fair_odds": round(1 / p, 3), "fair_prob": p, "ev": ev,
                             "pin_margin": float(pr["pin_margin"].iloc[0]),
-                            "market_key": pr["market_key"].iloc[0], "source": "Pinnacle vs FR (The Odds API)",
-                            "match_score": round(mm.score, 2)})
+                            "market_key": pr["market_key"].iloc[0], "pin_selection": mapping[r.selection],
+                            "source": "Pinnacle vs FR (The Odds API)", "match_score": round(mm.score, 2)})
     return pd.DataFrame(out)
 
 
@@ -204,6 +229,8 @@ def update_history(hist: list[dict], picks: pd.DataFrame, pin: pd.DataFrame,
                      "start": pd.Timestamp(r.start).isoformat(), "event": r.event, "market": r.market,
                      "selection": r.selection, "book": r.book, "odds": float(r.odds),
                      "fair_odds_at_pick": float(r.fair_odds), "fair_odds_last": float(r.fair_odds),
+                     "pin_selection": getattr(r, "pin_selection", None) if isinstance(
+                         getattr(r, "pin_selection", None), str) else r.selection,
                      "ev_at_pick": float(r.ev), "market_key": r.market_key, "source": r.source,
                      "stake_pct": float(getattr(r, "stake_pct", 0) or 0),
                      "clv": None, "status": "en attente"})
@@ -215,7 +242,7 @@ def update_history(hist: list[dict], picks: pd.DataFrame, pin: pd.DataFrame,
     for h in hist:
         start = pd.Timestamp(h["start"])
         if start > now:
-            fo = latest.get((h.get("market_key"), h["selection"])) if h.get("market_key") \
+            fo = latest.get((h.get("market_key"), h.get("pin_selection") or h["selection"])) if h.get("market_key") \
                 else fd_fair.get((h["event"], h["selection"]))
             if fo and np.isfinite(fo) and now.isoformat() > h["detected_at"]:
                 h["fair_odds_last"] = float(fo)
@@ -229,18 +256,25 @@ def update_history(hist: list[dict], picks: pd.DataFrame, pin: pd.DataFrame,
 
 def load_fr_odds(out_dir: Path, now: pd.Timestamp, budget: "oddsapi.Budget",
                  max_age_hours: float = 6.0) -> tuple[pd.DataFrame, str | None]:
-    """Cotes FR : appel à The Odds API seulement aux heures prévues (quota gratuit de
-    500 crédits/mois), sinon réutilise le dernier relevé s'il a moins de `max_age_hours`.
+    """Cotes FR via The Odds API, réglées par variables d'environnement :
 
-    Heures d'appel : variable ODDS_API_HOURS (UTC, défaut « 7,12,17 ») ; appels max par
-    passage : ODDS_API_MAX_CALLS (défaut 5) -> ~15 crédits/jour, ~465/mois.
+    - ODDS_API_HOURS : heures UTC d'appel (« 7,13,17 ») ou « all » (à chaque passage) ;
+    - ODDS_API_MAX_CALLS : nombre max de sports interrogés par passage ;
+    - ODDS_API_MARKETS : « h2h » (1 crédit/sport) ou « h2h,totals » (2 crédits/sport) ;
+    - ODDS_API_RESERVE : crédits à ne jamais entamer.
+    Défauts prudents (offre gratuite 500/mois) : 7,13,17 / 5 / h2h / 0 -> ~15 crédits/jour.
+    Hors des heures d'appel, réutilise le dernier relevé s'il a moins de `max_age_hours`.
     """
     import os
     cache = out_dir / "fr_odds_cache.json"
-    hours = {int(h) for h in os.environ.get("ODDS_API_HOURS", "7,12,17").split(",") if h.strip()}
+    hours_env = os.environ.get("ODDS_API_HOURS", "7,13,17").strip().lower()
+    hours = set(range(24)) if hours_env in ("all", "*") else \
+        {int(h) for h in hours_env.split(",") if h.strip()}
     max_calls = int(os.environ.get("ODDS_API_MAX_CALLS", "5"))
+    markets = os.environ.get("ODDS_API_MARKETS", "h2h").strip() or "h2h"
+    reserve = int(os.environ.get("ODDS_API_RESERVE", "0"))
     if oddsapi._key() and (now.hour in hours or not cache.exists()):
-        fr = oddsapi.fr_odds(max_calls=max_calls, budget=budget)
+        fr = oddsapi.fr_odds(max_calls=max_calls, markets=markets, budget=budget, reserve=reserve)
         if not fr.empty:
             cache.write_text(json.dumps({"at": now.isoformat(), "rows": fr.assign(
                 start=fr["start"].astype(str)).to_dict("records")}), encoding="utf-8")

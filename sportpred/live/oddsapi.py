@@ -70,8 +70,12 @@ def events_soon(sport_key: str, hours: float = 36) -> int:
 
 
 def fr_odds(max_calls: int = 8, markets: str = "h2h", hours: float = 36,
-            budget: Budget | None = None) -> pd.DataFrame:
-    """Cotes 1N2 / vainqueur des bookmakers français, format long."""
+            budget: Budget | None = None, reserve: int = 0) -> pd.DataFrame:
+    """Cotes des bookmakers français (vainqueur/1N2, et totaux si markets="h2h,totals").
+
+    S'arrête dès que le nombre de crédits restants (en-tête x-requests-remaining) passe
+    sous `reserve`, pour ne jamais épuiser l'abonnement.
+    """
     k = _key()
     if not k:
         return pd.DataFrame()
@@ -79,6 +83,8 @@ def fr_odds(max_calls: int = 8, markets: str = "h2h", hours: float = 36,
     rows, calls = [], 0
     for sk in active_sports():
         if calls >= max_calls:
+            break
+        if budget.remaining is not None and reserve and float(budget.remaining) < reserve:
             break
         if events_soon(sk, hours) == 0:
             continue

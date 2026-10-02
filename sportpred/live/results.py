@@ -127,6 +127,26 @@ def settle(hist: list[dict], now: pd.Timestamp, cache: dict | None = None) -> li
         r = res[res["event_id"] == m.iloc[0]["right_id"]].iloc[0]
         if not r["completed"]:
             continue
+        sel = str(h["selection"])
+        if sel.startswith(("Plus ", "Moins ")):            # totaux : score total vs ligne
+            try:
+                line = float(sel.split()[1])
+                total = float(r["home_score"]) + float(r["away_score"])
+            except (TypeError, ValueError, IndexError):
+                h["result"] = "non couvert (CLV seulement)"
+                continue
+            if h.get("sport") == "tennis":
+                h["result"] = "non couvert (CLV seulement)"   # ESPN donne les sets, pas les jeux
+                continue
+            if total == line:
+                h["result"], h["profit_units"] = "remboursé", 0.0
+            else:
+                won = (total > line) if sel.startswith("Plus") else (total < line)
+                h["result"] = "gagné" if won else "perdu"
+                h["profit_units"] = round(h["odds"] - 1, 3) if won else -1.0
+            h["score"] = f"{r['home_score']}-{r['away_score']}"
+            h["status"] = "réglé"
+            continue
         side = _pick_side(h, parts[0], parts[1])
         if side is None:
             h["result"] = "non réglé (sélection ambiguë)"

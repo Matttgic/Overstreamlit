@@ -58,7 +58,18 @@ Ensuite tout tourne seul : 9 mises à jour par jour (05:07 → 21:07 UTC).
 5. Une fois par semaine : regarder la **CLV moyenne** dans « Suivi ». Si elle reste
    négative après ~200 paris, arrêter et revoir la méthode.
 
-## 4. Gestion du quota gratuit The Odds API
+## 4. Gestion du quota The Odds API
+
+Réglage actuel (abonnement de **20 000 crédits/mois**) : relevé des cotes françaises à
+chaque mise à jour (9 par jour), jusqu'à 25 sports, vainqueur/1N2 **et totaux** (2 crédits
+par sport) : au plus 450 crédits par jour, soit ~14 000 par mois, avec arrêt automatique
+sous 2 000 crédits restants (`ODDS_API_RESERVE`). Les crédits restants s'affichent en bas
+du tableau de bord.
+
+Pour l'offre gratuite (500 crédits/mois), remettre dans le workflow :
+`ODDS_API_HOURS: '7,13,17'`, `ODDS_API_MAX_CALLS: '5'`, `ODDS_API_MARKETS: 'h2h'`.
+
+### Ancien réglage (offre gratuite)
 
 - Les appels qui listent les sports et les matchs sont gratuits ; seuls les appels de
   cotes coûtent (1 crédit par sport et par marché pour la région « fr »).

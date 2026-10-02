@@ -39,8 +39,14 @@ jobs:
       - name: Construire le tableau de bord
         env:
           THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}   # optionnel (clé gratuite)
-          ODDS_API_HOURS: '7,13,17'
-          ODDS_API_MAX_CALLS: '5'
+          # Abonnement The Odds API de 20 000 crédits/mois : relevé à chaque passage (9/jour),
+          # 25 sports max, vainqueur/1N2 + totaux (2 crédits/sport) -> ≤ 450 crédits/jour,
+          # ≤ ~14 000/mois ; arrêt automatique sous 2 000 crédits restants.
+          # Offre gratuite (500/mois) : ODDS_API_HOURS '7,13,17', MAX_CALLS '5', MARKETS 'h2h'.
+          ODDS_API_HOURS: 'all'
+          ODDS_API_MAX_CALLS: '25'
+          ODDS_API_MARKETS: 'h2h,totals'
+          ODDS_API_RESERVE: '2000'
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}   # optionnel
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}       # optionnel
           SITE_URL: https://matttgic.github.io/Overstreamlit/
