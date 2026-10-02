@@ -62,7 +62,7 @@ with tab_scan:
         picks = sc.find_value(fx, cfg)
         st.write(f"**{len(fx)}** matchs à venir analysés, **{len(picks)}** value bets.")
         if len(picks):
-            st.dataframe(picks, use_container_width=True, hide_index=True)
+            st.dataframe(picks, width="stretch", hide_index=True)
         st.info("Référence « juste » : Betfair Exchange sans marge (méthode power). "
                 "Vérifiez la cote sur votre bookmaker français avant de miser : "
                 "les cotes .fr peuvent être inférieures à celles du fichier.")
@@ -81,28 +81,28 @@ with tab_suivi:
             c.metric("ROI", f"{100 * prof / mise:.2f} %")
             done["cumul"] = done["profit_€"].cumsum()
             st.line_chart(done.set_index("date")["cumul"])
-        st.dataframe(h.iloc[::-1], use_container_width=True, hide_index=True)
+        st.dataframe(h.iloc[::-1], width="stretch", hide_index=True)
     old = csv(ROOT / "archives" / "historique_paris_ancien_systeme.csv")
     if old is not None:
         with st.expander("Ancien système (janvier-février 2026) — ROI −6,95 %, voir l'audit"):
-            st.dataframe(old, use_container_width=True, hide_index=True)
+            st.dataframe(old, width="stretch", hide_index=True)
 
 with tab_res:
     st.subheader("Football : qualité des prédictions (RPS, plus bas = meilleur)")
     q = csv(RES / "football" / "qualite_predictions.csv")
     if q is not None:
-        st.dataframe(q, use_container_width=True, hide_index=True)
+        st.dataframe(q, width="stretch", hide_index=True)
     st.subheader("Football : meilleures stratégies (choisies sur 2012-2019, validées sur 2019-2026)")
     s = csv(RES / "football" / "selection_dev_validation_test.csv")
     if s is not None:
-        st.dataframe(s, use_container_width=True, hide_index=True)
+        st.dataframe(s, width="stretch", hide_index=True)
     for img in sorted((RES / "football").glob("*.png")):
         st.image(str(img), caption=img.stem)
     st.subheader("Autres sports (tennis, NBA, NHL, NFL, MLB, MMA)")
     for f in ("qualite_all.csv", "strategies_all.csv"):
         d = csv(RES / "multisport" / f)
         if d is not None:
-            st.dataframe(d, use_container_width=True, hide_index=True)
+            st.dataframe(d, width="stretch", hide_index=True)
 
 with tab_lib:
     st.markdown((ROOT / "docs" / "00_INDEX.md").read_text(encoding="utf-8")
