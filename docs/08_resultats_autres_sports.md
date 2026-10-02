@@ -58,6 +58,8 @@ on parie quand la **meilleure cote disponible** donne une EV > 2 %.
   devient nul en test (−0,3 %). Le seuil de 2 % est plus robuste. La sélection d'un
   seuil sur la période dev a donc un coût : c'est documenté, pas caché.
 
+![Bankroll tennis](../results/multisport/tennis_bankroll_test.png)
+
 Simulation de bankroll (période test, 1 000 € au départ, mises plafonnées à 50 €) :
 
 | Gestion | Paris | ROI | Bankroll finale | Drawdown max |

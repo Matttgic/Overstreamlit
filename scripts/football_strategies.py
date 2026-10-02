@@ -154,9 +154,9 @@ def strategy_grid(df):
         configs.append(dict(famille="sharp_betfair", prob="mk_bfe", book=book, min_ev=ev,
                             max_odds=mo))
     # (c) consensus Kaunitz
-    for ev, mo in itertools.product([0.0, 0.02, 0.05], [3.5, 10.0]):
-        configs.append(dict(famille="consensus", prob="kz", book="Max", min_ev=ev, max_odds=mo))
-        configs.append(dict(famille="consensus", prob="mk_avg", book="Max", min_ev=ev, max_odds=mo))
+    for book, ev, mo in itertools.product(["Max", "FR", "B365", "BW"], [0.0, 0.02, 0.05], [3.5, 10.0]):
+        configs.append(dict(famille="consensus", prob="kz", book=book, min_ev=ev, max_odds=mo))
+        configs.append(dict(famille="consensus", prob="mk_avg", book=book, min_ev=ev, max_odds=mo))
     # (d) hybrides modèle + marché sharp
     for prob, book, ev, mo in itertools.product(["hyb_gbm20", "hyb_gbm40", "hyb_dc20", "hyb_dc40"],
                                                 ["Max", "FR", "PS"], [0.02, 0.05], [3.5, 10.0]):
@@ -215,7 +215,8 @@ def ou_grid(df):
 
 # ---------------------------------------------------------------- 4. sélection
 def select_and_validate(grid: pd.DataFrame, min_n: int = 300) -> pd.DataFrame:
-    g = grid[(grid["dev_n"] >= min_n)].copy()
+    permanent = ["Max", "FR", "B365", "BW", "Avg", "PS"]
+    g = grid[(grid["dev_n"] >= min_n) & grid["book"].isin(permanent)].copy()
     g["critère_dev"] = g["dev_ROI"]
     top = g.sort_values("critère_dev", ascending=False).groupby("famille").head(3)
     top = top.sort_values("critère_dev", ascending=False)
@@ -330,8 +331,10 @@ def main():
 
     # analyses détaillées des meilleures configurations de chaque famille (choisies sur dev)
     best = {}
+    # bookmakers présents sur toute la période (IW, VC, WH, LB disparaissent des données)
+    permanent = ["Max", "FR", "B365", "BW", "Avg", "PS"]
     for fam in ("sharp", "consensus", "modèle", "hybride"):
-        g = grid[(grid["famille"] == fam) & (grid["dev_n"] >= 300)]
+        g = grid[(grid["famille"] == fam) & (grid["dev_n"] >= 300) & grid["book"].isin(permanent)]
         if len(g):
             best[fam] = g.sort_values("dev_ROI", ascending=False).iloc[0]
     curves_sel = {}

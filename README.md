@@ -18,9 +18,10 @@ Jeu responsable : Joueurs Info Service, 09 74 75 13 13.
 | **Meilleure cote vs cote juste Pinnacle/Betfair** (EV > 2 %) | Tennis ATP | **+5,0 %** ROI, IC 95 % [+2,7 ; +7,3], 9 719 paris | ✅ |
 | idem | Tennis WTA | +2,3 %, IC [−0,2 ; +4,7], 8 350 paris | ✅ (faible) |
 | idem | Football, 16 championnats extra (échantillon indépendant) | **+5,8 %**, IC [+3,1 ; +8,6], 13 311 paris | ✅ |
-| idem | Football, 22 championnats principaux | voir [07](docs/07_resultats_football.md) | voir tableau |
+| idem (EV ≥ 5 %) | Football, 22 championnats principaux | +4,2 %, IC [−2,8 ; +11,1], 2 347 paris (dev : +13,0 %) | ✅ mais avantage en baisse depuis 2021 |
+| Consensus du marché vs meilleure cote (EV ≥ 0 %) | Football, 22 championnats | +2,4 %, IC [+1,0 ; +3,9], 19 336 paris | ✅ |
 | Même filtre mais **un seul** bookmaker (bet365) | Tennis, football | non significatif | ⚠️ il faut comparer plusieurs bookmakers |
-| Modèles seuls (Elo, Dixon-Coles, pi-ratings, LightGBM) | tous sports | ROI −2 % à −9 % | ❌ |
+| Modèles seuls (Elo, Dixon-Coles, pi-ratings, LightGBM) | tous sports | ROI −2 % à −10 %, RPS football 0,2076 vs 0,2041 pour le marché | ❌ |
 | Ancien système (Over 2.5, modèle maison) | réel, janv.-févr. 2026 | **−6,95 %** (83 paris) | ❌ ([audit](docs/09_audit_ancien_systeme.md)) |
 | Biais favori/outsider | tous sports | les gros outsiders perdent 15 à 39 % | ⚠️ à éviter, pas à exploiter |
 
