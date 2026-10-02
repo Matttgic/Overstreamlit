@@ -25,7 +25,15 @@ jobs:
           python-version: '3.11'
 
       - name: Dépendances
-        run: pip install pandas numpy scipy requests
+        run: pip install pandas numpy scipy requests pyarrow
+
+      # historique joueur-match NHL (modèle buteurs) : saisons passées gardées en cache,
+      # seule la saison en cours est retéléchargée
+      - uses: actions/cache@v4
+        with:
+          path: data/raw/nhl_players
+          key: nhl-players-${{ github.run_id }}
+          restore-keys: nhl-players-
 
       - name: Récupérer l'historique (branche dashboard-data)
         run: |

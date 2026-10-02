@@ -31,11 +31,13 @@
 | [S08 — Closing Line Value](strategies/S08_closing_line_value.md) | ✅ indicateur de suivi |
 | [S09 — Bonus, freebets, cotes boostées](strategies/S09_bonus_freebets_cotes_boostees.md) | ✅ EV positive, faible volume |
 | [S10 — Arbitrage (surebets)](strategies/S10_arbitrage_surebets.md) | ⚠️ rare en France |
+| [S11 — Buteurs NHL : cote juste pour tous les joueurs](strategies/S11_buteurs_nhl.md) | ⚠️ indicatif (calibré, comparaison à Pinnacle en cours) |
 
 ## Résultats bruts générés
 
 - [resultats/football.md](resultats/football.md) — toutes les tables football
 - [resultats/autres_sports.md](resultats/autres_sports.md) — toutes les tables multi-sports
 - [resultats/international.md](resultats/international.md) — Elo des sélections nationales
+- [resultats/nhl_buteurs.md](resultats/nhl_buteurs.md) — modèle buteurs NHL (réglage, tests, calibration)
 - CSV et graphiques : dossier `results/`
 - Données de référence : `docs/donnees_reference/` (liste ANJ complète en YAML/CSV, URLs vérifiées)

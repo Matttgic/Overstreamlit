@@ -264,3 +264,119 @@ def test_oddsapi_hockey_3way_not_compared_to_2way():
     v = value_from_oddsapi(pin, fr, DashConfig())
     assert set(v["book"]) == {"NetBet"}                     # Betclic (3 issues) écarté
     assert v["ev"].max() < 0
+
+
+def test_nhl_team_lambdas_round_trip():
+    """λ domicile/extérieur retrouvés à partir de P(victoire) et P(plus de 5,5 buts)."""
+    import numpy as np
+    from scipy.stats import poisson
+    from sportpred.models.nhl_scorers import team_lambdas
+    lh, la = 3.4, 2.6
+    k = np.arange(25)
+    joint = np.outer(poisson.pmf(k, lh), poisson.pmf(k, la))
+    p_home = np.tril(joint, -1).sum() + 0.5 * np.trace(joint)
+    p_over = poisson.sf(5, lh + la)
+    h, a = team_lambdas(p_home, p_over, 5.5)
+    assert abs(h - lh) < 1e-3 and abs(a - la) < 1e-3
+    h6, a6 = team_lambdas(0.5, 0.5, 6.0)                       # ligne entière (remboursement à 6)
+    assert abs(h6 - a6) < 1e-6 and 5.5 < h6 + a6 < 6.5
+
+
+def _nhl_games(n_games=40):
+    """Petit historique synthétique : 2 équipes, 3 joueurs chacune, un joueur qui tire beaucoup."""
+    import numpy as np
+    rng = np.random.default_rng(0)
+    rows = []
+    for g in range(n_games):
+        for team, home, base in (("AAA", True, 0), ("BBB", False, 10)):
+            for j, (pos, toi, shots_mu) in enumerate((("C", 20, 4.0), ("L", 15, 1.5), ("D", 22, 1.0))):
+                shots = int(rng.poisson(shots_mu))
+                rows.append({"game_id": 1000 + g, "date": pd.Timestamp("2025-10-01") + pd.Timedelta(days=2 * g),
+                             "season": 20252026, "team": team, "opp": "BBB" if home else "AAA", "home": home,
+                             "player_id": base + j, "name": f"P{base + j}", "pos": pos,
+                             "goals": int(rng.binomial(shots, 0.12)), "pp_goals": 0, "ot_goals": 0,
+                             "shots": shots, "toi": float(toi), "pp_toi": 2.0 if j == 0 else 0.0, "sh_toi": 0.0})
+    return pd.DataFrame(rows)
+
+
+def test_nhl_history_no_leak_and_shares():
+    import numpy as np
+    from sportpred.models import nhl_scorers as M
+    df = _nhl_games()
+    p = M.ShareParams(hl_long=10, hl_short=3)
+    h = M.add_history(df, p)
+    one = h[h["player_id"] == 0].sort_values("date").reset_index(drop=True)
+    d = 0.5 ** (1 / 10)
+    for t in (1, 5, 12):                                      # cumul pondéré des matchs < t seulement
+        expect = sum(one.loc[i, "goals"] * d ** (t - 1 - i) for i in range(t))
+        assert abs(one.loc[t, "S_goals"] - expect) < 1e-9
+    assert one.loc[0, "S_goals"] == 0 and np.isnan(one.loc[0, "toi_exp"])
+    p.priors = M.fit_priors(h)
+    f = M.features(h, p)
+    beta = M.fit_beta(f, ridge=0.1)
+    s = M.predict_shares(f, beta)
+    key = f["game_id"] * 2 + f["home"].astype(int)
+    assert np.allclose(pd.Series(s).groupby(key.values).sum(), 1.0)
+    late = f["date"] > f["date"].quantile(0.5)
+    assert s[late & (f["player_id"] == 0)].mean() > s[late & (f["player_id"] == 1)].mean()   # gros tireur
+    assert abs(M.p_score_given_goals(2, 0.5) - 0.75) < 1e-12 and abs(M.p_score(1.0, 0.5) - (1 - np.exp(-0.5))) < 1e-12
+
+
+def test_nhl_find_player_and_evaluate_archive(tmp_path):
+    from sportpred.live import nhl_scorers as L
+    ros = pd.DataFrame({"player_id": [1, 2, 3], "name": ["Tim Stützle", "Brady Tkachuk", "Matthew Tkachuk"],
+                        "pos": ["C", "L", "L"]})
+    assert L._find("Tim Stutzle", ros) == 1                    # accents
+    assert L._find("Brady Tkachuk", ros) == 2
+    assert L._find("Tkachuk", ros) is None                     # ambigu : on s'abstient
+    a = pd.DataFrame({
+        "captured_at": ["2026-10-03T17:00Z", "2026-10-03T21:00Z", "2026-10-03T23:30Z", "2026-10-03T21:00Z"],
+        "event": ["X - Y"] * 4, "start": ["2026-10-03T23:00:00Z"] * 4, "game_id": [7, 7, 7, 7],
+        "team": ["X"] * 4, "player_id": [1, 1, 1, 9], "name": ["A", "A", "A", "Scratch"],
+        "lam": [3.0] * 4, "share": [0.1] * 4, "model_prob": [0.10, 0.30, 0.99, 0.2], "pin_prob": [None, 0.25, 0.5, None]})
+    (tmp_path / "x").mkdir()
+    a.to_csv(tmp_path / "x" / "nhl_buteurs_2026-10-03.csv.gz", index=False, compression="gzip")
+    hist = pd.DataFrame({"game_id": [7], "player_id": [1], "goals": [1]})   # le joueur 9 n'a pas joué
+    r = L.evaluate_archive(tmp_path / "x", hist)
+    import math
+    assert r["n_model"] == 1 and r["n_both"] == 1                # dernier relevé AVANT le match (0,30)
+    assert abs(r["ll_model"] + math.log(0.30)) < 1e-3 and abs(r["ll_pinnacle"] + math.log(0.25)) < 1e-3
+
+
+def test_nhl_predict_back_to_back_offline(monkeypatch):
+    """Bout en bout sans réseau : une équipe qui joue deux soirs de suite garde les mêmes
+    caractéristiques de joueurs pour ses deux matchs, et Pinnacle sert à apparier les props."""
+    import numpy as np
+    from sportpred.live import nhl_scorers as L
+    hist = _nhl_games(30)
+    now = pd.Timestamp("2025-12-15T12:00Z")
+    t1, t2 = now + pd.Timedelta(hours=10), now + pd.Timedelta(hours=34)
+    sched = pd.DataFrame({"game_id": [1, 2], "season": [20252026] * 2, "start": [t1, t2],
+                          "home_abbr": ["AAA", "CCC"], "away_abbr": ["BBB", "AAA"],
+                          "home_name": ["Alpha Aces", "Gamma Gulls"], "away_name": ["Beta Bears", "Alpha Aces"]})
+    ros = {"AAA": pd.DataFrame({"player_id": [0, 1, 2], "name": ["P0", "P1", "P2"], "pos": ["C", "L", "D"]}),
+           "BBB": pd.DataFrame({"player_id": [10, 11, 12], "name": ["P10", "P11", "P12"], "pos": ["C", "L", "D"]}),
+           "CCC": pd.DataFrame({"player_id": [20, 21, 22], "name": ["Zed One", "Zed Two", "Zed Three"],
+                                "pos": ["C", "L", "D"]})}
+    monkeypatch.setattr(L, "schedule", lambda day: sched)
+    monkeypatch.setattr(L, "roster", lambda abbr: ros[abbr])
+
+    def ev(eid, start, home, away, ph):
+        base = dict(event_id=eid, start=start, event=f"{home} - {away}", home=home, away=away, league="NHL",
+                    sport="hockey", is_prop=False, line=np.nan, pin_margin=0.03)
+        return [dict(base, market="moneyline", selection=home, fair_prob=ph),
+                dict(base, market="moneyline", selection=away, fair_prob=1 - ph),
+                dict(base, market="total", selection="Plus", line=5.5, fair_prob=0.5),
+                dict(base, market="total", selection="Moins", line=5.5, fair_prob=0.5),
+                dict(base, market="Player Props: P0 Total Goals", selection="Over", line=0.5, fair_prob=0.4,
+                     is_prop=True, fair_odds=2.5)]
+    pin = pd.DataFrame(ev(101, t1, "Alpha Aces", "Beta Bears", 0.55) + ev(102, t2, "Gamma Gulls", "Alpha Aces", 0.5))
+    pred = L.predict(pin, now, hist=hist)
+    p0 = pred[pred["player_id"] == 0].set_index("game_id")
+    assert set(p0.index) == {1, 2}
+    # mêmes coéquipiers dans les deux matchs -> même part (l'ancien code écrasait le 2e match)
+    assert np.isclose(p0.loc[1, "share"], p0.loc[2, "share"])
+    assert pred.groupby(["game_id", "team"])["share"].sum().round(9).eq(1).all()
+    assert (p0["prop_name"] == "P0").all() and set(pred["match"]) == {"AAA-BBB", "CCC-AAA"}
+    cmp = L.compare_with_pinnacle(pin, pred)
+    assert len(cmp) == 2 and cmp["pin_prob"].eq(0.4).all()

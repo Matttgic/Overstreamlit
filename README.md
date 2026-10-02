@@ -39,6 +39,8 @@ Actions, après activation de GitHub Pages — voir [docs/12](docs/12_plan_autom
   tennis, NBA, NHL, NFL, MLB, handball, rugby, MMA, volley), la cote à partir de laquelle
   un pari a de la valeur — à comparer dans votre appli.
 - **Paris joueurs** : buteurs, points, tirs (les jours de match).
+- **Buteurs NHL** : cote juste pour tous les joueurs de chaque match (Pinnacle quand il les
+  cote, sinon modèle ancré sur le marché, voir [S11](docs/strategies/S11_buteurs_nhl.md)).
 - **Suivi** : CLV de chaque pari proposé. Notifications Telegram en option.
 
 ## Ce que contient le dépôt
