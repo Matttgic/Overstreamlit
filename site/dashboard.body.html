@@ -44,9 +44,9 @@ a { color: inherit; text-underline-offset: 3px; }
 .dot.ok { background: var(--good); } .dot.off { background: var(--bad); }
 
 /* bandeau de synthèse */
-.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule);
+.strip { display: flex; flex-wrap: wrap; gap: 1px; background: var(--rule);
   border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
-.strip > div { background: var(--card); padding: 12px 14px; display: grid; gap: 2px; }
+.strip > div { flex: 1 1 150px; background: var(--card); padding: 12px 14px; display: grid; gap: 2px; align-content: start; }
 .strip .num { font-family: var(--display); font-size: 1.9rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 .strip .num.accent { color: var(--accent); }
 
@@ -199,6 +199,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
     baseball: "Baseball", handball: "Handball", rugby: "Rugby", mma: "MMA", volley: "Volley" };
   var state = { data: null, sport: "all", market: "all", stat: "all", q: "", limit: 120, origin: "" };
   var $ = function (id) { return document.getElementById(id); };
+  var plural = function (n, one, many) { return n + " " + (n <= 1 ? one : many); };
   var tf = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", weekday: "short", hour: "2-digit", minute: "2-digit" });
   var df = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
   function when(s) { try { return tf.format(new Date(s)); } catch (e) { return s; } }
@@ -228,9 +229,9 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
       '<div><span class="label">Matchs analysés</span><span class="num">' + Object.keys(events).length + "</span></div>" +
       '<div><span class="label">Paris joueurs</span><span class="num">' + pr.length + "</span></div>" +
       '<div><span class="label">CLV moyenne</span><span class="num">' + (tr.clv_mean == null ? "–" : pct(tr.clv_mean)) +
-        '</span><span class="small muted">' + (tr.n_with_clv || 0) + " paris suivis</span></div>" +
+        '</span><span class="small muted">' + plural(tr.n_with_clv || 0, "pari suivi", "paris suivis") + "</span></div>" +
       '<div><span class="label">ROI réel (mise fixe)</span><span class="num">' + (tr.roi_flat == null ? "–" : pct(tr.roi_flat)) +
-        '</span><span class="small muted">' + (tr.n_settled || 0) + " paris réglés</span></div>";
+        '</span><span class="small muted">' + plural(tr.n_settled || 0, "pari réglé", "paris réglés") + "</span></div>";
 
     // bulletins
     var cfg = d.config || {};
