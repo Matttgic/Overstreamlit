@@ -44,8 +44,50 @@ st.title("⚽🎾🏀 Overstreamlit — bibliothèque de stratégies de paris")
 st.caption("Recherche reproductible, données gratuites, protocole walk-forward. "
            "Les paris sportifs comportent des risques : jouez de façon responsable (09 74 75 13 13).")
 
-tab_scan, tab_suivi, tab_res, tab_lib = st.tabs(
-    ["🎯 Value bets du jour", "📊 Suivi des paris", "🔬 Résultats de recherche", "📚 Bibliothèque"])
+tab_multi, tab_scan, tab_suivi, tab_res, tab_lib = st.tabs(
+    ["🌍 Tableau multi-sports", "🎯 Scanner football", "📊 Suivi des paris", "🔬 Résultats de recherche",
+     "📚 Bibliothèque"])
+
+
+@st.cache_data(ttl=900, show_spinner="Chargement du tableau du jour…")
+def dashboard_data():
+    """Données publiées par la GitHub Action (branche dashboard-data), sinon copie locale."""
+    import json
+
+    import requests
+    try:
+        r = requests.get("https://raw.githubusercontent.com/Matttgic/Overstreamlit/dashboard-data/today.json",
+                         timeout=20)
+        if r.ok:
+            return r.json()
+    except requests.RequestException:
+        pass
+    p = ROOT / "site" / "data" / "today.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+
+with tab_multi:
+    d = dashboard_data()
+    if not d:
+        st.info("Pas encore de données : lancez `python scripts/build_dashboard.py` ou le workflow GitHub.")
+    else:
+        st.caption(f"Mis à jour : {d['generated_at']} · {d['sources']['pinnacle_outcomes']} cotes Pinnacle · "
+                   f"site : https://matttgic.github.io/Overstreamlit/")
+        st.subheader(f"À jouer maintenant ({len(d['value_bets'])})")
+        if d["value_bets"]:
+            st.dataframe(pd.DataFrame(d["value_bets"]), width="stretch", hide_index=True)
+        else:
+            st.write("Aucun écart suffisant pour le moment.")
+        st.subheader("Cotes minimum à prendre")
+        wl = pd.DataFrame(d["watchlist"])
+        if len(wl):
+            sp = st.multiselect("Sports", sorted(wl["sport"].unique()), default=sorted(wl["sport"].unique()))
+            st.dataframe(wl[wl["sport"].isin(sp)][["start", "sport", "league", "event", "market_label",
+                                                   "selection_label", "fair_odds", "min_odds"]],
+                         width="stretch", hide_index=True)
+        if d["props"]:
+            st.subheader("Paris joueurs")
+            st.dataframe(pd.DataFrame(d["props"]), width="stretch", hide_index=True)
 
 with tab_scan:
     c1, c2, c3, c4 = st.columns(4)
