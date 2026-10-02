@@ -240,3 +240,27 @@ def test_oddsapi_totals_value_and_settlement(monkeypatch):
           "selection": "Plus 2.5", "odds": 2.2, "status": "commencé (CLV figée)"}]
     out = rs.settle(h, st + pd.Timedelta(days=1))
     assert out[0]["result"] == "gagné" and out[0]["profit_units"] == 1.2
+
+
+def test_oddsapi_hockey_3way_not_compared_to_2way():
+    """NHL : 1N2 temps réglementaire (avec « Nul ») chez Betclic vs vainqueur prolongations
+    comprises chez Pinnacle -> marchés différents, pas de comparaison (faux +22 %)."""
+    from sportpred.live import oddsapi
+    from sportpred.live.dashboard import DashConfig, value_from_oddsapi
+    t = "2026-10-02T22:40:00Z"
+    payload = [{"id": "e1", "commence_time": t, "home_team": "Detroit Red Wings", "away_team": "New York Rangers",
+                "bookmakers": [
+                    {"key": "betclic_fr", "markets": [{"key": "h2h", "outcomes": [
+                        {"name": "Detroit Red Wings", "price": 2.23}, {"name": "New York Rangers", "price": 2.68},
+                        {"name": "Draw", "price": 4.05}]}]},
+                    {"key": "netbet_fr", "markets": [{"key": "h2h", "outcomes": [
+                        {"name": "Detroit Red Wings", "price": 1.67}, {"name": "New York Rangers", "price": 1.95}]}]}]}]
+    fr = pd.DataFrame(oddsapi.parse_odds(payload, "icehockey_nhl"))
+    base = dict(event_id=3, start=pd.Timestamp(t), event="Detroit Red Wings - New York Rangers",
+                home="Detroit Red Wings", away="New York Rangers", is_prop=False, sport="hockey", league="NHL",
+                market="moneyline", line=None, pin_margin=0.03, market_key="m")
+    pin = pd.DataFrame([dict(base, selection=s, fair_prob=p)
+                        for s, p in (("Detroit Red Wings", 0.546), ("New York Rangers", 0.454))])
+    v = value_from_oddsapi(pin, fr, DashConfig())
+    assert set(v["book"]) == {"NetBet"}                     # Betclic (3 issues) écarté
+    assert v["ev"].max() < 0
