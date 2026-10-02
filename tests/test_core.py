@@ -208,3 +208,35 @@ def test_results_pick_side_and_settle(monkeypatch):
           "selection": "Nul", "odds": 3.4, "status": "commencé (CLV figée)"}]
     out = rs.settle(h, pd.Timestamp("2026-09-21T12:00Z"))
     assert out[0]["result"] == "perdu" and out[0]["profit_units"] == -1.0
+
+
+def test_oddsapi_totals_value_and_settlement(monkeypatch):
+    from sportpred.live import oddsapi
+    from sportpred.live import results as rs
+    from sportpred.live.dashboard import DashConfig, value_from_oddsapi
+    t = "2026-10-10T18:45:00Z"
+    payload = [{"id": "e1", "commence_time": t, "home_team": "Lens", "away_team": "Lille",
+                "bookmakers": [{"key": "betclic_fr", "markets": [
+                    {"key": "h2h", "outcomes": [{"name": "Lens", "price": 2.6}, {"name": "Lille", "price": 2.9},
+                                                {"name": "Draw", "price": 3.2}]},
+                    {"key": "totals", "outcomes": [{"name": "Over", "price": 2.20, "point": 2.5},
+                                                   {"name": "Under", "price": 1.62, "point": 2.5}]}]}]}]
+    fr = pd.DataFrame(oddsapi.parse_odds(payload, "soccer_france_ligue_one"))
+    st = pd.Timestamp(t)
+    base = dict(event_id=7, start=st, event="Lens - Lille", home="Lens", away="Lille", is_prop=False,
+                sport="football", league="France - Ligue 1", pin_margin=0.03)
+    pin = pd.DataFrame([dict(base, market="moneyline", selection=s, line=None, fair_prob=p, market_key="m")
+                        for s, p in (("Lens", 0.38), ("Lille", 0.33), ("Nul", 0.29))] +
+                       [dict(base, market="total", selection=s, line=2.5, fair_prob=p, market_key="t")
+                        for s, p in (("Plus", 0.50), ("Moins", 0.50))])
+    v = value_from_oddsapi(pin, fr, DashConfig())
+    over = v[v["selection"] == "Plus 2.5"].iloc[0]
+    assert over["book"] == "Betclic" and abs(over["ev"] - (0.5 * 2.2 - 1)) < 1e-9
+    assert over["pin_selection"] == "Plus"
+    fake = [{"event_id": "1", "start": st, "home": "RC Lens", "away": "Lille OSC", "completed": True,
+             "winner": "home", "home_score": "2", "away_score": "1"}]
+    monkeypatch.setattr(rs, "scoreboard", lambda path, day: fake)
+    h = [{"event": "Lens - Lille", "league": "France - Ligue 1", "sport": "football", "start": t,
+          "selection": "Plus 2.5", "odds": 2.2, "status": "commencé (CLV figée)"}]
+    out = rs.settle(h, st + pd.Timedelta(days=1))
+    assert out[0]["result"] == "gagné" and out[0]["profit_units"] == 1.2
