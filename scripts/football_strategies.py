@@ -234,7 +234,7 @@ def staking_comparison(df, prob, book, min_ev, max_odds, label):
                      "Kelly 1/4": dict(staking="kelly", kelly_frac=0.25),
                      "Kelly 1/2": dict(staking="kelly", kelly_frac=0.5),
                      "Kelly complet": dict(staking="kelly", kelly_frac=1.0, cap=0.2)}.items():
-        b, s = simulate(sel, bankroll0=1000, **kw)
+        b, s = simulate(sel, bankroll0=1000, max_stake=100.0, **kw)
         s["staking"] = name
         rows.append(s)
         curves[name] = b[["date", "bankroll"]]
@@ -327,6 +327,34 @@ def main():
     print(top[cols].round(4).to_string())
     json.dump({"n_configs_1x2": int(len(grid)), "n_configs_ou": int(len(ou))},
               open(OUT / "meta.json", "w"))
+
+    # analyses détaillées des meilleures configurations de chaque famille (choisies sur dev)
+    best = {}
+    for fam in ("sharp", "consensus", "modèle", "hybride"):
+        g = grid[(grid["famille"] == fam) & (grid["dev_n"] >= 300)]
+        if len(g):
+            best[fam] = g.sort_values("dev_ROI", ascending=False).iloc[0]
+    curves_sel = {}
+    for fam, r in best.items():
+        label = f"{fam}_{r['prob']}_{r['book']}_ev{r['min_ev']}_max{r['max_odds']}"
+        res, curves = staking_comparison(df2, r["prob"], r["book"], r["min_ev"], r["max_odds"], label)
+        print(label)
+        print(res.round(3).to_string())
+        plot_curves(curves, OUT / f"bankroll_{fam}.png", f"Football — {label} — période test")
+        league_breakdown(df2, r["prob"], r["book"], r["min_ev"], r["max_odds"], label)
+        c = st.candidates_1x2(df2, r["prob"], r["book"], close_ref="sharpc")
+        sel = st.select_value(c, min_ev=r["min_ev"], max_ev=MAX_EV, max_odds=r["max_odds"])
+        sel = sel.sort_values("ev", ascending=False).drop_duplicates(["date", "match"])
+        curves_sel[f"{fam}: {r['prob']} vs {r['book']} EV>={r['min_ev']}"] = sel[sel["season"] >= DEV[0]]
+    # stratégie « réaliste France » : sharp vs FR (bet365/bwin), mêmes paramètres que sharp
+    if "sharp" in best:
+        r = best["sharp"]
+        c = st.candidates_1x2(df2, "mk_sharp", "FR", close_ref="sharpc")
+        sel = st.select_value(c, min_ev=r["min_ev"], max_ev=MAX_EV, max_odds=r["max_odds"])
+        sel = sel.sort_values("ev", ascending=False).drop_duplicates(["date", "match"])
+        curves_sel[f"sharp: mk_sharp vs FR (bet365/bwin) EV>={r['min_ev']}"] = sel[sel["season"] >= DEV[0]]
+    cumulative_plot(curves_sel, OUT / "profit_cumule_familles.png",
+                    "Football 2012-2026 — meilleure config de chaque famille (choisie sur 2012-2019)")
     print(f"fini {time.time()-t0:.0f}s")
 
 

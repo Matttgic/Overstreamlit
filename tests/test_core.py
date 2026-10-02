@@ -139,3 +139,22 @@ def test_simulate_flat_and_kelly():
     assert s["profit"] == pytest.approx(10.0)
     b, s = simulate(bets, staking="kelly", kelly_frac=0.5, cap=0.5)
     assert s["n_paris"] == 3 and s["bankroll_finale"] > 1000
+
+
+def test_scanner_find_value_and_settle():
+    from sportpred.live import scanner as sc
+    fx = pd.DataFrame({"Date": pd.to_datetime(["2026-10-03", "2026-10-03"]), "Time": ["15:00", "17:00"],
+                       "League": ["E0", "F1"], "HomeTeam": ["A", "C"], "AwayTeam": ["B", "D"],
+                       "BFEH": [2.0, 1.5], "BFED": [3.6, 4.2], "BFEA": [4.2, 7.0],
+                       "B365H": [2.25, 1.45], "B365D": [3.4, 4.0], "B365A": [3.9, 6.5],
+                       "BWH": [2.1, 1.44], "BWD": [3.4, 4.0], "BWA": [4.0, 6.0]})
+    picks = sc.find_value(fx, sc.ScanConfig(min_ev=0.03))
+    assert len(picks) == 1                       # seul A-B (H à 2,25 > cote juste ~2,08)
+    r = picks.iloc[0]
+    assert r["selection"] == "H" and r["bookmaker"] == "B365" and r["ev"] > 0.03
+    assert 0 < r["mise_%"] <= 2.0
+    hist = picks.assign(statut="en attente", **{"profit_€": 0.0}, date=picks["date"].astype(str))
+    res = pd.DataFrame({"Date": pd.to_datetime(["2026-10-03"]), "HomeTeam": ["A"], "AwayTeam": ["B"],
+                        "FTHG": [1], "FTAG": [0], "BFECH": [1.95], "BFECD": [3.7], "BFECA": [4.4]})
+    h = sc.settle(hist, res)
+    assert h.loc[0, "statut"] == "gagné" and h.loc[0, "clv"] > 0

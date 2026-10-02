@@ -6,7 +6,7 @@
 git clone https://github.com/matttgic/Overstreamlit.git
 cd Overstreamlit
 pip install -r requirements.txt
-python -m pytest -q tests          # 14 tests unitaires
+python -m pytest -q tests          # 15 tests unitaires
 ```
 
 Python 3.10+ recommandé. Aucune clé API n'est nécessaire.
