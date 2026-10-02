@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+data/raw/
+*.egg-info/
+.venv/
+.DS_Store
+data/processed/cache_*
+data/processed/*.parquet
+site/data/archive/

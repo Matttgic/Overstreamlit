@@ -1,0 +1,21 @@
+[
+{
+"detected_at": "2026-10-02T12:43:27.529537+00:00",
+"sport": "football",
+"league": "SC2",
+"start": "2026-10-03T14:00:00+00:00",
+"event": "Ross County - Alloa",
+"market": "1N2",
+"selection": "domicile (Ross County)",
+"book": "bet365",
+"odds": 1.27,
+"fair_odds_at_pick": 1.213,
+"fair_odds_last": 1.2131618112967515,
+"ev_at_pick": 0.0469,
+"market_key": null,
+"source": "Betfair Exchange vs bet365/bwin (football-data)",
+"clv": 0.0469,
+"status": "en attente",
+"last_seen": "2026-10-02T17:26:18.600273+00:00"
+}
+]

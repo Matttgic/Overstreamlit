@@ -1,0 +1,398 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body><title>Tableau des cotes Overstreamlit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Mise en page : bandeau d'état, puis bulletins « à jouer », puis tableau des cotes minimum, paris joueurs, suivi. */
+:root {
+  --paper: #f3f5f8; --card: #ffffff; --ink: #142033; --ink-2: #4b5669; --rule: #dbe1ea;
+  --chip: #e8edf4; --accent: #a8600a; --accent-soft: #fbeedb; --good: #16764a; --good-soft: #def2e7;
+  --bad: #b42318; --bad-soft: #fde7e5; --focus: #2f5bd3;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0e1420; --card: #161e2d; --ink: #e6ebf3; --ink-2: #9ba7b9; --rule: #26314a;
+  --chip: #1f293b; --accent: #f0b44c; --accent-soft: #352812; --good: #4cc887; --good-soft: #10301f;
+  --bad: #ff8a80; --bad-soft: #3a1714; --focus: #8fb0ff; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #0e1420; --card: #161e2d; --ink: #e6ebf3; --ink-2: #9ba7b9; --rule: #26314a;
+  --chip: #1f293b; --accent: #f0b44c; --accent-soft: #352812; --good: #4cc887; --good-soft: #10301f;
+  --bad: #ff8a80; --bad-soft: #3a1714; --focus: #8fb0ff; color-scheme: dark }
+
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; display: grid; gap: 28px; }
+h1, h2 { font-family: var(--display); font-weight: 700; letter-spacing: .01em; text-wrap: balance; margin: 0; }
+h1 { font-size: 2rem; line-height: 1.05; }
+h2 { font-size: 1.45rem; line-height: 1.1; }
+p { margin: 0; }
+a { color: inherit; text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.muted { color: var(--ink-2); }
+.small { font-size: .82rem; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); font-weight: 600; }
+
+/* en-tête */
+.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
+.top .sub { margin-top: 4px; max-width: 60ch; }
+.status { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  background: var(--chip); font-size: .78rem; font-weight: 500; white-space: nowrap; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-2); }
+.dot.ok { background: var(--good); } .dot.off { background: var(--bad); }
+
+/* bandeau de synthèse */
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+.strip > div { background: var(--card); padding: 12px 14px; display: grid; gap: 2px; }
+.strip .num { font-family: var(--display); font-size: 1.9rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.strip .num.accent { color: var(--accent); }
+
+/* bulletins à jouer */
+.sec { display: grid; gap: 12px; }
+.sec-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+.slips { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.slip { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px 12px;
+  display: grid; gap: 10px; position: relative; min-width: 0; }
+.slip::after { content: ""; position: absolute; left: 14px; right: 14px; top: 44px; border-top: 1px dashed var(--rule); }
+.slip-top { display: flex; justify-content: space-between; gap: 8px; font-size: .8rem; color: var(--ink-2); min-height: 22px; }
+.slip .event { font-weight: 600; margin-top: 6px; }
+.slip .pick { font-family: var(--display); font-size: 1.35rem; font-weight: 700; line-height: 1.1; }
+.slip .odds-row { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.big-odds { font-family: var(--mono); font-size: 1.9rem; font-weight: 600; color: var(--accent); line-height: 1; }
+.ev { background: var(--good-soft); color: var(--good); font-weight: 600; border-radius: 6px; padding: 2px 8px; font-size: .85rem; }
+.slip-foot { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: .82rem; color: var(--ink-2); }
+.sport { font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 600; background: var(--chip);
+  padding: 2px 8px; border-radius: 4px; color: var(--ink); }
+.empty { background: var(--card); border: 1px dashed var(--rule); border-radius: 10px; padding: 18px; display: grid; gap: 6px; }
+
+/* filtres + tableau */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chipbtn { font: inherit; font-size: .82rem; border: 1px solid var(--rule); background: var(--card); color: var(--ink);
+  padding: 4px 11px; border-radius: 999px; cursor: pointer; }
+.chipbtn[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.search { font: inherit; font-size: .88rem; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 8px;
+  background: var(--card); color: var(--ink); min-width: 0; flex: 1 1 200px; max-width: 320px; }
+.tablebox { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+th { text-align: left; font-weight: 600; font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-2);
+  padding: 10px 12px; border-bottom: 1px solid var(--rule); position: sticky; top: 0; background: var(--card); }
+td { padding: 7px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr.ev-first td { border-top: 2px solid var(--rule); }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td .take { font-family: var(--mono); font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 1px 6px; border-radius: 4px; }
+.more { justify-self: start; }
+.clv-pos { color: var(--good); font-weight: 600; } .clv-neg { color: var(--bad); font-weight: 600; }
+
+/* calculateur */
+.calc-box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end; }
+.calc-box label { display: grid; gap: 4px; }
+.calc-box .search { max-width: none; }
+.calc-out { display: grid; gap: 2px; min-height: 44px; align-content: center; }
+.calc-out .verdict { font-family: var(--display); font-size: 1.3rem; font-weight: 700; }
+.calc-out .yes { color: var(--good); } .calc-out .no { color: var(--bad); }
+tbody tr[data-fair] { cursor: pointer; }
+tbody tr[data-fair]:hover td { background: var(--accent-soft); }
+
+/* mode d'emploi */
+.how { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.how > div { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px; display: grid; gap: 6px; align-content: start; }
+.how b { font-family: var(--display); font-size: 1.1rem; }
+footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; gap: 4px; }
+
+.show-sm { display: none; }
+@media (max-width: 640px) {
+  h1 { font-size: 1.7rem; }
+  .hide-sm { display: none; }
+  .show-sm { display: block; }
+  td, th { padding: 7px 8px; }
+  table { font-size: .84rem; }
+}
+@media (prefers-reduced-motion: no-preference) { .slip { transition: transform .15s ease; } .slip:hover { transform: translateY(-2px); } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="label">Overstreamlit · paris autorisés ANJ</p>
+      <h1>Quoi parier aujourd'hui</h1>
+      <p class="sub muted">Cote juste = cote Pinnacle sans marge. Un pari vaut le coup seulement si votre bookmaker paie au-dessus.</p>
+    </div>
+    <div class="status" id="status"></div>
+  </header>
+
+  <section class="strip" id="strip" aria-label="Synthèse"></section>
+
+  <section class="sec" aria-labelledby="h-play">
+    <div class="sec-head"><h2 id="h-play">À jouer maintenant</h2><span class="small muted" id="play-note"></span></div>
+    <div class="slips" id="slips"></div>
+  </section>
+
+  <section class="sec calc" aria-labelledby="h-calc">
+    <div class="sec-head"><h2 id="h-calc">Vérifier une cote (boost, promo, autre bookmaker)</h2>
+      <span class="small muted">Touchez une ligne du tableau ci-dessous pour remplir la cote juste, puis saisissez la cote proposée.</span></div>
+    <div class="calc-box">
+      <label for="c-fair"><span class="label">Cote juste</span><input id="c-fair" class="search mono" inputmode="decimal" placeholder="ex. 2,10"></label>
+      <label for="c-offer"><span class="label">Cote proposée</span><input id="c-offer" class="search mono" inputmode="decimal" placeholder="ex. 2,40"></label>
+      <label for="c-bank"><span class="label">Bankroll (€)</span><input id="c-bank" class="search mono" inputmode="decimal" value="1000"></label>
+      <div class="calc-out" id="c-out" aria-live="polite"><span class="muted small">Saisissez deux cotes.</span></div>
+    </div>
+    <p class="small muted" id="c-what"></p>
+  </section>
+
+  <section class="sec" aria-labelledby="h-watch">
+    <div class="sec-head">
+      <h2 id="h-watch">Cotes minimum à prendre</h2>
+      <span class="small muted">Comparez avec votre appli : si la cote affichée est ≥ la valeur surlignée, le pari a de la valeur.</span>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="filters">
+      <input class="search" id="q" type="search" placeholder="Équipe, joueur, compétition (filtre aussi les paris joueurs)…" aria-label="Rechercher">
+      <button class="chipbtn" id="mk-all" aria-pressed="true">Tous marchés</button>
+      <button class="chipbtn" id="mk-ml" aria-pressed="false">Vainqueur / 1N2</button>
+      <button class="chipbtn" id="mk-tot" aria-pressed="false">Totaux</button>
+    </div>
+    <div class="tablebox"><table>
+      <thead><tr><th class="hide-sm">Heure</th><th class="hide-sm">Compétition</th><th>Match</th><th>Issue</th>
+        <th class="num hide-sm">Cote juste</th><th class="num">À prendre si ≥</th></tr></thead>
+      <tbody id="wl"></tbody></table></div>
+    <button class="chipbtn more" id="more" hidden>Afficher plus</button>
+  </section>
+
+  <section class="sec" aria-labelledby="h-props">
+    <div class="sec-head"><h2 id="h-props">Paris joueurs (buteurs, points, tirs)</h2>
+      <span class="small muted">Publiés par Pinnacle les jours de match (NHL, NBA, football).</span></div>
+    <div id="props"></div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-track">
+    <div class="sec-head"><h2 id="h-track">Suivi des paris proposés</h2>
+      <span class="small muted">CLV = cote prise ÷ dernière cote juste avant le match − 1. Positive sur la durée = méthode qui marche.</span></div>
+    <div id="track"></div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-how">
+    <h2 id="h-how">La méthode en quatre règles</h2>
+    <div class="how">
+      <div><b>Comparer, pas prédire</b><p class="small muted">Sur 500 000 matchs testés, aucun modèle ne bat les cotes. Ce qui gagne : trouver le bookmaker qui paie plus que la cote juste.</p></div>
+      <div><b>Plusieurs comptes ANJ</b><p class="small muted">Plus vous comparez d'opérateurs (Winamax, Betclic, Unibet, PMU, bet365…), plus vous trouvez d'écarts.</p></div>
+      <div><b>Mise Kelly ¼, 2 % max</b><p class="small muted">Même une méthode gagnante connaît des séries noires. Ne jamais dépasser 2 % de la bankroll par pari.</p></div>
+      <div><b>Éviter les grosses cotes</b><p class="small muted">Au-delà de 5, la marge réelle explose (−15 à −39 % en moyenne selon les sports). Pas de combinés d'outsiders.</p></div>
+    </div>
+  </section>
+
+  <footer class="small muted">
+    <p id="foot-src"></p>
+    <p>Recherche et méthode : <a href="https://github.com/Matttgic/Overstreamlit" target="_blank" rel="noopener">github.com/Matttgic/Overstreamlit</a>. Aucune garantie de gain.</p>
+    <p>Jeu responsable : Joueurs Info Service, <span class="mono">09 74 75 13 13</span> (appel non surtaxé).</p>
+  </footer>
+</div>
+
+<!--SNAPSHOT-->
+<script>
+(function () {
+  "use strict";
+  var SPORTS = { football: "Football", tennis: "Tennis", basket: "Basket", hockey: "Hockey", football_americain: "Foot US",
+    baseball: "Baseball", handball: "Handball", rugby: "Rugby", mma: "MMA", volley: "Volley" };
+  var state = { data: null, sport: "all", market: "all", stat: "all", q: "", limit: 120, origin: "" };
+  var $ = function (id) { return document.getElementById(id); };
+  var tf = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", weekday: "short", hour: "2-digit", minute: "2-digit" });
+  var df = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+  function when(s) { try { return tf.format(new Date(s)); } catch (e) { return s; } }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function n2(x) { return x == null ? "–" : Number(x).toFixed(2); }
+  function pct(x, d) { return x == null ? "–" : (x > 0 ? "+" : "") + (100 * x).toFixed(d == null ? 1 : d) + " %"; }
+  function el(html) { var t = document.createElement("template"); t.innerHTML = html.trim(); return t.content; }
+
+  function render() {
+    var d = state.data;
+    if (!d) return;
+    var src = d.sources || {};
+    var gen = new Date(d.generated_at);
+    var ageMin = Math.round((Date.now() - gen.getTime()) / 60000);
+    var fresh = ageMin < 240;
+    $("status").innerHTML =
+      '<span class="pill"><span class="dot ' + (fresh ? "ok" : "off") + '"></span>Mis à jour ' + esc(df.format(gen)) + "</span>" +
+      '<span class="pill"><span class="dot ' + (src.pinnacle_outcomes ? "ok" : "off") + '"></span>Pinnacle ' + (src.pinnacle_outcomes || 0) + " cotes</span>" +
+      '<span class="pill"><span class="dot ' + (src.odds_api_key ? "ok" : "off") + '"></span>' +
+        (src.odds_api_key ? "Bookmakers FR " + (src.fr_odds_rows || 0) + " cotes" : "Bookmakers FR : clé à ajouter") + "</span>" +
+      (state.origin ? '<span class="pill">' + esc(state.origin) + "</span>" : "");
+
+    var vb = d.value_bets || [], wl = d.watchlist || [], pr = d.props || [], tr = d.tracking || {};
+    var events = {}; wl.forEach(function (r) { events[r.event] = 1; });
+    $("strip").innerHTML =
+      '<div><span class="label">Paris à jouer</span><span class="num accent">' + vb.length + "</span></div>" +
+      '<div><span class="label">Matchs analysés</span><span class="num">' + Object.keys(events).length + "</span></div>" +
+      '<div><span class="label">Paris joueurs</span><span class="num">' + pr.length + "</span></div>" +
+      '<div><span class="label">CLV moyenne</span><span class="num">' + (tr.clv_mean == null ? "–" : pct(tr.clv_mean)) +
+        '</span><span class="small muted">' + (tr.n_with_clv || 0) + " paris suivis</span></div>" +
+      '<div><span class="label">ROI réel (mise fixe)</span><span class="num">' + (tr.roi_flat == null ? "–" : pct(tr.roi_flat)) +
+        '</span><span class="small muted">' + (tr.n_settled || 0) + " paris réglés</span></div>";
+
+    // bulletins
+    var cfg = d.config || {};
+    $("play-note").textContent = "EV ≥ " + Math.round(100 * (cfg.min_ev || 0.03)) + " %, cote ≤ " + (cfg.max_odds || 10) + ", mise Kelly ¼ plafonnée";
+    var slips = $("slips"); slips.textContent = "";
+    if (!vb.length) {
+      slips.appendChild(el('<div class="empty"><b>Aucun écart suffisant pour le moment.</b><p class="small muted">' +
+        (src.odds_api_key ? "Les bookmakers français suivis sont alignés sur la cote juste. Revenez après la prochaine mise à jour, ou utilisez le tableau ci-dessous dans votre appli."
+          : "Seuls bet365 et bwin (football) sont comparés automatiquement. Ajoutez la clé gratuite The Odds API pour comparer aussi Winamax, Betclic, Unibet, PMU et NetBet. En attendant, utilisez le tableau ci-dessous.") +
+        "</p></div>"));
+    }
+    vb.forEach(function (v) {
+      slips.appendChild(el('<article class="slip">' +
+        '<div class="slip-top"><span>' + esc(when(v.start)) + " · " + esc(v.league) + '</span><span class="sport">' + esc(SPORTS[v.sport] || v.sport) + "</span></div>" +
+        '<div><p class="event">' + esc(v.event) + '</p><p class="pick">' + esc(v.selection) + '</p><p class="small muted">' + esc(v.market) + "</p></div>" +
+        '<div class="odds-row"><div><span class="label">' + esc(v.book) + '</span><div class="big-odds">' + n2(v.odds) + "</div></div>" +
+        '<div style="text-align:right"><span class="ev">EV ' + pct(v.ev) + '</span><p class="small muted mono">juste ' + n2(v.fair_odds) + "</p></div></div>" +
+        '<div class="slip-foot"><span>Mise conseillée <b class="mono">' + n2(v.stake_pct) + " %</b> · " + n2(v.stake_eur) + " €</span><span>" + esc((v.source || "").split(" (")[0]) + "</span></div>" +
+        "</article>"));
+    });
+
+    // filtres sport
+    var counts = {}; wl.forEach(function (r) { counts[r.sport] = (counts[r.sport] || 0) + 1; });
+    var f = $("filters"); f.textContent = "";
+    var keys = ["all"].concat(Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }));
+    keys.forEach(function (k) {
+      var b = document.createElement("button");
+      b.className = "chipbtn"; b.type = "button";
+      b.setAttribute("aria-pressed", String(state.sport === k));
+      b.textContent = k === "all" ? "Tous (" + wl.length + ")" : (SPORTS[k] || k) + " (" + counts[k] + ")";
+      b.onclick = function () { state.sport = k; state.limit = 120; render(); };
+      f.appendChild(b);
+    });
+    ["mk-all", "mk-ml", "mk-tot"].forEach(function (id) {
+      $(id).setAttribute("aria-pressed", String(state.market === { "mk-all": "all", "mk-ml": "ml", "mk-tot": "tot" }[id]));
+    });
+
+    var rows = wl.filter(function (r) {
+      if (state.sport !== "all" && r.sport !== state.sport) return false;
+      if (state.market === "ml" && r.market_label !== "Vainqueur / 1N2") return false;
+      if (state.market === "tot" && r.market_label === "Vainqueur / 1N2") return false;
+      if (state.q) { var h = (r.event + " " + r.league + " " + r.selection_label).toLowerCase(); if (h.indexOf(state.q) < 0) return false; }
+      return true;
+    });
+    $("wl").innerHTML = tableRows(rows.slice(0, state.limit));
+    $("more").hidden = rows.length <= state.limit;
+    $("more").textContent = "Afficher plus (" + (rows.length - state.limit) + " restantes)";
+
+    // props (filtrables par type de stat)
+    if (!pr.length) {
+      $("props").innerHTML = '<div class="empty"><b>Pas de paris joueurs publiés pour l\'instant.</b><p class="small muted">Pinnacle les ouvre en général l\'après-midi du jour du match (buteurs, tirs, points en NHL ; points, rebonds, passes en NBA). Ils apparaîtront ici automatiquement, avec la cote minimum à prendre.</p></div>';
+    } else {
+      var stats = {}; pr.forEach(function (r) { var k = r.market_label.split(" — ")[1] || "Autre"; stats[k] = (stats[k] || 0) + 1; });
+      var chips = ["all"].concat(Object.keys(stats).sort(function (a, b) { return stats[b] - stats[a]; })).map(function (k) {
+        return '<button class="chipbtn" type="button" data-stat="' + esc(k) + '" aria-pressed="' + String(state.stat === k) + '">' +
+          (k === "all" ? "Tous (" + pr.length + ")" : esc(k) + " (" + stats[k] + ")") + "</button>";
+      }).join("");
+      var rowsP = pr.filter(function (r) {
+        if (state.stat !== "all" && (r.market_label.split(" — ")[1] || "Autre") !== state.stat) return false;
+        if (state.q) { var h = (r.event + " " + r.market_label).toLowerCase(); if (h.indexOf(state.q) < 0) return false; }
+        return true;
+      });
+      $("props").innerHTML = '<div class="filters">' + chips + '</div><div class="tablebox"><table><thead><tr><th class="hide-sm">Heure</th><th>Joueur</th><th>Pari</th><th class="num hide-sm">Cote juste</th><th class="num">À prendre si ≥</th></tr></thead><tbody>' +
+        rowsP.slice(0, 400).map(function (r) {
+          return '<tr data-fair="' + Number(r.fair_odds).toFixed(3) + '" data-what="' + esc(r.market_label + " · " + r.selection_label) + '"><td class="mono hide-sm small">' + esc(when(r.start)) +
+            "</td><td>" + esc(r.market_label) + '<span class="show-sm small muted">' + esc(r.event) + '</span><span class="hide-sm small muted" style="display:block">' + esc(r.event) +
+            "</span></td><td>" + esc(r.selection_label) + '</td><td class="num mono hide-sm">' + n2(r.fair_odds) + '</td><td class="num"><span class="take">' + n2(r.min_odds) + "</span></td></tr>";
+        }).join("") + "</tbody></table></div>" + (rowsP.length > 400 ? '<p class="small muted">400 premières lignes affichées : utilisez la recherche.</p>' : "");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-stat]"), function (b) {
+        b.onclick = function () { state.stat = b.getAttribute("data-stat"); render(); };
+      });
+    }
+
+    // suivi
+    var rec = tr.recent || [];
+    if (!rec.length) {
+      $("track").innerHTML = '<div class="empty"><b>Le suivi démarre avec les premiers paris proposés.</b><p class="small muted">Chaque pari est horodaté puis comparé à la dernière cote juste avant le match.</p></div>';
+    } else {
+      $("track").innerHTML = '<div class="tablebox"><table><thead><tr><th>Match</th><th>Pari</th><th class="hide-sm">Bookmaker</th><th class="num">Cote</th><th class="num">CLV</th><th class="hide-sm">Résultat</th></tr></thead><tbody>' +
+        rec.map(function (h) {
+          var c = h.clv == null ? '<span class="muted">en cours</span>' : '<span class="' + (h.clv >= 0 ? "clv-pos" : "clv-neg") + '">' + pct(h.clv) + "</span>";
+          return "<tr><td>" + esc(h.event) + '<div class="small muted">' + esc(when(h.start)) + "</div></td><td>" + esc(h.selection) + '</td><td class="hide-sm">' + esc(h.book) +
+            '</td><td class="num mono">' + n2(h.odds) + '</td><td class="num mono">' + c + '</td><td class="hide-sm small">' + esc(h.result ? h.result + (h.score && h.score.indexOf("None") < 0 ? " (" + h.score + ")" : "") : h.status) + "</td></tr>";
+        }).join("") + "</tbody></table></div>";
+    }
+    $("foot-src").textContent = "Sources : Pinnacle (cote juste, " + (src.pinnacle_outcomes || 0) + " issues), football-data.co.uk (bet365, bwin, Betfair)" +
+      (src.odds_api_key ? ", The Odds API (bookmakers français, crédits restants : " + (src.odds_api_remaining || "?") + ")" : "") + ".";
+  }
+
+  function tableRows(rows) {
+    var out = [], last = null;
+    rows.forEach(function (r) {
+      var first = r.event !== last; last = r.event;
+      out.push('<tr class="' + (first ? "ev-first" : "") + '" data-fair="' + Number(r.fair_odds).toFixed(3) + '" data-what="' + esc(r.event + " · " + r.selection_label) + '"><td class="mono small hide-sm">' + (first ? esc(when(r.start)) : "") +
+        '</td><td class="hide-sm small muted">' + (first ? esc(r.league) : "") + "</td><td>" +
+        (first ? "<b>" + esc(r.event) + '</b><span class="show-sm small muted mono">' + esc(when(r.start)) + "</span>" : "") +
+        "</td><td>" + esc(r.selection_label) + '</td><td class="num mono hide-sm">' + n2(r.fair_odds) +
+        '</td><td class="num"><span class="take">' + n2(r.min_odds) + "</span></td></tr>");
+    });
+    return out.join("") || '<tr><td colspan="6" class="muted">Aucun match pour ce filtre.</td></tr>';
+  }
+
+  function setData(d, origin) {
+    if (!d || !d.generated_at) return;
+    if (state.data && new Date(state.data.generated_at) >= new Date(d.generated_at)) return;
+    state.data = d; state.origin = origin; render();
+  }
+
+  $("q").addEventListener("input", function (e) { state.q = e.target.value.trim().toLowerCase(); state.limit = 120; render(); });
+  $("mk-all").onclick = function () { state.market = "all"; render(); };
+  $("mk-ml").onclick = function () { state.market = "ml"; render(); };
+  $("mk-tot").onclick = function () { state.market = "tot"; render(); };
+  $("more").onclick = function () { state.limit += 200; render(); };
+
+  // calculateur : EV = cote proposée / cote juste − 1 ; mise = ¼ Kelly plafonné à 2 %
+  function num(v) { var x = parseFloat(String(v).replace(",", ".")); return isFinite(x) ? x : NaN; }
+  function calc() {
+    var f = num($("c-fair").value), o = num($("c-offer").value), b = num($("c-bank").value);
+    var out = $("c-out");
+    if (!(f > 1) || !(o > 1)) { out.innerHTML = '<span class="muted small">Saisissez deux cotes supérieures à 1.</span>'; return; }
+    var p = 1 / f, ev = p * o - 1, k = Math.max(0, (p * o - 1) / (o - 1)) * 0.25, st = Math.min(k, 0.02);
+    out.innerHTML = ev >= 0.02
+      ? '<span class="verdict yes">Valeur : EV ' + pct(ev) + '</span><span class="small">Mise conseillée ' + (100 * st).toFixed(2) + " % · " + (isFinite(b) ? (b * st).toFixed(2) + " €" : "") + "</span>"
+      : ev > 0 ? '<span class="verdict">Juste au-dessus : EV ' + pct(ev) + '</span><span class="small muted">Écart trop faible pour compenser les erreurs d\'estimation (seuil 2 %).</span>'
+      : '<span class="verdict no">Pas de valeur : EV ' + pct(ev) + '</span><span class="small muted">Le bookmaker paie moins que la cote juste.</span>';
+  }
+  ["c-fair", "c-offer", "c-bank"].forEach(function (id) { $(id).addEventListener("input", calc); });
+  document.addEventListener("click", function (e) {
+    var tr = e.target.closest && e.target.closest("tr[data-fair]");
+    if (!tr) return;
+    $("c-fair").value = tr.getAttribute("data-fair");
+    $("c-what").textContent = "Sélection : " + tr.getAttribute("data-what");
+    calc();
+    $("c-offer").focus();
+  });
+
+  // 1) instantané intégré à la page
+  try { var s = document.getElementById("snapshot"); if (s) setData(JSON.parse(s.textContent), "instantané"); } catch (e) { /* pas d'instantané */ }
+  // 2) site GitHub Pages : fichier publié à côté de la page
+  try {
+    fetch("data/today.json", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d) setData(d, "en direct"); }).catch(function () {});
+  } catch (e) { /* hors site */ }
+  // 3) artefact claude.ai : lecture du dépôt via le connecteur GitHub (si autorisé)
+  if (window.claude && window.claude.use) {
+    window.claude.use("mcp").then(function (mcp) {
+      if (!mcp) return;
+      var tries = [{ ref: "refs/heads/dashboard-data", path: "today.json" }, { ref: "refs/heads/main", path: "site/data/today.json" }];
+      (function next(i) {
+        if (i >= tries.length) return;
+        mcp.callTool("github", "get_file_contents", { owner: "Matttgic", repo: "Overstreamlit", path: tries[i].path, ref: tries[i].ref })
+          .then(function (res) {
+            var txt = null;
+            (res.content || []).forEach(function (b) {
+              if (b && b.resource && typeof b.resource.text === "string") txt = b.resource.text;
+              else if (b && typeof b.text === "string" && b.text.trim().charAt(0) === "{") txt = b.text;
+            });
+            if (txt) setData(JSON.parse(txt), "en direct (GitHub)"); else next(i + 1);
+          }).catch(function () { next(i + 1); });
+      })(0);
+    }).catch(function () {});
+  }
+})();
+</script>
+</body></html>

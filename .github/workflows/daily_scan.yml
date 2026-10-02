@@ -1,7 +1,8 @@
-name: Daily Football Scan
+name: Scan football (manuel)
+
+# Remplacé par « Tableau de bord - quoi parier aujourd'hui » (dashboard.yml), qui couvre
+# tous les sports, règle les paris et publie le site. Gardé en lancement manuel.
 on:
-  schedule:
-    - cron: '0 8 * * *'
   workflow_dispatch:
 
 permissions:
@@ -11,30 +12,21 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install pandas numpy requests scipy streamlit
+      - name: Dépendances
+        run: pip install pandas numpy scipy requests pyarrow
 
-      - name: Run Scan
-        env:
-          FOOT_API_KEY: ${{ secrets.FOOT_API_KEY }}
-          STREAMLIT_RUN_MODE: "bare"
-        run: python app.py
+      - name: Scan (aucune clé API nécessaire)
+        run: python scripts/daily_scan.py --min-ev 0.03 --model-weight 0 --books B365,BW
 
-      - name: Commit and Push changes
+      - name: Commit des paris du jour
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          # On vérifie si le fichier existe avant de l'ajouter
-          if [ -f historique_paris.csv ]; then
-            git add historique_paris.csv
-            git commit -m "Auto-update: Pronos du jour" && git push || echo "Rien à push"
-          else
-            echo "Pas de fichier historique créé aujourd'hui."
-          fi
+          git add picks/
+          git commit -m "Scan quotidien : value bets du $(date -u +%F)" && git push || echo "Rien à pousser"

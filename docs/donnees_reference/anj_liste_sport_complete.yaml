@@ -1,0 +1,1000 @@
+# Liste sport ANJ - résumé machine-readable (non officiel)
+source:
+  annexe_1_competitions: "https://ressources.anj.fr/sport/competitions_sportives_support_paris_autorises.pdf (et .xlsx)"
+  annexe_2_types_resultats: "https://ressources.anj.fr/sport/types_resultats_phases_jeux.pdf (et .xlsx)"
+  decision_de_reference: "Décision ANJ n° 2026-159 du 21 juillet 2026 (en-tête des annexes), modifiée par la décision n° 2026-167 du 17 septembre 2026 (retrait du CEV Tour en beach-volley)"
+  fichiers_telecharges_le: "2026-10-02"
+  avertissement: "Résumé non officiel. Seule l annexe de la décision la plus récente du collège de l ANJ fait foi. Les genres/disciplines sont agrégés ; les types de résultats sont reformulés de façon abrégée."
+formes_de_paris_autorisees:
+  - "pari à cote fixe (gain garanti par l opérateur, perte max = mise)"
+  - "pari mutuel (masse commune partagée)"
+  - "paris en direct (live) en ligne"
+  - "paris combinés (forme libre chez les opérateurs ; types Fantasy réservés aux combinés mutuels >= 10 paris élémentaires, >= 5 en cyclisme)"
+formes_interdites_ou_non_listees:
+  - "betting exchange / paris de contrepartie entre joueurs avec cote fixée par les joueurs"
+  - "spread betting et tout pari où la perte potentielle > mise"
+  - "tout sport, compétition, type de résultat ou phase non listé (ex. e-sport, fléchettes, cricket, cartons/corners/fautes en football hors Fantasy mutuel)"
+fantasy_mutuel_uniquement:
+  regle: "Types de résultats réservés à des compétitions spécifiques et à des combinés d au moins 10 paris élémentaires (5 pour le cyclisme), sous la seule forme mutuelle ; les faits de jeu négatifs (marqués * ou **) ne peuvent profiter au parieur."
+  basket: ["NBA", "Coupe du monde FIBA", "Euroligue (H)"]
+  football: ["UEFA EURO et qualifications", "Ligue 1", "UEFA Europa League", "Bundesliga", "Qualifications Coupe du monde FIFA", "Coupe du monde FIFA", "CAN", "UEFA Europa Conference League", "UEFA Champions League", "Premier League", "Serie A", "LaLiga", "Coupe des Confédérations", "Ligue des Nations UEFA", "Copa America"]
+  cyclisme: ["Tour de France"]
+  exemples_types_football: ["passes décisives", "tirs cadrés/non cadrés", "arrêts du gardien", "cartons jaunes/rouges (*)", "fautes commises (*)", "hors-jeu (*)", "corners tirés par un joueur", "temps de jeu", "possession"]
+sports:
+  "Athlétisme":
+    types_de_resultats:
+      - "Athlètes ou pays qualifié(e)s pour le tour suivant (épreuve)"
+      - "Records nationaux, continentaux, olympiques ou mondiaux et meilleure performance mondiale"
+      - "Classement final d'une compétition (athlète/pays)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Championnat de France Elite", zone: "France", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat de France Elite en salle", discipline: "En salle", zone: "France", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d’Europe", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Europe de Cross Country", discipline: "Cross Country", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d’Europe en salle", discipline: "En salle", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Europe par équipe", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du Monde de Cross Country", discipline: "Cross Country", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du Monde", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du Monde en salle", discipline: "En salle", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "World Athletics Label Road Race", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Diamond League Meeting et Finales", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "World Athletics Indoor Tour", discipline: "En salle", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques en Athlétisme", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+  "Aviron":
+    types_de_resultats:
+      - "Chrono des finalistes (athlètes/pays)"
+      - "Classement final des finalistes"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Championnat d'Europe d'aviron", discipline: "Toutes", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde d'aviron", discipline: "Toutes", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques d'aviron", discipline: "Toutes", zone: "International", genres: ["Homme", "Femme"]}
+  "Badminton":
+    types_de_resultats:
+      - "Score (match/set)"
+      - "Classement des médailles d'une compétition (JO inclus)"
+    competitions:
+      - {nom: "HSBC BWF World Tour Finals", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "HSBC BWF World Tour Finals", discipline: "Double", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "HSBC BWF World Tour Super 1000", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "HSBC BWF World Tour Super 1000", discipline: "Double", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "HSBC BWF World Tour Super 750", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "HSBC BWF World Tour Super 750", discipline: "Double", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "HSBC BWF World Tour Super 500", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "HSBC BWF World Tour Super 500", discipline: "Double", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "HSBC BWF World Tour Super 300", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"], phases: "A partir des 1/4 de finales"}
+      - {nom: "HSBC BWF World Tour Super 300", discipline: "Double", zone: "International", genres: ["Homme", "Femme", "Mixte"], phases: "A partir des 1/4 de finales"}
+      - {nom: "Championnat de France \"Elites\"", discipline: "Simple", zone: "National", genres: ["Homme", "Femme"], phases: "A partir des 1/4 de finales"}
+      - {nom: "Championnat de France \"Elites\"", discipline: "Double", zone: "National", genres: ["Homme", "Femme", "Mixte"], phases: "A partir des 1/4 de finales"}
+      - {nom: "Championnat d'Europe de Badminton", discipline: "Simple", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Europe de Badminton", discipline: "Double", zone: "Europe", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Championnat d'Europe de Badminton par équipe", discipline: "Simple et double", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "BWF World Championships", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "BWF World Championships", discipline: "Double", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Sudirman Cup", discipline: "Simple et double", zone: "International", genres: ["Mixte"]}
+      - {nom: "Thomas Cup", discipline: "Simple et double", zone: "International", genres: ["Homme"]}
+      - {nom: "Uber Cup", discipline: "Simple et double", zone: "International", genres: ["Femme"]}
+      - {nom: "Jeux Européens", discipline: "Simple", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Européens", discipline: "Double", zone: "Europe", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Jeux Olympiques", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques", discipline: "Double", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+  "Baseball":
+    types_de_resultats:
+      - "Score final (match/manche)"
+      - "Stats individuelles match (nombre de runs et de home runs)"
+      - "Stats équipes match (nombre de home runs)"
+      - "Classement à la fin d'une compétition (top 1)"
+    competitions:
+      - {nom: "Korean Baseball League", zone: "Corée du sud", genres: ["Homme"]}
+      - {nom: "Major League of Baseball", zone: "Etat-Unis/Canada", genres: ["Homme"]}
+      - {nom: "Nippon Professional Baseball", zone: "Japon", genres: ["Homme"]}
+  "Basketball":
+    types_de_resultats:
+      - "Score final (quart-temps, temps réglementaire, prolongations)"
+      - "Score d'un quart-temps"
+      - "Stats équipes (seulement points, passes décisives, rebonds, contres, interceptions, tirs à 2 et 3 pts inscrits)"
+      - "Stats individuelles quart-temps (seulement meilleur marqueur/rebondeur/passeur, points, rebonds)"
+      - "Stats individuelles match (seulement meilleur marqueur/rebondeur/passeur/intercepteur/contreur, nb de points, passes décisives, rebonds, contres, interceptions, tirs à 3 pts inscrits)"
+      - "Stats individuelles compétition (seulement meilleur marqueur/rebondeur/intercepteur/contreur, nb de passes et rebonds)"
+      - "Classement des équipes (journée, phase de groupes, conférences, élimination directe, fin de compétition)"
+      - "Classement attaque/défense (top 1)"
+      - "Classement au tableau des médailles des JO"
+      - "Basket 3x3 : score final (1re équipe à 21 pts, temps réglementaire, prolongations), stats équipes finales, classement final, attaque/défense top 1, médailles JO"
+    notes_annexe:
+      - "Le FIBA 3x3 Pro Circuit a été refusé (décision 2026-167)"
+    competitions:
+      - {nom: "FIBA Eurobasket", zone: "Europe", genres: ["Femme", "Homme"]}
+      - {nom: "FIBA Asia", zone: "Asie", genres: ["Homme", "Femme"], phases: "Matchs à élimination directe du tournoi final"}
+      - {nom: "FIBA Africa", zone: "Afrique", genres: ["Homme", "Femme"], phases: "Femme: Matchs à élimination directe du tournoi final; Homme: A partir de la phase de groupe"}
+      - {nom: "FIBA Oceania", zone: "Océanie", genres: ["Homme", "Femme"], phases: "Femme: Macths à élimination directe du tournoi final; Homme: Matchs à élimination directe du tournoi final"}
+      - {nom: "FIBA Americas", zone: "Amériques", genres: ["Homme", "Femme"], phases: "Femme: Matchs à élimination directe du tournoi final; Homme: Macths à élimination directe du tournoi final"}
+      - {nom: "Coupe du monde de la FIBA", zone: "International", genres: ["Femme", "Homme"]}
+      - {nom: "National Basketball Association (NBA)", zone: "Etat-Unis", genres: ["Homme"]}
+      - {nom: "NBA In Season Tournament", zone: "Etats-Unis", genres: ["Homme"]}
+      - {nom: "National Collegiate Athletic Association (NCAA)", zone: "Etat-Unis", genres: ["Homme"], phases: "Tournoi final ( à partir du First Round du March Madness)"}
+      - {nom: "Women’s National Basketball Association (WNBA)", zone: "Etat-Unis", genres: ["Femme"]}
+      - {nom: "Liga Endesa", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Liga española de baloncesto", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Lega Basket Serie A", zone: "Italie", genres: ["Homme", "Femme"]}
+      - {nom: "Legadue", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Basketball Bundesliga", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "National Basketball League", zone: "Australie", genres: ["Homme"]}
+      - {nom: "BNXT League", zone: "Belgique/Pays Bas", genres: ["Homme"]}
+      - {nom: "ESAKE (A1)", zone: "Grèce", genres: ["Homme", "Femme"]}
+      - {nom: "Türkiye Basketbol Super Ligi", zone: "Turquie", genres: ["Homme"]}
+      - {nom: "ABA Liga", zone: "Bosnie-Herzégovine / Serbie Croatie Monténégro / Slovénie", genres: ["Homme"]}
+      - {nom: "Leaders Cup", zone: "France", genres: ["Homme"]}
+      - {nom: "Leaders Cup Pro B", zone: "France", genres: ["Homme"], phases: "Phase à élimination directe"}
+      - {nom: "Coupe de France (Coupe Joë Jaunay)", zone: "France", genres: ["Femme"]}
+      - {nom: "Coupe de France (Trophée Robert Busnel)", zone: "France", genres: ["Homme"]}
+      - {nom: "Supercoupe", zone: "France", genres: ["Homme"]}
+      - {nom: "Coppa Italia di pallacanestro", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Supercoppa", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Copa del Rey", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Supercopa de España", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Coupe d'Allemagne", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "NBL Ignite Cup", zone: "Australie", genres: ["Homme"]}
+      - {nom: "Match des Champions LFB", zone: "France", genres: ["Femme"]}
+      - {nom: "EuroCup", zone: "Europe", genres: ["Femme", "Homme"]}
+      - {nom: "FIBA Europe Cup", zone: "Europe", genres: ["Homme"]}
+      - {nom: "Basketball Champions League", zone: "Europe", genres: ["Homme"]}
+      - {nom: "Euroleague", zone: "Europe", genres: ["Femme", "Homme"]}
+      - {nom: "Jeux Olympiques", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques", discipline: "Basketball 3x3", zone: "International", genres: ["Homme", "Femme"], phases: "Phase à élimination directe"}
+      - {nom: "Championnat LFB", zone: "France", genres: ["Femme"]}
+      - {nom: "Betclic Elite /1ère Division du championnat de France", zone: "France", genres: ["Homme"]}
+      - {nom: "Elite 2/ 2ème division du championnat de France", zone: "France", genres: ["Homme"]}
+  "Billard":
+    types_de_resultats:
+      - "Score (match/manche)"
+      - "Classement final d'une compétition (joueurs/pays)"
+    notes_annexe:
+      - "Snooker uniquement (pas de pool / carambole listés) ; WST hors Q School et hors phases de poules"
+    competitions:
+      - {nom: "Championnat du Monde de snooker", discipline: "Snooker", zone: "International"}
+      - {nom: "Tournois internationaux : WST", discipline: "Snooker", zone: "International", restriction: "Q school", phases: "Tous les matchs des tournois (hors phase de poule)"}
+  "Bobsleigh":
+    types_de_resultats:
+      - "Classement à l'issue d'une manche (top 10)"
+      - "Records mondiaux ou olympiques"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques", zone: "International", genres: ["Homme", "Femme"]}
+  "Boxe":
+    types_de_resultats:
+      - "Résultat du combat"
+      - "Durée du combat (uniquement nombre de rounds)"
+      - "Type de victoire (uniquement KO / KO technique / points)"
+      - "Classement top 3 à la fin d'une compétition (boxeur/pays)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques", discipline: "Boxe amateur", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d’Europe EBU de boxe professionnelle", discipline: "Boxe professionnelle", zone: "Europe", genres: ["Homme", "Femme"], phases: "Femme: Uniquement les combats attibuant un titre de Champion d'Europe EBU; Homme: Uniquement les combats attribuant un titre de Champion d'Europe EBU"}
+      - {nom: "Championnat de France de boxe professionnelle", discipline: "Boxe professionnelle", zone: "France", genres: ["Homme"]}
+      - {nom: "Tournoi de France de boxe professionnelle", discipline: "Boxe professionnelle", zone: "France", genres: ["Homme", "Femme"]}
+      - {nom: "Combats affiliés à la World Boxing Association (WBA)", discipline: "Boxe professionnelle", zone: "International", genres: ["Homme", "Femme"], phases: "Uniquement les combats attribuant un titre de Champion du Monde"}
+      - {nom: "Combats affiliés à la World Boxing Organization (WBO)", discipline: "Boxe professionnelle", zone: "International", genres: ["Homme", "Femme"], phases: "Uniquement les combats attribuant un titre de Champion du Monde"}
+      - {nom: "Combats affiliés à la World Boxing Council (WBC)", discipline: "Boxe professionnelle", zone: "International", genres: ["Homme", "Femme"], phases: "Uniquement les combats attribuant un titre de Champion du Monde"}
+      - {nom: "Combats affiliés à la International Boxing Federation (IBF)", discipline: "Boxe professionnelle", zone: "International", genres: ["Homme", "Femme"], phases: "Uniquement les combats attribuant un titre de Champion du Monde"}
+  "Canoé-Kayak":
+    types_de_resultats:
+      - "Classement à la fin d'une manche (top 1)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de Canoé Kayak", discipline: "Slalom", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de Canoé Kayak", discipline: "Course en ligne", zone: "International", genres: ["Homme", "Femme"]}
+  "Curling":
+    types_de_resultats:
+      - "Score final (match/manche)"
+      - "Classement d'une compétition (phase de qualification / fin de compétition)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de Curling", zone: "International", genres: ["Femme", "Homme", "Double Mixte"]}
+      - {nom: "Championnat du monde de Curling", zone: "International", genres: ["Homme", "Femme", "Double Mixte"], phases: "Double Mixte: à partir des play-offs; Femme: à partir des play-offs; Homme: Matchs à élimination directe"}
+  "Cyclisme":
+    types_de_resultats:
+      - "Classement (étape sur route ou général final) top 10 individuel / top 3 équipe"
+      - "Classement général à l'issue d'une étape (top 3, individuel/équipe)"
+      - "Classements maillots grimpeur, sprinteur, jeune (top 1 ; final ou à l'issue d'une étape des grands tours)"
+      - "Classement d'un sprint intermédiaire ou sommet à points (grands tours, top 1)"
+      - "Classement au tableau des médailles des JO"
+    notes_annexe:
+      - "* Championnats nationaux sur route : seulement les cinq pays (hors France) les mieux placés au classement UCI par nations au 1er janvier de l'année du championnat"
+    competitions:
+      - {nom: "UCI Road World Championships", discipline: "Sur route", zone: "International", genres: ["Homme", "Femme"], phases: "Contre la montre individuel, par équipes et épreuve en ligne"}
+      - {nom: "UEC Road European Championships", discipline: "Sur route", zone: "Europe", genres: ["Homme", "Femme"], phases: "Contre la montre individuel et épreuve en ligne"}
+      - {nom: "Championnat de France sur route", discipline: "Sur route", zone: "France", genres: ["Homme", "Femme"], phases: "Contre la montre individuel et épreuve en ligne"}
+      - {nom: "Championnats nationaux sur route *", discipline: "Sur route", zone: "International", genres: ["Homme", "Femme"], phases: "Contre la montre individuel et épreuve en ligne"}
+      - {nom: "Jeux Olympiques", discipline: "Sur route", zone: "International", genres: ["Homme", "Femme"], phases: "Contre la montre individuel et épreuve en ligne"}
+      - {nom: "Tour d'Italie - Giro", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Tour d'Espagne - Vuelta", discipline: "Sur route", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Tour de France", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Tour de France Femmes", discipline: "Sur route", zone: "France", genres: ["Femme"]}
+      - {nom: "Liège-Bastogne-Liège", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Milan-San Remo", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Paris-Roubaix", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Tour des Flandres", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Amstel Gold Race", discipline: "Sur route", zone: "Pays-Bas", genres: ["Homme"]}
+      - {nom: "La Flèche Wallonne", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Tour de Lombardie", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Tour Auvergne Rhône Alpes", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Classica San Sebastian", discipline: "Sur route", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Tirreno-Adriatico", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Tour Down Under", discipline: "Sur route", zone: "Australie", genres: ["Homme"]}
+      - {nom: "Gand-Wevelgem", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Strade Bianche", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Circuit Het Niewsblad", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Bretagne Ouest France Classic", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "EuroEyes Cyclassics Hambourg", discipline: "Sur route", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "E3 Classic", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "RenewiTour", discipline: "Sur route", zone: "Belgique/Pays Bas", genres: ["Homme"]}
+      - {nom: "Tour du Pays Basque", discipline: "Sur route", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Tour de Catalogne", discipline: "Sur route", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Grand Prix Cycliste de Montréal", discipline: "Sur route", zone: "Canada", genres: ["Homme"]}
+      - {nom: "Grand Prix Cycliste de Québec", discipline: "Sur route", zone: "Canada", genres: ["Homme"]}
+      - {nom: "Tour de Suisse", discipline: "Sur route", zone: "Suisse", genres: ["Homme"]}
+      - {nom: "Tour de Romandie", discipline: "Sur route", zone: "Suisse", genres: ["Homme"]}
+      - {nom: "Paris-Nice", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Tour de l'UAE", discipline: "Sur route", zone: "Emirats Arabes Unis", genres: ["Homme"]}
+      - {nom: "Classic Bruges La Panne", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "A travers les Flandres", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Grand Prix de Francfort", discipline: "Sur route", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "Tour de Pologne", discipline: "Sur route", zone: "Pologne", genres: ["Homme"]}
+      - {nom: "Tour des Alpes", discipline: "Sur route", zone: "Italie/Autriche", genres: ["Homme"]}
+      - {nom: "Tour de Provence", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Milan-Turin", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "La Flèche Brabançonne", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Tour de la communauté valencienne", discipline: "Sur route", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Tour d'Oman", discipline: "Sur route", zone: "Oman", genres: ["Homme"]}
+      - {nom: "Clasica de Almeria", discipline: "Sur route", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Figuiera Champions Classic", discipline: "Sur route", zone: "Portugal", genres: ["Homme"]}
+      - {nom: "Tour de l'Algarve", discipline: "Sur route", zone: "Portugal", genres: ["Homme"]}
+      - {nom: "Tour de l'Andalousie", discipline: "Sur route", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Ardèche Classic", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Drôme Classic", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Kuurne-Bruxelles-Kuurne", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Trophée Laigueglia", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Nokere Koerse", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Grand Prix de Denain", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Bredene Coxyde Classic", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Grand Prix Indurain", discipline: "Sur route", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Grand Prix de l'Escaut", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Grand Prix du Morbihan", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Tro Bro Leon", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Classique Dunkerque", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "4 Jours de Dunkerque", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Tour de Hongrie", discipline: "Sur route", zone: "Hongrie", genres: ["Homme"]}
+      - {nom: "Boucles de la Mayenne", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Tour de Norvège", discipline: "Sur route", zone: "Norvège", genres: ["Homme"]}
+      - {nom: "Tour de Slovénie", discipline: "Sur route", zone: "Slovénie", genres: ["Homme"]}
+      - {nom: "Brussels Cycling Classic", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "A travers le Hageland", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Mont Ventoux Dénivelé Challenges", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Tour de Belgique", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Tour de Wallonie", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Tour de Burgos", discipline: "Sur route", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Artic Race", discipline: "Sur route", zone: "Norvège", genres: ["Homme"]}
+      - {nom: "Tour du Danemark", discipline: "Sur route", zone: "Danemark", genres: ["Homme"]}
+      - {nom: "Circuit Franco-Belge", discipline: "Sur route", zone: "France/Belgique", genres: ["Homme"]}
+      - {nom: "Tour d'Allemagne", discipline: "Sur route", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "Tour de Grande-Bretagne", discipline: "Sur route", zone: "Grande-Bretagne", genres: ["Homme"]}
+      - {nom: "Maryland Cycling classic", discipline: "Sur route", zone: "Etats Unis", genres: ["Homme"]}
+      - {nom: "Grand Prix Industrie et de l'Artisanat", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Coupe Sabbatini", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Grand Prix de Fourmies", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Grand Prix de Wallonie", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Tour du Luxembourg", discipline: "Sur route", zone: "Luxembourg", genres: ["Homme"]}
+      - {nom: "Super 8 classic", discipline: "Sur route", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Tour de Munster", discipline: "Sur route", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "Tour d'Emilie", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Coupe Bernocchi", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Trois Vallées Varésine", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Tour du Piémont (Gran Piemonte)", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Paris-Tours", discipline: "Sur route", zone: "France", genres: ["Homme"]}
+      - {nom: "Tour de Vénétie", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Coupe du Japon de course sur route (Japan Cup Road Race)", discipline: "Sur route", zone: "Japon", genres: ["Homme"]}
+      - {nom: "Veneto Classic", discipline: "Sur route", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Cadel Evans Ocean Road", discipline: "Sur route", zone: "Australie", genres: ["Homme"]}
+      - {nom: "Copenhagen Sprint", discipline: "Sur route", zone: "Danemark", genres: ["Homme"]}
+      - {nom: "Tour de Guanggxi", discipline: "Sur route", zone: "Chine", genres: ["Homme"]}
+      - {nom: "Championnat du monde de cyclisme sur piste", discipline: "Sur piste", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat de France de cyclisme sur piste", discipline: "Sur piste", zone: "France", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de cyclisme sur piste", discipline: "Sur piste", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du Monde de BMX", discipline: "BMX", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de BMX", discipline: "BMX", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du Monde de Mountain Bike (VTT)", discipline: "Mountain Bike (VTT)", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de Mountain Bike (VTT)", discipline: "Mountain Bike (VTT)", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du Monde Elite", discipline: "Cyclo-cross", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Coupe du Monde Elite de Cyclo-cross", discipline: "Cyclo-cross", zone: "International", genres: ["Homme", "Femme"]}
+  "Equitation":
+    types_de_resultats:
+      - "Score d'un match (horse-ball)"
+      - "Performance sur un CSO (parcours sans faute et sans dépassement de temps uniquement)"
+      - "Classement d'un concours/compétition (top 3)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Championnat du Monde Pro Elite", discipline: "Horseball", zone: "International", genres: ["Homme"]}
+      - {nom: "Championnat du Monde Ladies", discipline: "Horseball", zone: "International", genres: ["Femme"]}
+      - {nom: "Jumping International CSI 5*", discipline: "Concours Saut d'Obstacles", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Jeux Equestres mondiaux - CSO", discipline: "Concours Saut d'Obstacles", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Jeux Olympiques de Saut d'Obstacle", discipline: "Concours Saut d'Obstacles", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Jumping International CSI 4*", discipline: "Concours Saut d'Obstacles", zone: "International", genres: ["Non applicable"]}
+  "Escalade":
+    types_de_resultats:
+      - "Classement final d'une compétition (top 3)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques d'Escalade (Vitesse)", discipline: "Vitesse", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques d'Escalade (Bloc-Difficulté)", discipline: "Bloc/Difficulté", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques sprint femmes", discipline: "Ski alpinisme", zone: "International", genres: ["Homme"]}
+      - {nom: "Jeux Olympiques sprint hommes", discipline: "Ski alpinisme", zone: "International", genres: ["Femme"]}
+      - {nom: "Jeux olympiques relais mixte", discipline: "Ski alpinisme", zone: "International", genres: ["Mixte"]}
+  "Escrime":
+    types_de_resultats:
+      - "Score final du match"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Championnat d'Europe d'épée", discipline: "Epée", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde d'épée", discipline: "Epée", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques d'épée", discipline: "Epée", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Europe de sabre", discipline: "Sabre", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde de sabre", discipline: "Sabre", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de sabre", discipline: "Sabre", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Europe de fleuret", discipline: "Fleuret", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde de fleuret", discipline: "Fleuret", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de fleuret", discipline: "Fleuret", zone: "International", genres: ["Homme", "Femme"]}
+  "Football":
+    types_de_resultats:
+      - "Score du match (=> 1N2, double chance, handicap, plus/moins, score exact, mi-temps, etc. dérivés du score)"
+      - "Minute d'un but"
+      - "Noms des buteurs"
+      - "Stats individuelles joueur (seulement passes décisives)"
+      - "Stats équipes (seulement tirs et tirs cadrés)"
+      - "Localisation du but (intérieur/extérieur de la surface) — Coupe du monde FIFA"
+      - "Type de but (seulement tête et coups de pied arrêtés, penaltys compris)"
+      - "Classement des équipes (journée, poules, élimination directe, fin de compétition)"
+      - "Classement des buteurs (après une journée complète de championnat national ou fin de compétition internationale)"
+      - "Classement attaques/défenses (top 1)"
+      - "Classement au tableau des médailles des JO"
+    notes_annexe:
+      - "** Matchs amicaux internationaux : catégorie A FIFA, deux équipes classées dans le top 50 FIFA en vigueur 30 jours avant le match (les amicaux de l'équipe de France H sont tous autorisés)"
+      - "Ligue 3 : seuls les barrages d'accession sont listés (décision 2026-159 ; selon la presse : demi-finales, finale et barrage L2/L3, soit 5 matchs)"
+    competitions:
+      - {nom: "UEFA Champions League", zone: "Europe", genres: ["Homme"]}
+      - {nom: "UEFA Women's Champions League", zone: "Europe", genres: ["Femme"]}
+      - {nom: "UEFA Europa League", zone: "Europe", genres: ["Homme"]}
+      - {nom: "Supercoupe d'Europe de l'UEFA", zone: "Europe", genres: ["Homme"]}
+      - {nom: "UEFA Europa Conference League", zone: "Europe", genres: ["Homme"], phases: "Tous les matchs (à l'exception du 1er tour de qualification de la voie principale)"}
+      - {nom: "Copa Libertadores", zone: "Amérique du Sud", genres: ["Homme"]}
+      - {nom: "Copa Sudamericana", zone: "Amérique du Sud", genres: ["Homme"], phases: "A partir du tournoi final"}
+      - {nom: "Ligue des Champions de la CONCACAF", zone: "Amérique du Nord, Centrale et Caraïbes", genres: ["Homme"]}
+      - {nom: "Leagues Cup", zone: "Amérique du Nord, Centrale", genres: ["Homme"]}
+      - {nom: "Ligue des champions de l'AFC", zone: "Asie", genres: ["Homme"], phases: "A partir des huitièmes de finales"}
+      - {nom: "Ligue des Champions de la CAF", zone: "Afrique", genres: ["Homme"], phases: "A partir du tournoi final"}
+      - {nom: "Coupe du Monde des Clubs de la FIFA", zone: "International", genres: ["Homme"], phases: "Tournoi final"}
+      - {nom: "Coupe Intercontinentale de la FIFA", zone: "International", genres: ["Homme"]}
+      - {nom: "Ligue 1", zone: "France", genres: ["Homme"]}
+      - {nom: "Ligue 2", zone: "France", genres: ["Homme"]}
+      - {nom: "Ligue 3", zone: "France", genres: ["Homme"], phases: "Barrages d'accession"}
+      - {nom: "D1 Arkema", zone: "France", genres: ["Femme"]}
+      - {nom: "Coupe de France", zone: "France", genres: ["Femme", "Homme"], phases: "Femme: Demi-finales et finale; Homme: A partir des 32ème de finale"}
+      - {nom: "Trophée des Champions", zone: "France", genres: ["Homme"]}
+      - {nom: "Serie A", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Serie B", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Coppa Italia", zone: "Italie", genres: ["Homme"], phases: "A partir des 8èmes de finales"}
+      - {nom: "Supercoupe d'Italie", zone: "Italie", genres: ["Homme"]}
+      - {nom: "LaLiga Santander", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Liga 2", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Copa del Rey", zone: "Espagne", genres: ["Homme"], phases: "A partir des 16èmes de finale"}
+      - {nom: "Supercoupe d'Espagne", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Bundesliga", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "Bundesliga 2", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "DFB Pokal", zone: "Allemagne", genres: ["Homme"], phases: "A partir des 32èmes de finale"}
+      - {nom: "Supercup", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "Premier League", zone: "Angleterre", genres: ["Homme"]}
+      - {nom: "Championship", zone: "Angleterre", genres: ["Homme"]}
+      - {nom: "FA Cup", zone: "Angleterre", genres: ["Homme"], phases: "A partir des 32èmes finales (\"Third round proper\")"}
+      - {nom: "League Cup", zone: "Angleterre", genres: ["Homme"]}
+      - {nom: "Community Shield", zone: "Angleterre", genres: ["Homme"]}
+      - {nom: "Liga NOS", zone: "Portugal", genres: ["Homme"]}
+      - {nom: "LigaPro", zone: "Portugal", genres: ["Homme"]}
+      - {nom: "Taça de Portugal", zone: "Portugal", genres: ["Homme"], phases: "A partir du 3ème tour"}
+      - {nom: "Taça da Liga", zone: "Portugal", genres: ["Homme"]}
+      - {nom: "Supercoupe du Portugal", zone: "Portugal", genres: ["Homme"]}
+      - {nom: "Cinch Premiership", zone: "Ecosse", genres: ["Homme"]}
+      - {nom: "The Scottish Gas Scottish Cup", zone: "Ecosse", genres: ["Homme"], phases: "A partir du round four"}
+      - {nom: "Viaplay Cup", zone: "Ecosse", genres: ["Homme"], phases: "A partir du second round"}
+      - {nom: "Credit Suisse Super League", zone: "Suisse", genres: ["Homme"]}
+      - {nom: "Coupe de Suisse", zone: "Suisse", genres: ["Homme"], phases: "A partir des 32èmes de finale"}
+      - {nom: "Admiral-Bundesliga", zone: "Autriche", genres: ["Homme"]}
+      - {nom: "Topaz Premyer Liqasi", zone: "Azerbaïdjan", genres: ["Homme"]}
+      - {nom: "Jupiler Pro League", zone: "Belgique", genres: ["Homme"]}
+      - {nom: "Crocky Cup", zone: "Belgique", genres: ["Homme"], phases: "A partir des 16èmes de finale"}
+      - {nom: "Vycheïchaïa Liha", zone: "Biélorussie", genres: ["Homme"]}
+      - {nom: "BH Telecom Premijer liga", zone: "Bosnie-Herzégovine", genres: ["Homme"]}
+      - {nom: "Parva Liga", zone: "Bulgarie", genres: ["Homme"]}
+      - {nom: "Cyta Championship", zone: "Chypre", genres: ["Homme"]}
+      - {nom: "MAXtv Prva Liga", zone: "Croatie", genres: ["Homme"]}
+      - {nom: "3 F Superliga", zone: "Danemark", genres: ["Homme"]}
+      - {nom: "A. Le Coq Premium Liiga", zone: "Estonie", genres: ["Homme"]}
+      - {nom: "Veikkausliiga", zone: "Finlande", genres: ["Homme"]}
+      - {nom: "Pro League Georgia", zone: "Géorgie", genres: ["Homme"]}
+      - {nom: "Super League", zone: "Grèce", genres: ["Homme"]}
+      - {nom: "OTP Bank Liga", zone: "Hongrie", genres: ["Homme"]}
+      - {nom: "Hungarian Football Cup", zone: "Hongrie", genres: ["Homme"], phases: "Phase finale (A partir des demi-finales)"}
+      - {nom: "Sports Direct Premiership", zone: "Irlande du Nord", genres: ["Homme"]}
+      - {nom: "Pepsi-deildin", zone: "Islande", genres: ["Homme"]}
+      - {nom: "Ligat ha-Al", zone: "Israël", genres: ["Homme"]}
+      - {nom: "Optibet Virsliga", zone: "Lettonie", genres: ["Homme"]}
+      - {nom: "A Liga", zone: "Lituanie", genres: ["Homme"]}
+      - {nom: "BGL Ligue", zone: "Luxembourg", genres: ["Homme"]}
+      - {nom: "BOV Premier League", zone: "Malte", genres: ["Homme"]}
+      - {nom: "Eliteserien", zone: "Norvège", genres: ["Homme"]}
+      - {nom: "Cymru Premier League", zone: "Pays de Galles", genres: ["Homme"]}
+      - {nom: "Eredivisie", zone: "Pays-Bas", genres: ["Homme"]}
+      - {nom: "LOTTO Ekstraklasa", zone: "Pologne", genres: ["Homme"]}
+      - {nom: "SSE Airtricity League", zone: "République d'Irlande", genres: ["Homme"]}
+      - {nom: "ePojisteni.cz liga", zone: "République Tchèque", genres: ["Homme"]}
+      - {nom: "Liga I", zone: "Roumanie", genres: ["Homme"]}
+      - {nom: "Rosgosstrakh Russian Football Championship", zone: "Russie", genres: ["Homme"]}
+      - {nom: "SuperLiga", zone: "Serbie", genres: ["Homme"]}
+      - {nom: "Fortuna Liga", zone: "Slovaquie", genres: ["Homme"]}
+      - {nom: "Prva liga Telekom Slovenije", zone: "Slovénie", genres: ["Homme"]}
+      - {nom: "Allsvenskan", zone: "Suède", genres: ["Homme"]}
+      - {nom: "Spor Toto Süper Lig", zone: "Turquie", genres: ["Homme"]}
+      - {nom: "Liga Pari-Match", zone: "Ukraine", genres: ["Homme"]}
+      - {nom: "Meiji Yasuda J1 League", zone: "Japon", genres: ["Homme"]}
+      - {nom: "Major League Soccer (MLS)", zone: "Etat-Unis", genres: ["Homme"]}
+      - {nom: "Canadian Premier League", zone: "Canada", genres: ["Homme"]}
+      - {nom: "Liga AUF Uruguaya", zone: "Uruguay", genres: ["Homme"], phases: "A partir de la phase finale ( demi finales et finale)"}
+      - {nom: "Liga BBVA Bancomer MX", zone: "Mexique", genres: ["Homme"]}
+      - {nom: "Primera División", zone: "Paraguay", genres: ["Homme"]}
+      - {nom: "Primera Categoria Serie A", zone: "Equateur", genres: ["Homme"]}
+      - {nom: "Liga Águila", zone: "Colombie", genres: ["Homme"]}
+      - {nom: "Campeonato Nacional Scotiabank", zone: "Chili", genres: ["Homme"]}
+      - {nom: "Primera División", zone: "Argentine", genres: ["Homme"]}
+      - {nom: "Copa Argentina", zone: "Argentine", genres: ["Homme"], phases: "A partir des demi-finales"}
+      - {nom: "Coupe de La Ligue Professionnelle d'Argentine", zone: "Argentine", genres: ["Homme"]}
+      - {nom: "Serie A brésilienne", zone: "Brésil", genres: ["Homme"]}
+      - {nom: "Copa do Brasil", zone: "Brésil", genres: ["Homme"], phases: "A partir des demi-finales"}
+      - {nom: "Saoudi Pro League", zone: "Arabie Saoudite", genres: ["Homme"]}
+      - {nom: "UAE Pro League", zone: "Emirats Arabe Unis", genres: ["Homme"]}
+      - {nom: "Egyptian Pro League", zone: "Egypte", genres: ["Homme"], phases: "A partir de la phase finale (playoffs)"}
+      - {nom: "Championnat Mobilis de Ligue 1", zone: "Algérie", genres: ["Homme"]}
+      - {nom: "Botola Maroc Telecom", zone: "Maroc", genres: ["Homme"]}
+      - {nom: "Chinese Super League", zone: "Chine", genres: ["Homme"]}
+      - {nom: "K League", zone: "Corée du Sud", genres: ["Homme"]}
+      - {nom: "Championnat A League", zone: "Australie", genres: ["Homme"]}
+      - {nom: "Betway Premiership", zone: "Afrique du sud", genres: ["Homme"]}
+      - {nom: "Championnat d'Europe des Nations de l'UEFA", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Europe Espoirs de l'UEFA", zone: "Europe", genres: ["Homme"]}
+      - {nom: "Coupe du Monde de la FIFA", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Copa America", zone: "Amériques", genres: ["Homme"]}
+      - {nom: "Coupe d'Afrique des Nations", zone: "Afrique", genres: ["Homme"], phases: "Tournoi final"}
+      - {nom: "Coupe Arabe", zone: "Afrique", genres: ["Homme"], phases: "A partir des quarts de finale"}
+      - {nom: "Coupe d'Asie des Nations (Asian Cup)", zone: "Asie", genres: ["Homme"]}
+      - {nom: "Ligue des nations de la CONCACAF", zone: "Amérique du Nord, Centrale et Caraïbes", genres: ["Homme"]}
+      - {nom: "Gold Cup de la CONCACAF", zone: "Amérique du Nord, Centrale et Caraïbes", genres: ["Homme"], phases: "Matchs à élimination directe du tournoi final"}
+      - {nom: "UEFA Nations League", zone: "Europe", genres: ["Homme"]}
+      - {nom: "UEFA Women's Nations League", zone: "Europe", genres: ["Femme"], phases: "Ligue A et B: phase de groupe et matchs à élimination directe"}
+      - {nom: "Matchs amicaux internationaux", zone: "International", genres: ["Homme", "Femme"], restriction: "Classement FIFA **"}
+      - {nom: "Matchs amicaux internationaux de l'équipe de France", zone: "International", genres: ["Homme"]}
+      - {nom: "Coupe du monde de Futsal", discipline: "Futsal", zone: "International", genres: ["Homme"], phases: "A partir des quarts de finale"}
+      - {nom: "Championnat d'Europe de Futsal", discipline: "Futsal", zone: "Europe", genres: ["Homme"], phases: "Matchs à élimination directe du tournoi final"}
+      - {nom: "Champions League de Futsal", discipline: "Futsal", zone: "Europe", genres: ["Homme"], phases: "A partir des quarts de finale"}
+      - {nom: "Coupe du monde beach soccer de la FIFA", discipline: "Football de Plage", zone: "International", genres: ["Homme"], phases: "Phase à élimination directe"}
+  "Football américain":
+    types_de_resultats:
+      - "Score du match"
+      - "Score d'un quart-temps"
+      - "Minute d'un point"
+      - "Stats individuelles joueur (seulement yards à la passe, à la réception, à la course)"
+      - "Stats équipe (yards passe/réception/course et nombre de sacks)"
+      - "Type de points équipe (touchdown / field goal / safety / transformation à 2 pts)"
+      - "Noms des marqueurs"
+      - "Classement des équipes (journée, poules, élimination directe, fin de compétition)"
+    competitions:
+      - {nom: "National Football League (NFL)", zone: "Etats-Unis", genres: ["Homme"], phases: "Tous les matchs"}
+      - {nom: "National Collegiate Athletic Association", zone: "Etats-Unis", genres: ["Homme"], phases: "College Football Playoff (demi-finales et finale)"}
+  "Football australien":
+    types_de_resultats:
+      - "Vainqueur du match"
+    competitions:
+      - {nom: "Championnat de Football Australian rules", zone: "Australie", genres: ["Homme"]}
+  "Golf":
+    types_de_resultats:
+      - "Classement final top 20 (fin d'un tour ou de la compétition)"
+      - "Score d'un match par équipe"
+      - "Performance joueur (uniquement greens en régulation, albatros, eagles, birdies, trous en un)"
+      - "Performance joueur 2/3 balles (score sur un tour)"
+      - "Classement longueur de drive (top 1)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "PGA Tour (Professional Golf Association)", zone: "Etats-Unis", genres: ["Homme"]}
+      - {nom: "LPGA Tour (Ladies' Professional Golf Association)", zone: "Etats-Unis", genres: ["Femme"]}
+      - {nom: "DPWORLD Tour", zone: "Europe", genres: ["Homme"]}
+      - {nom: "LIV GOLF", zone: "International", genres: ["Homme"]}
+      - {nom: "Ryder Cup", zone: "International", genres: ["Homme"]}
+      - {nom: "Solheim Cup", zone: "International", genres: ["Femme"]}
+      - {nom: "Jeux Olympiques de Golf", zone: "International", genres: ["Homme", "Femme"]}
+  "Handball":
+    types_de_resultats:
+      - "Score du match"
+      - "Noms des buteurs"
+      - "Classement des clubs d'une compétition nationale (top 6)"
+      - "Classement des équipes d'une compétition internationale (top 6)"
+      - "Classement attaques/défenses (top 1)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Championnat de Division 1 (Liqui Moli Starligue)", zone: "France", genres: ["Homme"]}
+      - {nom: "Championnat de Division 1 (Ligue Butagaz)", zone: "France", genres: ["Femme"]}
+      - {nom: "Championnat de Division 2 (Proligue)", zone: "France", genres: ["Homme"]}
+      - {nom: "Championnat d'Europe de Handball", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde de Handball", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de Handball", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Golden League", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat professionnel espagnol", zone: "Espagne", genres: ["Homme"]}
+      - {nom: "Championnat professionnel allemand", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "Coupe de la Ligue de Handball", zone: "France", genres: ["Homme"]}
+      - {nom: "Coupe de France de Handball", zone: "France", genres: ["Homme", "Femme"], phases: "A partir des 1/16èmes de finale"}
+      - {nom: "Trophée des Champions de Handball", zone: "France", genres: ["Homme"]}
+      - {nom: "EHF Champions League", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "EHF European League", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "EHF European Cup", zone: "Europe", genres: ["Homme", "Femme"]}
+  "Haltérophilie":
+    types_de_resultats:
+      - "Classement final d'une compétition (top 3)"
+      - "Performance (total olympique d'un athlète sur le podium)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques d'Haltérophilie", zone: "International", genres: ["Homme", "Femme"]}
+  "Hockey":
+    types_de_resultats:
+      - "Score du match"
+      - "Minute des buts"
+      - "Noms des buteurs"
+      - "Classement fin de compétition (top 3)"
+      - "Classement des buteurs (top 1)"
+      - "Classement des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de Hockey", zone: "International", genres: ["Homme", "Femme"]}
+  "Hockey sur glace":
+    types_de_resultats:
+      - "Score final (tiers-temps, temps réglementaire, prolongations)"
+      - "Score d'un tiers-temps"
+      - "Minute des buts"
+      - "Noms des buteurs"
+      - "Stats individuelles match (nombre d'assistances)"
+      - "Classement (journée, groupes, élimination directe, fin de compétition) top 3"
+      - "Classement des buteurs (top 1)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Ligue Magnus", zone: "France", genres: ["Homme"]}
+      - {nom: "Coupe de France", zone: "France", genres: ["Homme"], phases: "A partir des 16 èmes de finales"}
+      - {nom: "NHL (National Hockey League)", zone: "Etats-Unis/Canada", genres: ["Homme"]}
+      - {nom: "AHL (American Hockey League)", zone: "Etats-Unis/Canada", genres: ["Homme"]}
+      - {nom: "KHL (Kontinental Hockey League)", zone: "Europe/Asie", genres: ["Homme"], phases: "Saison régulière, playoffs de Conférence et finale"}
+      - {nom: "Slovakian Extraliga", zone: "Slovaquie", genres: ["Homme"]}
+      - {nom: "Championnat de République tchèque de hockey sur glace", zone: "République Tchèque", genres: ["Homme"]}
+      - {nom: "Championnat de Finlande de hockey sur glace", zone: "Finlande", genres: ["Homme"]}
+      - {nom: "Championnat de Norvège de hockey sur glace", zone: "Norvège", genres: ["Homme"]}
+      - {nom: "Championnat de Danemark de hockey sur glace", zone: "Danemark", genres: ["Homme"], phases: "Playoffs"}
+      - {nom: "Championnat d'Autriche de hockey sur glace", zone: "Autriche", genres: ["Homme"]}
+      - {nom: "Championnat de Suède de hockey sur glace", zone: "Suède", genres: ["Homme"]}
+      - {nom: "Championnat d'Allemagne de hockey sur glace", zone: "Allemagne", genres: ["Homme"]}
+      - {nom: "Championnat de Suisse de hockey sur glace", zone: "Suisse", genres: ["Homme"]}
+      - {nom: "Championnat de Bielorussie de hockey sur glace", zone: "Biélorussie", genres: ["Homme"], phases: "Phase finale"}
+      - {nom: "Super Finale de la Continental Cup", zone: "Europe", genres: ["Homme"], phases: "Uniquement la super finale"}
+      - {nom: "Ligue des champions de Hockey sur glace", zone: "Europe", genres: ["Homme"]}
+      - {nom: "NHL 4 Nations - Face Off", zone: "International", genres: ["Homme"]}
+      - {nom: "Championnat du monde de hockey sur glace", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde de hockey sur glace Division I Groupe A", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de hockey sur glace", zone: "International", genres: ["Homme", "Femme"]}
+  "Judo":
+    types_de_resultats:
+      - "Vainqueur du combat / d'une compétition (à partir des 1/4 de finale)"
+      - "Classement d'un tournoi (top 4)"
+      - "Classement mondial (top 5)"
+      - "Classement des médailles des JO"
+    competitions:
+      - {nom: "Championnat du monde de Judo en individuel", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde de Judo par équipe", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Europe de Judo en individuel", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Europe de Judo par équipe", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de Judo", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Grand Slams de Judo", zone: "International", genres: ["Homme", "Femme"]}
+  "Luge":
+    types_de_resultats:
+      - "Classement à l'issue d'une manche (top 10)"
+      - "Records mondiaux ou olympiques"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de Luge simple", discipline: "Luge simple", zone: "International", genres: ["Homme", "Femme"], phases: "Tournoi final hors qualifications"}
+      - {nom: "Jeux Olympiques de Luge double", discipline: "Luge double", zone: "International", genres: ["Homme", "Femme"], phases: "Tournoi final hors qualifications"}
+      - {nom: "Jeux Olympiques de Luge relais", discipline: "Luge relais", zone: "International", genres: ["Mixte"], phases: "Tournoi final hors qualifications"}
+  "Lutte":
+    types_de_resultats:
+      - "Classement final d'une compétition (top 3)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de Lutte libre", discipline: "Lutte libre", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de Lutte gréco-romaine", discipline: "Lutte gréco-romaine", zone: "International", genres: ["Homme"]}
+  "MMA":
+    types_de_resultats:
+      - "Résultat du combat"
+      - "Durée du combat (nombre de rounds)"
+      - "Type de victoire (uniquement KO / TKO / soumission / décision des juges)"
+    notes_annexe:
+      - "Seules les cartes principales UFC et PFL. ARES FC retiré (décision du 26/03/2026, à la demande de la fédération). En juillet 2026, les entrées Bellator / PFL Season / PFL Europe / PFL Super Fights ont été remplacées par une entrée unique PFL (cartes principales) ; KSW retiré de la nomenclature. Cartes préliminaires de l UFC Paris 2026 refusées (décision 2026-159)."
+    competitions:
+      - {nom: "Combats affiliés à l'Ultimate Fighting Championship (UFC)", zone: "International", genres: ["Homme", "Femme"], restriction: "Uniquement les combats cartes principales"}
+      - {nom: "Combats affiliés au Professional Fighters League (PFL)", zone: "International", genres: ["Homme", "Femme"], restriction: "Uniquement les combats cartes principales"}
+  "Motocyclisme":
+    types_de_resultats:
+      - "Classement final pilote/équipe course ou étape (top 3 Moto2 et Moto3, top 15 MotoGP)"
+      - "Classement final course ou championnat (top 1 Superbike, Endurance, Motocross, Dakar)"
+      - "Classement final championnat (top 3 Moto2, Moto3, MotoGP)"
+      - "Classement de la dernière séance de qualification MotoGP (top 1)"
+    competitions:
+      - {nom: "Epreuves du championnat du monde de MXGP", discipline: "Motocross MXGP", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Motocross des Nations - MXDN", discipline: "Motocross MX1", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Speedway Grand Prix World Championship", discipline: "Course sur Piste", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Championnat du monde de Superbike", discipline: "Vitesse Superbike", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Epreuves du championnat du monde de Moto GP", discipline: "Vitesse - Moto GP", zone: "International", genres: ["Non applicable"], phases: "Grand Prix, dernière séance de qualification (Q2)"}
+      - {nom: "Courses sprint du championnat du monde de Moto GP", discipline: "Vitesse -Moto GP", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Epreuves du championnat du monde de Moto 2", discipline: "Vitesse - Moto 2", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Epreuves du championnat du monde de Moto 3", discipline: "Vitesse - Moto 3", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Dakar - Moto", discipline: "Rallye tout terrain", zone: "International", genres: ["Non applicable"]}
+  "Natation":
+    types_de_resultats:
+      - "Athlètes ou pays qualifiés pour le tour suivant"
+      - "Score final (water-polo)"
+      - "Classement des buteurs water-polo (match/compétition, top 1)"
+      - "Classement final d'une compétition (top 3, athlète/pays)"
+      - "Records nationaux, continentaux, olympiques et du monde"
+      - "Classement des médailles des JO"
+    notes_annexe:
+      - "* Petit et grand bassin"
+    competitions:
+      - {nom: "Championnat d'Europe de Natation course *", discipline: "Natation Course", zone: "Europe", genres: ["Homme"]}
+      - {nom: "Championnat d'Europe de Natation course*", discipline: "Natation Course", zone: "Europe", genres: ["Femme", "Homme", "Mixte"]}
+      - {nom: "Championnat du monde de Natation course*", discipline: "Natation Course", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Jeux Olympiques de Natation course", discipline: "Natation Course", zone: "International", genres: ["Homme", "Femme", "Mixte"], phases: "Mixte: Relais 4*100m 4 nages"}
+      - {nom: "Championnat d'Europe de Waterpolo", discipline: "Waterpolo", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde de Waterpolo", discipline: "Waterpolo", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Coupe du monde de Waterpolo", discipline: "Waterpolo", zone: "International", genres: ["Homme", "Femme"], phases: "Division 1 et 2 et Finale"}
+      - {nom: "Jeux Olympiques de Waterpolo", discipline: "Waterpolo", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Europe en eau libre", discipline: "Nage en Eau Libre", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde en eau libre", discipline: "Nage en Eau Libre", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques en eau libre", discipline: "Nage en Eau Libre", zone: "International", genres: ["Homme", "Femme"]}
+  "Padel":
+    types_de_resultats:
+      - "Score (match)"
+    competitions:
+      - {nom: "Major", discipline: "Double", zone: "International", genres: ["Homme", "Femme"], phases: "A partir des 1/2 finales"}
+      - {nom: "Premier Padel Finals", discipline: "Double", zone: "International", genres: ["Homme", "Femme"], phases: "A partir des 1/2 finales"}
+  "Patinage":
+    types_de_resultats:
+      - "Classement final compétition/manche en patinage de vitesse (top 10)"
+      - "Classement final compétition en short track (top 3)"
+      - "Qualifiés pour le tour suivant en short track (1/4 de finale ou mieux)"
+      - "Records nationaux, continentaux, olympiques et mondiaux"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de patinage de vitesse", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de patinage de vitesse sur piste courte (short track)", zone: "International", genres: ["Homme", "Femme", "Mixte"], phases: "Femme: 3000 m Relais; Femme: Toutes distances; Homme: 5000 m Relais; Homme: Toutes distances; Mixte: Relais Mixte"}
+  "Pentathlon moderne":
+    types_de_resultats:
+      - "Classement final compétition (top 3)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de pentathlon moderne", zone: "International", genres: ["Homme", "Femme"]}
+  "Pétanque et jeu provencal":
+    types_de_resultats:
+      - "Score du match"
+      - "Mènes"
+      - "Performance joueur (uniquement premier joueur à annuler un but)"
+      - "Classement final (joueur/équipe/pays) top 3"
+    competitions:
+      - {nom: "Championnat du monde de triplette", discipline: "Triplette", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Coupe de France des clubs", discipline: "Invididuel", zone: "France", genres: ["Non applicable"], phases: "Phase finale"}
+      - {nom: "Coupe de France des clubs", discipline: "Doublette", zone: "France", genres: ["Non applicable"], phases: "Phase finale"}
+      - {nom: "Coupe de France des clubs", discipline: "Triplette", zone: "France", genres: ["Non applicable"], phases: "Phase finale"}
+      - {nom: "Masters de pétanque", discipline: "Triplette", zone: "France", genres: ["Homme"]}
+      - {nom: "Trophée des villes de pétanque", discipline: "Triplette", zone: "France", genres: ["Homme"]}
+  "Roller Skating":
+    types_de_resultats:
+      - "Vainqueur du match"
+      - "Classement final course (top 3)"
+    competitions:
+      - {nom: "Championnat du monde de Rink Hockey", discipline: "Rink Hockey", zone: "International", genres: ["Homme"]}
+      - {nom: "Championnat du monde de Roller In Line Hockey", discipline: "Roller In Line Hockey", zone: "International", genres: ["Homme"]}
+      - {nom: "Championnat du monde de course de roller skating", discipline: "Course", zone: "International", genres: ["Homme", "Femme"], phases: "Marathon - épreuves sur route - épreuves sur piste"}
+  "Rugby":
+    types_de_resultats:
+      - "Score du match"
+      - "Minute des points (hors essais de pénalité)"
+      - "Noms des marqueurs"
+      - "Type des points (hors essais de pénalité)"
+      - "Classement des équipes dans une compétition — 1re moitié (journée, groupes, élimination directe, fin)"
+      - "Classement au tableau des médailles des JO"
+    notes_annexe:
+      - "* Matchs internationaux : les deux équipes doivent être dans le top 20 World Rugby en vigueur 30 jours avant le match (matchs du XV de France H toujours autorisés)"
+    competitions:
+      - {nom: "Coupe du monde de rugby à XV", discipline: "Rugby à XV", zone: "International", genres: ["Homme", "Femme"], phases: "Tournoi final hors matchs de qualifications"}
+      - {nom: "Tournoi des 6 Nations de rugby à XV", discipline: "Rugby à XV", zone: "Angleterre / Ecosse / France Galles / Irlande / Italie", genres: ["Homme", "Femme"]}
+      - {nom: "The Rugby Championship - Fournations", discipline: "Rugby à XV", zone: "Australie / Nouvelle-Zélande / Afrique du Sud / Argentine", genres: ["Homme"]}
+      - {nom: "Matchs internationaux", discipline: "Rugby à XV", zone: "International", genres: ["Homme", "Femme"], restriction: "Classement World Rugby*"}
+      - {nom: "Matchs internationaux de l'équipe de France", discipline: "Rugby à XV", zone: "International", genres: ["Homme"]}
+      - {nom: "WXV Global Series", discipline: "Rugby à XV", zone: "International", genres: ["Femme"]}
+      - {nom: "Tournée des Lions", discipline: "Rugby à XV", zone: "Angleterre / Ecosse / Pays de Galles / Irlande", genres: ["Homme"]}
+      - {nom: "Rugby Nations Cup", discipline: "Rugby à XV", zone: "International", genres: ["Homme"]}
+      - {nom: "Nations Championship", discipline: "Rugby à XV", zone: "International", genres: ["Homme"]}
+      - {nom: "Coupe du Monde de Rugby à 7", discipline: "Rugby à 7", zone: "International", genres: ["Homme", "Femme"], phases: "Tournoi final hors matchs de qualifications"}
+      - {nom: "Jeux Olympiques de Rugby à 7", discipline: "Rugby à 7", zone: "International", genres: ["Homme", "Femme"], phases: "Tournoi final hors matchs de qualifications"}
+      - {nom: "Tournoi de repêchage Olympique", discipline: "Rugby à 7", zone: "International", genres: ["Homme", "Femme"], phases: "Phase à élimination directe"}
+      - {nom: "World Rugby Sevens World Series", discipline: "Rugby à 7", zone: "International", genres: ["Homme"], phases: "Tous les matchs (hors qualifications)"}
+      - {nom: "World Rugby Women’s Sevens Series", discipline: "Rugby à 7", zone: "International", genres: ["Femme"], phases: "Tous les matchs (hors qualifications)"}
+      - {nom: "Championnat d’Angleterre de Rugby à XV de première division", discipline: "Rugby à XV", zone: "Angleterre", genres: ["Homme"]}
+      - {nom: "United Rugby Championship", discipline: "Rugby à XV", zone: "Italie/Irlande/Ecosse/Pays de Galles/Afrique du Sud", genres: ["Homme"]}
+      - {nom: "Championnat de Nouvelle Zélande de rugby à XV de première division (Bunnings NPC)", discipline: "Rugby à XV", zone: "Nouvelle-Zélande", genres: ["Homme"]}
+      - {nom: "Championnat d’Afrique du Sud de rugby à XV de première division (Currie Cup)", discipline: "Rugby à XV", zone: "Afrique du Sud", genres: ["Homme"]}
+      - {nom: "Championnat d’Italie de rugby à XV de première division", discipline: "Rugby à XV", zone: "Italie", genres: ["Homme"]}
+      - {nom: "Championnat d’Australie de rugby à XV - National Rugby Championship", discipline: "Rugby à XV", zone: "Australie", genres: ["Homme"]}
+      - {nom: "Championnat d'Amérique du Nord de rugby à XV- Major League Rugby", discipline: "Rugby à XV", zone: "Etats Unis /Canada", genres: ["Homme"], phases: "Finales (Conference Est, Ouest et Championnat)"}
+      - {nom: "Championnat du Japon de rugby à XV ( Japan Rugby League One)", discipline: "Rugby à XV", zone: "Japon", genres: ["Homme"]}
+      - {nom: "Coupe d’Europe de rugby à XV (European Rugby Champions Cup)", discipline: "Rugby à XV", zone: "Europe", genres: ["Homme"]}
+      - {nom: "Challenge Européen de Rugby à XV (European Rugby Challenge Cup)", discipline: "Rugby à XV", zone: "Europe", genres: ["Homme"]}
+      - {nom: "Super Rugby Pacific", discipline: "Rugby à XV", zone: "Australie/Nouvelle Zélande/Fidji/Pacifique", genres: ["Homme"]}
+      - {nom: "Super Rugby AU", discipline: "Rugby à XV", zone: "Australie", genres: ["Homme"]}
+      - {nom: "Championnat de France de Rugby à XV - Top 14", discipline: "Rugby à XV", zone: "France", genres: ["Homme"]}
+      - {nom: "Championnat de France de Rugby à XV - Pro D2", discipline: "Rugby à XV", zone: "France", genres: ["Homme"]}
+      - {nom: "Championnat de France de Rugby à 7 - Super Sevens", discipline: "Rugby à 7", zone: "France", genres: ["Homme"]}
+  "Rugby à XIII":
+    types_de_resultats:
+      - "Score du match"
+      - "Minute des points (hors essais de pénalité)"
+      - "Noms des marqueurs"
+      - "Type des points (hors essais de pénalité)"
+      - "Classement des équipes dans une compétition — 1re moitié"
+    competitions:
+      - {nom: "Coupe du Monde à XIII", zone: "International", genres: ["Homme"]}
+      - {nom: "Tournoi des IV Nations", zone: "International", genres: ["Homme"]}
+      - {nom: "National Rugby League", zone: "Australie/Nouvelle-Zélande", genres: ["Homme"]}
+      - {nom: "Super League", zone: "France/Angleterre", genres: ["Homme"]}
+      - {nom: "World Club Challenge", zone: "International", genres: ["Homme"]}
+      - {nom: "Ashes Test Series", zone: "International", genres: ["Homme"]}
+  "Skeleton":
+    types_de_resultats:
+      - "Classement général à l'issue d'une manche (top 10)"
+      - "Records mondiaux ou olympiques"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de Skeleton", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+  "Ski":
+    types_de_resultats:
+      - "Classement final skieur/équipe (manche/épreuve, top 30)"
+      - "Classement final sur la saison complète (top 30)"
+      - "Performance de tir (nombre de tirs réussis uniquement — biathlon)"
+      - "Temps final (seulement pour les finalistes)"
+      - "Qualifiés pour le tour suivant (1/4 de finale ou mieux)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Championnat du monde de ski alpin", discipline: "Ski Alpin", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Coupes du monde de ski alpin", discipline: "Ski Alpin", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de ski alpin", discipline: "Ski Alpin", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de ski alpin du combiné par équipe", discipline: "ski Alpin", zone: "International", genres: ["Mixte"]}
+      - {nom: "Championnat du monde de snowboard", discipline: "Snowboard", zone: "International", genres: ["Homme", "Femme"], phases: "Boardercross - slalom"}
+      - {nom: "Coupes du monde de snowboard", discipline: "Snowboard", zone: "International", genres: ["Homme", "Femme"], phases: "Boardercross - slalom"}
+      - {nom: "Jeux Olympiques de snowboard", discipline: "Snowboard", zone: "International", genres: ["Homme", "Femme"], phases: "Boardercross - slalom"}
+      - {nom: "Jeux Olympiques de snowboard par équipe mixte", discipline: "Snowboard", zone: "International", genres: ["Mixte"]}
+      - {nom: "Championnat du monde de ski de fond", discipline: "Ski de fond", zone: "International", genres: ["Homme", "Femme"], phases: "Femme: Relais - sprint par équipe; Femme: Toutes distances - Poursuite - Skiathlon - Sprint; Homme: Relais - sprint par équipe; Homme: Toutes distances - Poursuite - Skiathlon - Sprint"}
+      - {nom: "Coupes du monde de ski de fond", discipline: "Ski de fond", zone: "International", genres: ["Homme", "Femme"], phases: "Femme: Relais - sprint par équipe; Femme: Toutes distances - Poursuite - Skiathlon - Sprint; Homme: Relais - sprint par équipe; Homme: Toutes distances - Poursuite - Skiathlon - Sprint"}
+      - {nom: "Jeux Olympiques de ski de fond", discipline: "Ski de fond", zone: "International", genres: ["Homme", "Femme"], phases: "Femme: Relais - sprint par équipe; Femme: Toutes distances - Poursuite - Skiathlon - Sprint; Homme: Relais - sprint par équipe; Homme: Toutes distances - Poursuite - Skiathlon - Sprint"}
+      - {nom: "Jeux Olympiques de saut à ski", discipline: "Saut à ski", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Coupe du Monde de saut à ski", discipline: "Saut à ski", zone: "International", genres: ["Homme"]}
+      - {nom: "Championnat du monde de biathlon", discipline: "Biathlon", zone: "International", genres: ["Homme", "Femme", "Mixte"], phases: "Femme: Relais; Femme: Toutes distances - Mass Start - Poursuite - Sprint; Homme: Relais; Homme: Toutes distances - Mass Start - Poursuite - Sprint; Mixte: Relais"}
+      - {nom: "Championnat d'Europe de Biathlon", discipline: "Biathlon", zone: "International", genres: ["Homme", "Femme", "Mixte"], phases: "Femme: Relais; Femme: Toutes distances - Mass Start - Poursuite - Sprint; Homme: Relais; Homme: Toutes distances - Mass Start - Poursuite - Sprint; Mixte: Relais"}
+      - {nom: "Epreuves de la Coupe du monde de biathlon", discipline: "Biathlon", zone: "International", genres: ["Homme", "Femme", "Mixte"], phases: "Femme: Relais; Femme: Toutes distances - Mass Start - Poursuite - Sprint; Homme: Relais; Homme: Toutes distances - Mass Start - Poursuite - Sprint; Mixte: Relais"}
+      - {nom: "Jeux Olympiques de biathlon", discipline: "Biathlon", zone: "International", genres: ["Homme", "Femme", "Mixte"], phases: "Femme: Relais; Femme: Toutes distances - Mass Start - Poursuite - Sprint; Homme: Relais; Homme: Toutes distances - Mass Start - Poursuite - Sprint; Mixte: Relais"}
+      - {nom: "Championnat du monde de Freestyle", discipline: "Freestyle", zone: "International", genres: ["Homme", "Femme"], phases: "Skicross uniquement"}
+      - {nom: "Epreuves de Coupe du monde de combiné nordique", discipline: "Combiné nordique", zone: "International", genres: ["Homme"]}
+      - {nom: "Championnat du monde de combiné nordique", discipline: "Combiné nordique", zone: "International", genres: ["Homme"]}
+      - {nom: "Jeux Olympiques de combiné nordique", discipline: "Combiné nordique", zone: "International", genres: ["Homme"]}
+      - {nom: "Coupes du monde de Freestyle", discipline: "Freestyle", zone: "International", genres: ["Homme", "Femme"], phases: "Skicross uniquement"}
+      - {nom: "Jeux Olympiques de Freestyle", discipline: "Freestyle", zone: "International", genres: ["Homme", "Femme"], phases: "Skicross uniquement"}
+  "Sport Automobile":
+    types_de_resultats:
+      - "Classement final pilote (top 3) / final équipe (top 3, top 10 en F1)"
+      - "Classement final pilote course (F1)"
+      - "Classement pilote qualifications (top 15, F1)"
+      - "Classement saison complète pilote/équipe (1re moitié)"
+      - "Performance pilote F1 (uniquement série de victoires, meilleur tour en course, marge de victoire)"
+      - "Performance équipe F1 (uniquement série de victoires, meilleur tour, arrêt aux stands le plus rapide)"
+    competitions:
+      - {nom: "24 heures du Mans", discipline: "Endurance", zone: "France", genres: ["Non applicable"]}
+      - {nom: "Manches du championnat du monde des rallyes", discipline: "Rallye", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Grand Prix du Championnat du monde de Formule 1 de la FIA", discipline: "Formule 1", zone: "International", genres: ["Non applicable"], phases: "Grand Prix et dernière séance de qualification"}
+      - {nom: "Course sprint Des Grand Prix du Championnat du monde de Formule 1 de la FIA", discipline: "Formule 1", zone: "International", genres: ["Non applicable"], phases: "Course sprint qualification et course sprint final"}
+      - {nom: "Grand Prix du Championnat du monde de Formule 2 de la FIA", discipline: "Formule 2", zone: "International", genres: ["Non applicable"], phases: "Grand Prix et dernière séance de qualification"}
+      - {nom: "Course sprint Des Grand Prix du Championnat du monde de Formule 2 de la FIA", discipline: "Formule 2", zone: "International", genres: ["Non applicable"], phases: "Course sprint qualification et course sprint final"}
+      - {nom: "Indianapolis 500", discipline: "Indy Car", zone: "Etats-Unis", genres: ["Non applicable"]}
+      - {nom: "Championnat Nascar Cup Series", discipline: "Nascar", zone: "Etats-Unis", genres: ["Non applicable"]}
+      - {nom: "Championnat Nascar X Infinity Series", discipline: "Nascar", zone: "Etats-Unis", genres: ["Non applicable"]}
+      - {nom: "Dakar - Auto", discipline: "Rallye Raid", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Dakar - Camion", discipline: "Rallye Raid", zone: "International", genres: ["Non applicable"]}
+  "Sport Boules":
+    types_de_resultats:
+      - "Vainqueur d'une partie"
+      - "Classement à l'issue de la compétition (top 1)"
+    competitions:
+      - {nom: "Championnat du monde de sport boules", zone: "International", genres: ["Homme", "Femme"]}
+  "Squash":
+    types_de_resultats:
+      - "Score (match/jeu)"
+    competitions:
+      - {nom: "PSA Squash World Championships", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Squash Tour Finals", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "PSA Squash Tour Diamond", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "PSA Squash Tour Platinium", discipline: "Simple", zone: "International", genres: ["Homme"]}
+      - {nom: "PSA Squash Tour Platinum", discipline: "Simple", zone: "International", genres: ["Femme"]}
+  "Taekwondo":
+    types_de_resultats:
+      - "Vainqueur (match ou compétition)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Championnat d’Europe de Taekwondo (European Taekwondo Union - ETU)", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde de Taekwondo (World Taekwondo Federation - WTF)", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de Taekwondo", zone: "International", genres: ["Homme", "Femme"]}
+  "Tennis":
+    types_de_resultats:
+      - "Score (match/set/jeu) (=> vainqueur, handicap jeux/sets, plus/moins, score exact en sets, etc.)"
+      - "Statistiques (seulement nombre de coups gagnants et d'aces)"
+      - "Numéro un mondial (simple), classement technique / Race"
+      - "Classement au tableau des médailles des JO (athlète/pays)"
+    notes_annexe:
+      - "Pas d'ITF ni de Challenger < 175 ; Challenger 175 seulement à partir des 1/2 finales ; ATP/WTA 250-500 : tableau final uniquement"
+    competitions:
+      - {nom: "Tournois du Grand Chelem de tennis - simple", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Tournois du Grand Chelem", discipline: "Double", zone: "International", genres: ["Homme", "Femme"], phases: "Tableau final uniquement"}
+      - {nom: "Tournois du Grand Chelem de tennis - double", discipline: "Double", zone: "International", genres: ["Mixte"], phases: "A partir des 1/4 de finale"}
+      - {nom: "ATP World Tour Finals - simple", discipline: "Simple", zone: "International", genres: ["Homme"]}
+      - {nom: "ATP Next Gen Finals-simple", discipline: "Simple", zone: "International", genres: ["Homme"]}
+      - {nom: "ATP World Tour Masters 1000 - simple", discipline: "Simple", zone: "International", genres: ["Homme"], phases: "Dernier tour des qualications et Tableau final"}
+      - {nom: "ATP World Tour 500 series - simple", discipline: "Simple", zone: "International", genres: ["Homme"], phases: "Tableau final uniquement"}
+      - {nom: "ATP World Tour 250 series - simple", discipline: "Simple", zone: "International", genres: ["Homme"], phases: "Tableau final uniquement"}
+      - {nom: "ATP World Tour Finals - double", discipline: "Double", zone: "International", genres: ["Homme"], phases: "A partir des 1/2 finales"}
+      - {nom: "ATP World Tour Masters 1000 - double", discipline: "Double", zone: "International", genres: ["Homme"], phases: "A partir des 1/4 de finale"}
+      - {nom: "ATP World Tour 500 series - double", discipline: "Double", zone: "International", genres: ["Homme"], phases: "Finale uniquement"}
+      - {nom: "ATP World Tour 250 series - double", discipline: "Double", zone: "International", genres: ["Homme"], phases: "Finale uniquement"}
+      - {nom: "ATP Challenger Tour 175- simple", discipline: "Simple", zone: "International", genres: ["Homme"], phases: "A partir des 1/2 finales"}
+      - {nom: "Coupe Davis", discipline: "Simple-double", zone: "International", genres: ["Homme"], phases: "Finals - Qualifiers- Groupe Mondial I"}
+      - {nom: "WTA Tour Finals - simple", discipline: "Simple", zone: "International", genres: ["Femme"]}
+      - {nom: "WTA Tour Elite Trophy - simple", discipline: "Simple", zone: "International", genres: ["Femme"]}
+      - {nom: "WTA Tour 1000 -simple", discipline: "Simple", zone: "International", genres: ["Femme"], phases: "Dernier tour des qualifications et Tableau final"}
+      - {nom: "WTA Tour 500 - simple", discipline: "Simple", zone: "International", genres: ["Femme"], phases: "Tableau final uniquement"}
+      - {nom: "WTA Tour 250 - simple", discipline: "Simple", zone: "International", genres: ["Femme"], phases: "Tableau final uniquement"}
+      - {nom: "WTA Tour Finals - double", discipline: "Double", zone: "International", genres: ["Femme"], phases: "A partir des 1/2 finales"}
+      - {nom: "WTA Tour Elite Trophy - double", discipline: "Double", zone: "International", genres: ["Femme"], phases: "Finale uniquement"}
+      - {nom: "WTA Tour 1000 - double", discipline: "Double", zone: "International", genres: ["Femme"], phases: "A partir des 1/4 de finale"}
+      - {nom: "WTA Tour 500 - double", discipline: "Double", zone: "International", genres: ["Femme"], phases: "Finale uniquement"}
+      - {nom: "WTA Tour 250- double", discipline: "Double", zone: "International", genres: ["Femme"], phases: "Finale uniquement"}
+      - {nom: "Billie Jean King Cup", discipline: "Simple-double", zone: "International", genres: ["Femme"], phases: "Finals - Qualifiers-Play off"}
+      - {nom: "Jeux Olympiques de tennis - simple", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de tennis - double", discipline: "Double", zone: "International", genres: ["Homme", "Femme", "Mixte"], phases: "Mixte: A partir des 1/4 de finale"}
+      - {nom: "United Cup", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "United Cup", discipline: "Double", zone: "International", genres: ["Mixte"]}
+  "Tennis de Table":
+    types_de_resultats:
+      - "Score final (set/match)"
+      - "Classement à la fin d'une compétition (équipe/pays)"
+      - "Classement à la fin d'une compétition (top 3 joueurs)"
+      - "Classement au tableau des médailles des JO"
+    notes_annexe:
+      - "* comprend également le tournoi de qualification"
+      - "** comprend le tournoi de qualification olympique"
+      - "*** WTT Grand Smash, WTT Cup Finals, WTT Champions, WTT Star Contender et WTT Contender"
+    competitions:
+      - {nom: "Championnat de France de Tennis de Table", discipline: "Simple", zone: "France", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat de France de Tennis de Table", discipline: "Double", zone: "France", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Championnat de France par Equipes de Pro A", discipline: "Simple et double", zone: "France", genres: ["Homme", "Femme"]}
+      - {nom: "Championnats d'Europe de Tennis de Table*", discipline: "Simple", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnats d'Europe de Tennis de Table*", discipline: "Double", zone: "Europe", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Championnats d'Europe de Tennis de Table*", discipline: "Simple et double", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnats du monde de Tennis de Table*", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnats du monde de Tennis de Table*", discipline: "Double", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Championnats du monde de Tennis de Table*", discipline: "Simple et double", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Coupe du monde", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"], phases: "Phase de groupe et phase à élimination directe"}
+      - {nom: "Jeux Olympiques de Tennis de Table**", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de Tennis de Table**", discipline: "Simple et double", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de Tennis de Table**", discipline: "Double", zone: "International", genres: ["Mixte"]}
+      - {nom: "Jeux Européens de Tennis de Table", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Européens de Tennis de Table", discipline: "Simple et Double", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Européens de Tennis de Table", discipline: "Double", zone: "International", genres: ["Mixte"]}
+      - {nom: "WTT Series - simple***", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "WTT Series - double***", discipline: "Double", zone: "International", genres: ["Homme", "Mixte"]}
+      - {nom: "WTT Series- double***", discipline: "Double", zone: "International", genres: ["Femme"]}
+      - {nom: "Ligue des champions de tennis de table", discipline: "Simple", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Top 16 Européen", discipline: "Simple", zone: "International", genres: ["Homme", "Femme"]}
+  "Tir":
+    types_de_resultats:
+      - "Classement final compétition (top 3)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de Tir (Pistolet)", discipline: "Pistolet", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Jeux Olympiques de Tir (Carabine)", discipline: "Carabine", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Jeux Olympiques de Tir (Fusil)", discipline: "Fusil", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+  "Tir à l'Arc":
+    types_de_resultats:
+      - "Vainqueur du match (à partir des 1/4 de finale)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de Tir à l'Arc", discipline: "Toutes", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+  "Triathlon":
+    types_de_resultats:
+      - "Classement final d'une compétition (top 3)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "Jeux Olympiques de Triathlon", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+  "Voile":
+    types_de_resultats:
+      - "Record homologué d'une compétition (compétiteur/pays)"
+      - "Vainqueur d'une compétition, étape ou manche (à partir des 1/4 en match racing)"
+      - "Classement final (manche/étape, top 5)"
+      - "Classement d'une compétition top 5 (fin du round robin / fin de compétition)"
+      - "Classement au tableau des médailles des JO"
+    competitions:
+      - {nom: "America's Cup", discipline: "Match Racing", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Louis Vuitton Series", discipline: "Match Racing", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Circuit Sail GP", discipline: "Match Racing", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Route du Rhum", discipline: "Course au large", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Solitaire du Figaro", discipline: "Course au large", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Transat Jacques Vabre", discipline: "Course au large", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Vendée Globe", discipline: "Course au large", zone: "France", genres: ["Non applicable"]}
+      - {nom: "Volvo Ocean Race", discipline: "Course au large", zone: "International", genres: ["Non applicable"]}
+      - {nom: "Championnat du monde de classe olympique", discipline: "Voile légère", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Jeux Olympiques de voile", discipline: "Voile légère", zone: "International", genres: ["Homme", "Femme", "Mixte"]}
+      - {nom: "Jeux Olympiques de Planche à Voile", discipline: "Planche à voile", zone: "International", genres: ["Homme", "Femme"]}
+  "Volleyball":
+    types_de_resultats:
+      - "Score du match"
+      - "Nom des marqueurs (points/aces)"
+      - "Classement des équipes (journée, groupes, élimination directe, fin de compétition)"
+      - "Classement final attaques/défenses (top 1)"
+      - "Classement au tableau des médailles des JO"
+    notes_annexe:
+      - "* Beach Pro Tour : Elite 16, Challenge, Futures et The Finals ; le CEV Tour (beach-volley) a été retiré par la décision 2026-167 du 17/09/2026"
+    competitions:
+      - {nom: "Championnat d'Allemagne", zone: "Allemagne", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat de Belgique", zone: "Belgique", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat de Grèce", zone: "Grèce", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat de Pologne", zone: "Pologne", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat de Russie", zone: "Russie", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat de Turquie", zone: "Turquie", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Espagne", zone: "Espagne", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Italie", zone: "Italie", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du Brésil", zone: "Brésil", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du Japon", zone: "Japon", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat d'Europe de volley-ball", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du Monde de volley-ball", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde des clubs", zone: "International", genres: ["Homme", "Femme"], phases: "Tournoi final"}
+      - {nom: "Coupe de France de volley-ball", zone: "France", genres: ["Homme", "Femme"], phases: "A partir des 16èmes de finale"}
+      - {nom: "Ligue des champions masculine de volley-ball", zone: "Europe", genres: ["Homme"]}
+      - {nom: "Ligue des champions féminine de volley-ball", zone: "Europe", genres: ["Femme"]}
+      - {nom: "Challenge cup masculine de volley-ball", zone: "Europe", genres: ["Homme"]}
+      - {nom: "Challenge cup féminine de volley-ball", zone: "Europe", genres: ["Femme"]}
+      - {nom: "Coupe de la CEV masculine de volley-ball", zone: "Europe", genres: ["Homme"]}
+      - {nom: "Coupe de la CEV féminine de volley-ball", zone: "Europe", genres: ["Femme"]}
+      - {nom: "Jeux Olympiques de volley-ball", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Volley-Ball Nations League", zone: "International", genres: ["Femme", "Homme"]}
+      - {nom: "Ligue européenne de volley-ball", zone: "Europe", genres: ["Homme", "Femme"], phases: "Phase finale"}
+      - {nom: "Coupe du monde de la FIVB", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Ligue A Féminine (Saforelle Power Six)", zone: "France", genres: ["Femme"]}
+      - {nom: "Marmara Spike Ligue ( ex Ligue A Masculine)", zone: "France", genres: ["Homme"]}
+      - {nom: "Ligue B Masculine", zone: "France", genres: ["Homme"]}
+      - {nom: "Championnat d'Europe de beach-volley", discipline: "Beach-volley", zone: "Europe", genres: ["Homme", "Femme"]}
+      - {nom: "Championnat du monde de beach-volley", discipline: "Beach-volley", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Volley-Ball World Beach Pro Tour *", discipline: "Beach-volley", zone: "International", genres: ["Homme", "Femme"]}
+      - {nom: "Jeux Olympiques de beach-volley", discipline: "Beach-volley", zone: "International", genres: ["Homme", "Femme"]}
