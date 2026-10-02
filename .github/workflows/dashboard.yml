@@ -1,0 +1,71 @@
+name: Tableau de bord - quoi parier aujourd'hui
+
+on:
+  schedule:
+    - cron: '7 5-21/2 * * *'     # toutes les 2 h de 05:07 à 21:07 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: dashboard
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Dépendances
+        run: pip install pandas numpy scipy requests
+
+      - name: Récupérer l'historique (branche dashboard-data)
+        run: |
+          git fetch --depth=1 origin dashboard-data || echo "Première exécution : pas encore d'historique"
+          for f in history.json fr_odds_cache.json notified.json; do
+            git show origin/dashboard-data:$f > site/data/$f 2>/dev/null || rm -f site/data/$f
+          done
+
+      - name: Construire le tableau de bord
+        env:
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}   # optionnel (clé gratuite)
+          ODDS_API_HOURS: '7,13,17'
+          ODDS_API_MAX_CALLS: '5'
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}   # optionnel
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}       # optionnel
+          SITE_URL: https://matttgic.github.io/Overstreamlit/
+        run: |
+          python scripts/build_dashboard.py --min-ev 0.03 --bankroll 1000
+          python scripts/build_site.py
+
+      - name: Sauvegarder les données (branche dashboard-data)
+        run: |
+          cd site/data
+          git init -q && git checkout -q -b dashboard-data
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -A && git commit -qm "Données du $(date -u +%FT%H:%MZ)"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" dashboard-data
+          rm -rf .git
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

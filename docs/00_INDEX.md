@@ -13,6 +13,7 @@
 | 09 | [Audit de l'ancien système](09_audit_ancien_systeme.md) | Pourquoi l'ancien robot Over 2.5 perdait (−6,95 %) |
 | 10 | [Autocritique](10_autocritique.md) | Ce qui peut être faux dans ce travail, et comment le vérifier |
 | 11 | [Guide d'utilisation](11_guide_utilisation.md) | Installer, lancer le scanner, l'app, les backtests ; routine du parieur |
+| 12 | [Plan d'automatisation](12_plan_automatisation.md) | Tableau de bord « quoi parier aujourd'hui » : architecture, 5 actions à faire une fois, routine de 2 minutes, feuille de route |
 
 ## Fiches stratégies (`strategies/`)
 

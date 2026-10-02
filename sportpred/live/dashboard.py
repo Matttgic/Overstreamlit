@@ -184,13 +184,42 @@ def update_history(hist: list[dict], picks: pd.DataFrame, pin: pd.DataFrame,
     return hist
 
 
+def load_fr_odds(out_dir: Path, now: pd.Timestamp, budget: "oddsapi.Budget",
+                 max_age_hours: float = 6.0) -> tuple[pd.DataFrame, str | None]:
+    """Cotes FR : appel à The Odds API seulement aux heures prévues (quota gratuit de
+    500 crédits/mois), sinon réutilise le dernier relevé s'il a moins de `max_age_hours`.
+
+    Heures d'appel : variable ODDS_API_HOURS (UTC, défaut « 7,12,17 ») ; appels max par
+    passage : ODDS_API_MAX_CALLS (défaut 5) -> ~15 crédits/jour, ~465/mois.
+    """
+    import os
+    cache = out_dir / "fr_odds_cache.json"
+    hours = {int(h) for h in os.environ.get("ODDS_API_HOURS", "7,12,17").split(",") if h.strip()}
+    max_calls = int(os.environ.get("ODDS_API_MAX_CALLS", "5"))
+    if oddsapi._key() and (now.hour in hours or not cache.exists()):
+        fr = oddsapi.fr_odds(max_calls=max_calls, budget=budget)
+        if not fr.empty:
+            cache.write_text(json.dumps({"at": now.isoformat(), "rows": fr.assign(
+                start=fr["start"].astype(str)).to_dict("records")}), encoding="utf-8")
+            return fr, now.isoformat()
+    if cache.exists():
+        c = json.loads(cache.read_text())
+        if now - pd.Timestamp(c["at"]) < pd.Timedelta(hours=max_age_hours):
+            fr = pd.DataFrame(c["rows"])
+            if not fr.empty:
+                fr["start"] = pd.to_datetime(fr["start"], utc=True)
+            return fr, c["at"]
+    return pd.DataFrame(), None
+
+
 def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None = None) -> dict:
     cfg = cfg or DashConfig()
     now = now or pd.Timestamp.now(tz="UTC")
     out_dir.mkdir(parents=True, exist_ok=True)
     pin = _upcoming(pinnacle.all_odds(), cfg, now)
     budget = oddsapi.Budget()
-    fr = _upcoming(oddsapi.fr_odds(budget=budget), cfg, now)
+    fr, fr_at = load_fr_odds(out_dir, now, budget)
+    fr = _upcoming(fr, cfg, now)
     frames = [value_from_oddsapi(pin, fr, cfg), value_from_football_data(cfg)]
     vb = pd.concat([f for f in frames if not f.empty], ignore_index=True) if any(
         not f.empty for f in frames) else pd.DataFrame()
@@ -224,7 +253,7 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
     data = {
         "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "config": cfg.__dict__,
-        "sources": {"pinnacle_outcomes": int(len(pin)), "fr_odds_rows": int(len(fr)),
+        "sources": {"pinnacle_outcomes": int(len(pin)), "fr_odds_rows": int(len(fr)), "fr_odds_at": fr_at,
                     "odds_api_key": bool(oddsapi._key()), "odds_api_remaining": budget.remaining},
         "value_bets": rec(vb, ["sport", "league", "start", "event", "market", "selection", "book", "odds",
                                "fair_odds", "ev", "stake_pct", "stake_eur", "source"]),

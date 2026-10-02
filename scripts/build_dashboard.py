@@ -5,6 +5,7 @@ Optionnel : variable d'environnement THE_ODDS_API_KEY (clé gratuite the-odds-ap
 pour comparer automatiquement les cotes Betclic/Winamax/Unibet/PMU/NetBet.
 """
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -12,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from sportpred.live.dashboard import DashConfig, build  # noqa: E402
+from sportpred.live.notify import send_new_value_bets  # noqa: E402
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -23,6 +25,10 @@ if __name__ == "__main__":
     print(f"{d['generated_at']} | cotes Pinnacle : {d['sources']['pinnacle_outcomes']} | "
           f"cotes FR : {d['sources']['fr_odds_rows']} | value bets : {len(d['value_bets'])} | "
           f"à surveiller : {len(d['watchlist'])} | props : {len(d['props'])}")
+    out = Path(a.out)
+    n = send_new_value_bets(d, out / "notified.json", os.environ.get("SITE_URL"))
+    if n:
+        print(f"{n} notification(s) Telegram envoyée(s)")
     for v in d["value_bets"][:20]:
         print(f"  {v['start']} {v['event']:<40} {v['selection']:<28} {v['book']:<8} {v['odds']:.2f} "
               f"(juste {v['fair_odds']:.2f}, EV {100*v['ev']:+.1f} %, mise {v['stake_pct']} %)")

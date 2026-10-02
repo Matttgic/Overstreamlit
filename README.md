@@ -28,6 +28,19 @@ Jeu responsable : Joueurs Info Service, 09 74 75 13 13.
 Détails et intervalles de confiance : [docs/07](docs/07_resultats_football.md),
 [docs/08](docs/08_resultats_autres_sports.md), tables brutes dans [docs/resultats/](docs/resultats/).
 
+## Le tableau de bord quotidien
+
+**Site :** https://matttgic.github.io/Overstreamlit/ (mis à jour toutes les 2 h par GitHub
+Actions, après activation de GitHub Pages — voir [docs/12](docs/12_plan_automatisation.md)).
+
+- **À jouer maintenant** : paris où bet365, bwin, Winamax, Betclic, Unibet, PMU ou NetBet
+  paient plus que la cote juste Pinnacle/Betfair, avec la mise conseillée.
+- **Cotes minimum à prendre** : pour chaque match des 36 prochaines heures (football,
+  tennis, NBA, NHL, NFL, MLB, handball, rugby, MMA, volley), la cote à partir de laquelle
+  un pari a de la valeur — à comparer dans votre appli.
+- **Paris joueurs** : buteurs, points, tirs (les jours de match).
+- **Suivi** : CLV de chaque pari proposé. Notifications Telegram en option.
+
 ## Ce que contient le dépôt
 
 1. **Une bibliothèque de recherche** (`docs/`) :
