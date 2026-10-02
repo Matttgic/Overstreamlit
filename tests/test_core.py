@@ -158,3 +158,39 @@ def test_scanner_find_value_and_settle():
                         "FTHG": [1], "FTAG": [0], "BFECH": [1.95], "BFECD": [3.7], "BFECA": [4.4]})
     h = sc.settle(hist, res)
     assert h.loc[0, "statut"] == "gagné" and h.loc[0, "clv"] > 0
+
+
+def test_matching_is_strict():
+    from sportpred.live.matching import match_events, sim
+    assert sim("Paris Saint-Germain", "Paris Saint Germain") >= 0.95
+    assert sim("Paris SG", "Paris Saint-Germain") >= 0.95
+    assert sim("Sunderland", "Salernitana") < 0.8          # le bug de l'ancien système
+    t = pd.Timestamp("2026-10-10T18:45:00Z")
+    left = pd.DataFrame({"event_id": ["x"], "start": [t], "home": ["Paris Saint Germain"], "away": ["Le Mans FC"]})
+    right = pd.DataFrame({"event_id": [1, 2], "start": [t, t], "home": ["Paris Saint-Germain", "Lens"],
+                          "away": ["Le Mans", "Lille"]})
+    m = match_events(left, right)
+    assert len(m) == 1 and m.iloc[0]["right_id"] == 1
+    far = right.assign(start=t + pd.Timedelta(hours=30))
+    assert match_events(left, far).empty                   # heures trop différentes
+
+
+def test_oddsapi_parse_and_value():
+    from sportpred.live import oddsapi
+    from sportpred.live.dashboard import DashConfig, value_from_oddsapi
+    t = "2026-10-10T18:45:00Z"
+    payload = [{"id": "e1", "commence_time": t, "home_team": "Paris Saint Germain", "away_team": "Le Mans",
+                "bookmakers": [{"key": "winamax_fr", "markets": [{"key": "h2h", "outcomes": [
+                    {"name": "Paris Saint Germain", "price": 1.20}, {"name": "Le Mans", "price": 15.0},
+                    {"name": "Draw", "price": 7.5}]}]},
+                               {"key": "pinnacle", "markets": []}]}]
+    fr = pd.DataFrame(oddsapi.parse_odds(payload, "soccer_france_ligue_one"))
+    assert set(fr["book"]) == {"Winamax"} and len(fr) == 3
+    pin = pd.DataFrame({"event_id": [9] * 3, "start": [pd.Timestamp(t)] * 3, "event": ["PSG - Le Mans"] * 3,
+                        "home": ["Paris Saint-Germain"] * 3, "away": ["Le Mans"] * 3, "market": ["moneyline"] * 3,
+                        "selection": ["Paris Saint-Germain", "Le Mans", "Nul"], "fair_prob": [0.80, 0.08, 0.12],
+                        "pin_margin": [0.03] * 3, "market_key": ["k"] * 3, "is_prop": [False] * 3,
+                        "sport": ["football"] * 3, "league": ["France - Ligue 1"] * 3})
+    v = value_from_oddsapi(pin, fr, DashConfig())
+    lm = v[v["selection"] == "Le Mans"].iloc[0]
+    assert abs(lm["ev"] - (0.08 * 15 - 1)) < 1e-9 and lm["book"] == "Winamax"
