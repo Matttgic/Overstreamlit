@@ -45,8 +45,13 @@ def candidate_bets(df: pd.DataFrame, prob_cols: list[str], odds_cols: list[str],
 
 def simulate(bets: pd.DataFrame, staking: str = "flat", bankroll0: float = 1000.0,
              flat_frac: float = 0.01, kelly_frac: float = 0.25, cap: float = 0.05,
-             max_daily_exposure: float = 0.5, one_per_match: bool = True) -> tuple[pd.DataFrame, dict]:
-    """Simule la bankroll. `bets` doit déjà être filtré (paris sélectionnés)."""
+             max_daily_exposure: float = 0.5, one_per_match: bool = True,
+             max_stake: float | None = None) -> tuple[pd.DataFrame, dict]:
+    """Simule la bankroll. `bets` doit déjà être filtré (paris sélectionnés).
+
+    `max_stake` : mise maximale en euros (les bookmakers limitent vite les gagnants ;
+    sans ce plafond, Kelly produit des bankrolls irréalistes de plusieurs millions).
+    """
     b = bets.copy()
     if one_per_match and len(b):
         b = b.sort_values("ev", ascending=False).drop_duplicates(["date", "match"]) \
@@ -63,6 +68,8 @@ def simulate(bets: pd.DataFrame, staking: str = "flat", bankroll0: float = 1000.
                            cap) * bank
         else:
             raise ValueError(staking)
+        if max_stake is not None:
+            s = np.minimum(s, max_stake)
         tot = s.sum()
         if tot > max_daily_exposure * bank and tot > 0:
             s *= max_daily_exposure * bank / tot

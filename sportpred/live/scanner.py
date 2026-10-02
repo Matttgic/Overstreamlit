@@ -81,7 +81,9 @@ def load_recent_results(seasons: list[str], leagues=None) -> pd.DataFrame:
             except Exception:  # noqa: BLE001
                 continue
             d = d.rename(columns=lambda c: str(c).strip()).dropna(subset=["HomeTeam", "FTHG"])
-            d = d[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]].copy()
+            keep = ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"] + [
+                c for c in ("BFECH", "BFECD", "BFECA", "PSCH", "PSCD", "PSCA") if c in d]
+            d = d[keep].copy()
             d["Date"] = _parse_dates(d["Date"])
             d["League"] = lg
             frames.append(d)
@@ -154,14 +156,28 @@ def settle(history: pd.DataFrame, results: pd.DataFrame) -> pd.DataFrame:
                          d=results["Date"].dt.date.astype(str))
     res["res"] = np.where(res["FTHG"] > res["FTAG"], "H",
                           np.where(res["FTHG"] == res["FTAG"], "D", "A"))
+    # cote juste de clôture (Betfair Exchange sans marge) pour calculer la CLV
+    close = {}
+    if all(c in res for c in ("BFECH", "BFECD", "BFECA")):
+        o = res[["BFECH", "BFECD", "BFECA"]].apply(pd.to_numeric, errors="coerce").values
+        ok = ~np.isnan(o).any(axis=1)
+        fair = np.full(o.shape, np.nan)
+        fair[ok] = 1 / devig(o[ok], "power")
+        close = {k: dict(zip(OUT, f)) for k, f in zip(zip(res["d"], res["match"]), fair)}
     key = dict(zip(zip(res["d"], res["match"]), res["res"]))
     h = history.copy()
+    if "clv" not in h:
+        h["clv"] = np.nan
     for ix, r in h[h["statut"] == "en attente"].iterrows():
-        out = key.get((str(r["date"]), r["match"]))
+        k = (str(r["date"]), r["match"])
+        out = key.get(k)
         if out:
             won = out == r["selection"]
             h.loc[ix, "statut"] = "gagné" if won else "perdu"
             h.loc[ix, "profit_€"] = round(r["mise_€"] * (r["cote"] - 1) if won else -r["mise_€"], 2)
+            fc = close.get(k, {}).get(r["selection"])
+            if fc is not None and not np.isnan(fc):
+                h.loc[ix, "clv"] = round(r["cote"] / fc - 1, 4)
     return h
 
 

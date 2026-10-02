@@ -67,6 +67,8 @@ def main():
             lines += [f"- Paris réglés : {len(done)}", f"- Mises : {mise:.2f} €",
                       f"- Profit : {prof:.2f} €", f"- ROI : {100 * prof / mise:.2f} %",
                       f"- EV moyenne annoncée : {100 * done['ev'].mean():.2f} %",
+                      f"- CLV moyenne (vs clôture Betfair sans marge) : "
+                      f"{100 * done['clv'].mean():.2f} % sur {done['clv'].notna().sum()} paris",
                       f"- En attente : {(hist['statut'] == 'en attente').sum()}"]
         else:
             lines.append("Aucun pari réglé pour l'instant.")
