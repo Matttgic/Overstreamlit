@@ -144,8 +144,10 @@ def sonde(max_matches: int = 3) -> None:
         print(f"  {st} {len(data) // 1024:>6} Ko  {name}")
         if data:
             files[f"sonde/{name}.gz"] = gzip.compress(data)
+        last_final[0] = final
         time.sleep(1.5)
         return data
+    last_final = [""]
 
     print("Winamax :")
     page = grab("winamax_hockey", f"{WINAMAX}/paris-sportifs/sports/4").decode("utf-8", "ignore")
@@ -163,15 +165,11 @@ def sonde(max_matches: int = 3) -> None:
 
     print("Betclic :")
     page = grab("betclic_hockey", f"{BETCLIC}/hockey-sur-glace-s13").decode("utf-8", "ignore")
-    links = list(dict.fromkeys(re.findall(r'href="(/hockey-sur-glace-s13/[^"]*nhl[^"]*-m\d+)"', page, re.I)))
-    comp = re.findall(r'href="(/hockey-sur-glace-s13/[^"]*nhl[^"]*-c\d+)"', page, re.I)
-    if comp:
-        cpage = grab("betclic_nhl", BETCLIC + comp[0]).decode("utf-8", "ignore")
-        links += [u for u in dict.fromkeys(re.findall(r'href="(/hockey-sur-glace-s13/[^"]*-m\d+)"', cpage))
-                  if u not in links]
+    base = re.match(r"https?://[^/]+", last_final[0] or BETCLIC).group(0)   # m.betclic.fr sur téléphone
+    links = list(dict.fromkeys(re.findall(r'href="(/[a-z0-9_\-]+/nhl-c\d+/[a-z0-9\-]+-m\d+)"', page, re.I)))
     report["betclic_links"] = links[:20]
     for k, path in enumerate(links[:max_matches]):
-        grab(f"betclic_match_{k}", BETCLIC + path)
+        grab(f"betclic_match_{k}", base + path)
     grab("betclic_api_events", "https://offer.cdn.betclic.fr/api/pub/v4/events?application=2&countrycode=fr"
                                "&language=fr&sitecode=frfr&sportIds=13&limit=50")
 

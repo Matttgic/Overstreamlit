@@ -570,14 +570,14 @@ def test_telephone_sonde_offline(monkeypatch, tmp_path):
         "https://www.winamax.fr/paris-sportifs/sports/4":
             "<script>var PRELOADED_STATE = " + json.dumps(state) + ";var X = 1;</script>",
         "https://www.betclic.fr/hockey-sur-glace-s13":
-            '<a href="/hockey-sur-glace-s13/nhl-c13">NHL</a>',
-        "https://www.betclic.fr/hockey-sur-glace-s13/nhl-c13":
-            '<a href="/hockey-sur-glace-s13/nhl-c13/a-b-m555">A-B</a>'}
+            '<a href="/hockey-sur-glace-sice_hockey/nhl-c83/a-b-m555">A-B</a>'
+            '<a href="/hockey-sur-glace-sice_hockey/russie-khl-c1977/c-d-m777">C-D</a>'}
     asked = []
 
     def fake_get(url, timeout=30):
         asked.append(url)
-        return 200, url, pages.get(url, "<html>match</html>").encode()
+        final = "https://m.betclic.fr/hockey-sur-glace-sice_hockey" if "betclic.fr/hockey-sur-glace-s13" in url else url
+        return 200, final, pages.get(url, "<html>match</html>").encode()
     calls = []
 
     def fake_gh(method, path, body=None):
@@ -596,7 +596,8 @@ def test_telephone_sonde_offline(monkeypatch, tmp_path):
     assert T.extract_json_after(pages["https://www.winamax.fr/paris-sportifs/sports/4"], "PRELOADED_STATE") == state
     assert "https://www.winamax.fr/paris-sportifs/match/103" in asked             # NHL, le plus tôt d'abord
     assert "https://www.winamax.fr/paris-sportifs/match/102" not in asked         # KHL exclu
-    assert "https://www.betclic.fr/hockey-sur-glace-s13/nhl-c13/a-b-m555" in asked
+    assert "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/a-b-m555" in asked       # site mobile
+    assert not any("c-d-m777" in u for u in asked)                                         # KHL exclue
     assert ("POST", "/repos/Matttgic/Overstreamlit/git/refs") in [(m, p) for m, p, _ in calls]
     puts = {p.split("/contents/")[1]: b for m, p, b in calls if m == "PUT"}
     assert all(b["branch"] == "cotes-telephone" for b in puts.values())
