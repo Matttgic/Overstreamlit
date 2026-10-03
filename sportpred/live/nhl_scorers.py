@@ -16,6 +16,7 @@ Le modèle est INDICATIF : il n'a pas encore été comparé à Pinnacle sur des 
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 import numpy as np
@@ -39,10 +40,23 @@ def load_model(path: Path = MODEL_FILE) -> tuple[M.ShareParams, float]:
     return p, float(d["so_adj"])
 
 
-def _json(url: str) -> dict:
-    r = requests.get(url, timeout=30)
-    r.raise_for_status()
-    return r.json()
+def _json(url: str, attempts: int = 4) -> dict:
+    """GET JSON avec nouvelles tentatives sur 429 / 5xx (les serveurs GitHub sont partagés et
+    l'API web de la NHL les limite parfois) ; respecte l'en-tête Retry-After (plafonné à 15 s)."""
+    for i in range(attempts):
+        r = requests.get(url, timeout=30)
+        if r.status_code == 429 or r.status_code >= 500:
+            if i == attempts - 1:
+                r.raise_for_status()
+            try:
+                wait = float(r.headers.get("Retry-After", 2 ** (i + 1)))
+            except ValueError:
+                wait = 2 ** (i + 1)
+            time.sleep(min(wait, 15))
+            continue
+        r.raise_for_status()
+        return r.json()
+    raise RuntimeError(url)
 
 
 def schedule(day: pd.Timestamp) -> pd.DataFrame:
@@ -62,11 +76,25 @@ def schedule(day: pd.Timestamp) -> pd.DataFrame:
 
 
 def roster(abbr: str) -> pd.DataFrame:
-    d = _json(f"{WEB}/roster/{abbr}/current")
+    """Effectif actuel (attaquants, défenseurs) ; tableau vide si l'API reste inaccessible."""
+    try:
+        d = _json(f"{WEB}/roster/{abbr}/current")
+    except (requests.RequestException, RuntimeError, ValueError) as e:
+        print(f"effectif {abbr} indisponible ({e}) : composition tirée de l'historique")
+        return pd.DataFrame(columns=["player_id", "name", "pos"])
     rows = [{"player_id": int(x["id"]), "name": f'{x["firstName"]["default"]} {x["lastName"]["default"]}',
              "pos": x.get("positionCode", "C")}
             for grp in ("forwards", "defensemen") for x in d.get(grp, [])]
     return pd.DataFrame(rows)
+
+
+def roster_from_hist(team: str, hist: pd.DataFrame, days: int = 400) -> pd.DataFrame:
+    """Effectif de repli : joueurs dont le dernier match (moins de `days` jours) était avec `team`."""
+    if hist.empty:
+        return pd.DataFrame(columns=["player_id", "name", "pos"])
+    recent = hist[hist["date"] >= hist["date"].max() - pd.Timedelta(days=days)]
+    last = recent.sort_values("date").groupby("player_id").tail(1)
+    return last.loc[last["team"] == team, ["player_id", "name", "pos"]].reset_index(drop=True)
 
 
 def _find(name: str, cands: pd.DataFrame) -> int | None:
@@ -173,7 +201,11 @@ def predict(pin: pd.DataFrame, now: pd.Timestamp, hist: pd.DataFrame | None = No
         event = ev["event"].iloc[0]
         names = goal_props.loc[goal_props["event"] == event, "market"] \
             .str.replace("Player Props: ", "", regex=False).str.replace(" Total Goals", "", regex=False).unique()
-        rosters = {s: roster(g[f"{s}_abbr"]) for s in ("home", "away")}
+        rosters = {}
+        for side in ("home", "away"):
+            ros = roster(g[f"{side}_abbr"])
+            rosters[side] = ros if not ros.empty else roster_from_hist(g[f"{side}_abbr"], hist)
+            time.sleep(0.3)
         both = pd.concat([rosters["home"].assign(side="home"), rosters["away"].assign(side="away")],
                          ignore_index=True)
         ros_names.append(both[["player_id", "name"]])

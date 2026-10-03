@@ -315,8 +315,9 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
 
     // buteurs NHL : cote Pinnacle si elle existe, sinon cote du modèle
     var nb = d.nhl_buteurs || {}, nr = nb.rows || [], su = nb.suivi || {};
-    $("nhl-sec").hidden = !nr.length && !su.n_model;
-    if (nr.length || su.n_model) {
+    var ubSum = (nb.unibet || {}).compared;
+    $("nhl-sec").hidden = !nr.length && !su.n_model && !ubSum;
+    if (nr.length || su.n_model || ubSum) {
       var p0 = function (x) { return x == null ? "–" : Math.round(100 * x) + " %"; };
       $("nhl-note").textContent = "Pour chaque joueur : cote juste Pinnacle s'il est proposé (à prendre si ≥ +" + Math.round(100 * (cfg.min_ev || 0.03)) +
         " %), sinon cote du modèle, moins précise (à prendre si ≥ +" + Math.round(100 * (nb.model_min_ev || 0.1)) + " %).";

@@ -336,12 +336,12 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
     empty = ({}, pd.DataFrame(), pd.DataFrame())
     if pin.empty or "league" not in pin or not (pin["league"] == "NHL").any():
         return empty
+    hist, pred = pd.DataFrame(), pd.DataFrame()
     try:
         hist = nhl_mod.load_hist(now)
         pred = nhl_mod.predict(pin, now, hist=hist)
     except Exception as e:  # noqa: BLE001 — l'API NHL ne doit pas bloquer le tableau
-        print("modèle buteurs NHL indisponible :", e)
-        return empty
+        print("modèle buteurs NHL indisponible :", e)   # Unibet reste comparé à Pinnacle
     arch = out_dir / "archive"
     ub_cmp, ub_vb = pd.DataFrame(), pd.DataFrame()
     try:
@@ -373,8 +373,10 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
         suivi = nhl_mod.evaluate_archive(arch, hist)
     except Exception as e:  # noqa: BLE001
         print("bilan buteurs NHL impossible :", e)
+    ub_summary = {"compared": int(len(ub_cmp)), "value": int(len(ub_vb)),
+                  "ev_median": round(float(ub_cmp["ev"].median()), 4) if not ub_cmp.empty else None}
     if pred.empty:
-        return {"rows": [], "suivi": suivi, "model_min_ev": NHL_MODEL_MIN_EV}, ub_vb, hist
+        return {"rows": [], "suivi": suivi, "model_min_ev": NHL_MODEL_MIN_EV, "unibet": ub_summary}, ub_vb, hist
     has_pin = pred["pin_prob"].notna()
     r = pred[(pred["model_prob"] >= 1 / cfg.max_odds) | has_pin].copy()
     has_pin = r["pin_prob"].notna()
@@ -394,8 +396,7 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
     r[["model_prob", "pin_prob"]] = r[["model_prob", "pin_prob"]].round(4)
     block = {"rows": r.replace({np.nan: None}).to_dict("records"), "suivi": suivi,
              "model_min_ev": NHL_MODEL_MIN_EV,
-             "unibet": {"compared": int(len(ub_cmp)), "value": int(len(ub_vb)),
-                        "ev_median": round(float(ub_cmp["ev"].median()), 4) if not ub_cmp.empty else None}}
+             "unibet": ub_summary}
     return block, ub_vb, hist
 
 

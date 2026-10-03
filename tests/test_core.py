@@ -481,3 +481,74 @@ def test_json_safe_and_history_market_key():
     h = update_history([], picks, pd.DataFrame(), pd.Timestamp("2026-10-03T12:00Z"))
     assert h[0]["market_key"] is None
     json.dumps(h, allow_nan=False)
+
+
+def test_nhl_api_retries_429_and_roster_fallback(monkeypatch):
+    """L'API web NHL limite parfois les serveurs GitHub (429) : nouvel essai, puis repli sur
+    l'historique pour la composition."""
+    import requests
+    from sportpred.live import nhl_scorers as L
+
+    class Resp:
+        def __init__(self, code, data=None):
+            self.status_code, self._d, self.headers = code, data, {"Retry-After": "0"}
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise requests.HTTPError(str(self.status_code))
+
+        def json(self):
+            return self._d
+    calls = []
+    seq = [Resp(429), Resp(200, {"forwards": [{"id": 1, "firstName": {"default": "A"}, "lastName": {"default": "B"},
+                                               "positionCode": "C"}], "defensemen": []})]
+    monkeypatch.setattr(L.requests, "get", lambda url, timeout: calls.append(url) or seq.pop(0))
+    monkeypatch.setattr(L.time, "sleep", lambda s: None)
+    r = L.roster("BOS")
+    assert len(calls) == 2 and r["name"].tolist() == ["A B"]
+    monkeypatch.setattr(L.requests, "get", lambda url, timeout: Resp(429))
+    assert L.roster("BOS").empty                                   # 4 échecs -> vide, sans exception
+    hist = _nhl_games(10)
+    fb = L.roster_from_hist("AAA", hist)
+    assert set(fb["player_id"]) == {0, 1, 2}
+
+
+def test_nhl_predict_survives_missing_rosters(monkeypatch):
+    import numpy as np
+    from sportpred.live import nhl_scorers as L
+    hist = _nhl_games(30)
+    now = pd.Timestamp("2025-12-15T12:00Z")
+    t1 = now + pd.Timedelta(hours=10)
+    sched = pd.DataFrame({"game_id": [1], "season": [20252026], "start": [t1], "home_abbr": ["AAA"],
+                          "away_abbr": ["BBB"], "home_name": ["Alpha Aces"], "away_name": ["Beta Bears"]})
+    monkeypatch.setattr(L, "schedule", lambda day: sched)
+    monkeypatch.setattr(L, "roster", lambda abbr: pd.DataFrame(columns=["player_id", "name", "pos"]))
+    monkeypatch.setattr(L.time, "sleep", lambda s: None)
+    base = dict(event_id=101, start=t1, event="Alpha Aces - Beta Bears", home="Alpha Aces", away="Beta Bears",
+                league="NHL", sport="hockey", is_prop=False, line=np.nan, pin_margin=0.03)
+    pin = pd.DataFrame([dict(base, market="moneyline", selection="Alpha Aces", fair_prob=0.55),
+                        dict(base, market="moneyline", selection="Beta Bears", fair_prob=0.45),
+                        dict(base, market="total", selection="Plus", line=5.5, fair_prob=0.5),
+                        dict(base, market="Player Props: P0 Total Goals", selection="Over", line=0.5,
+                             fair_prob=0.4, is_prop=True)])
+    pred = L.predict(pin, now, hist=hist)
+    assert set(pred["player_id"]) == {0, 1, 2, 10, 11, 12}         # composition tirée de l'historique
+    assert pred.loc[pred["player_id"] == 0, "prop_name"].eq("P0").all()
+
+
+def test_nhl_block_compares_unibet_even_if_model_fails(monkeypatch, tmp_path):
+    import numpy as np
+    from sportpred.live import dashboard as D
+    t = pd.Timestamp("2026-10-03T23:00Z")
+    monkeypatch.setattr(D.nhl_mod, "load_hist", lambda now: (_ for _ in ()).throw(RuntimeError("429")))
+    names = ["Sidney Crosby", "Evgeni Malkin", "Bryan Rust"]
+    pin = pd.DataFrame([{"event": "Pittsburgh Penguins - Montreal Canadiens", "start": t, "league": "NHL",
+                         "is_prop": True, "market": f"Player Props: {n} Total Goals", "selection": "Over",
+                         "line": 0.5, "fair_prob": p, "pin_margin": 0.07, "market_key": f"k{i}"}
+                        for i, (n, p) in enumerate(zip(names, (0.42, 0.33, 0.25)))])
+    ub = pd.DataFrame({"ub_event_id": 9, "ub_event": "PIT vs MON", "start": t, "stat": "Buts", "player": names,
+                       "line": 0.5, "odds": [2.60, 2.50, 3.00]})
+    monkeypatch.setattr(D.unibet, "nhl_player_odds", lambda now, h: ub)
+    block, vb, nhl_hist = D.nhl_block(pin, tmp_path, pd.Timestamp("2026-10-03T12:00Z"), D.DashConfig())
+    assert list(vb["player"]) == ["Sidney Crosby"] and np.isclose(vb["ev"].iloc[0], 0.42 * 2.6 - 1)
+    assert block["unibet"]["compared"] == 3 and nhl_hist.empty
