@@ -41,7 +41,10 @@ Code : `sportpred/live/` (pinnacle, oddsapi, matching, dashboard, notify),
 | 4 | **Telegram** : @BotFather → /newbot → jeton ; écrire au bot ; lire le chat id sur `https://api.telegram.org/bot<JETON>/getUpdates` ; secrets `TELEGRAM_BOT_TOKEN` et `TELEGRAM_CHAT_ID` | Telegram + GitHub | Optionnel |
 | 5 | Lancer une première fois : Actions → « Tableau de bord » → Run workflow | GitHub | Oui |
 
-Ensuite tout tourne seul : 9 mises à jour par jour (05:07 → 21:07 UTC).
+Ensuite tout tourne seul : 9 mises à jour programmées par jour (05:07 → 21:07 UTC), plus 4
+déclenchées par le téléphone juste après ses collectes Winamax/Betclic (12 h, 16 h, 19 h, 22 h,
+heure de Paris). GitHub retarde ou saute souvent les passages programmés (2 sur 9 le
+03/10/2026) : ceux du téléphone (`repository_dispatch`, type `cotes-telephone`) partent tout de suite.
 
 ## 3. La routine quotidienne (2 minutes)
 
@@ -89,6 +92,7 @@ Pour l'offre gratuite (500 crédits/mois), remettre dans le workflow :
 |---|---|
 | Mauvais match apparié (le bug « Salernitana » de l'ancien système) | Heures de début à ± 3 h, similarité ≥ 0,8 sur les deux équipes, abstention si deux candidats sont proches ; tests unitaires |
 | Erreur de cote (EV énorme) | EV plafonnée à 30 % : au-delà, le pari est ignoré |
+| Mauvais marché lu sur une page d'opérateur (03/10/2026 : « Buteur » Betclic avant-match lu avec plusieurs onglets, Tage Thompson à 8,00 et 50,00 contre 2,25 chez Winamax) | Cotes de l'opérateur écartées pour le match si un joueur a deux cotes sur la même ligne, ou si l'écart médian à la cote juste dépasse +5 % (un vrai marché est à −10/−20 %) ; nombre de matchs écartés affiché sur le site ; test unitaire |
 | Marchés différents sous le même nom (hockey, handball : 1N2 temps réglementaire chez Betclic/Winamax/Unibet/PMU, vainqueur à 2 issues chez Pinnacle) | Comparaison seulement si les deux marchés ont les mêmes issues (avec ou sans « Nul ») ; test unitaire. Bug vu au premier passage (02/10/2026 : 15 faux value bets NHL/handball à +4 à +27 %), corrigé et retiré du suivi |
 | Référence Pinnacle peu fiable | Marchés dont la marge Pinnacle dépasse 8 % exclus |
 | Marchés non autorisés en France | Cartons, corners, ITF, Challengers, WTA 125 exclus ; compétitions suivies alignées sur la liste ANJ |

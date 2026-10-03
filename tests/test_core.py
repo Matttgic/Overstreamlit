@@ -573,7 +573,14 @@ def test_telephone_sonde_offline(monkeypatch, tmp_path):
             "<script>var PRELOADED_STATE = " + json.dumps(state) + ";var X = 1;</script>",
         "https://www.betclic.fr/hockey-sur-glace-s13":
             '<a href="/hockey-sur-glace-sice_hockey/nhl-c83/a-b-m555">A-B</a>'
-            '<a href="/hockey-sur-glace-sice_hockey/russie-khl-c1977/c-d-m777">C-D</a>'}
+            '<a href="/hockey-sur-glace-sice_hockey/russie-khl-c1977/c-d-m777">C-D</a>',
+        "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83":   # page NHL : avant-match seulement
+            '<script id="ng-state" type="application/json">' + json.dumps({"grpc:1": {"response": {"payload": {
+                "matches": [{"matchId": "555", "matchDateUtc": "2026-10-03T23:00:00Z", "isLive": False,
+                             "competition": {"name": "NHL"}},
+                            {"matchId": "556", "matchDateUtc": "2026-10-03T01:00:00Z", "isLive": True,
+                             "competition": {"name": "NHL"}}]}}}}) + "</script>"
+            '<a href="/hockey-sur-glace-sice_hockey/nhl-c83/e-f-m556">E-F</a>'}
     asked = []
 
     def fake_get(url, timeout=30):
@@ -594,18 +601,29 @@ def test_telephone_sonde_offline(monkeypatch, tmp_path):
     monkeypatch.setattr(T, "http_get", fake_get)
     monkeypatch.setattr(T, "gh", fake_gh)
     monkeypatch.setattr(T.time, "sleep", lambda s: None)
+    from datetime import datetime, timezone
+
+    class FixedDT(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 10, 3, 14, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(T, "datetime", FixedDT)
     T.sonde()
     assert T.extract_json_after(pages["https://www.winamax.fr/paris-sportifs/sports/4"], "PRELOADED_STATE") == state
     assert "https://www.winamax.fr/paris-sportifs/match/103" in asked             # NHL, le plus tôt d'abord
     assert "https://www.winamax.fr/paris-sportifs/match/102" not in asked         # KHL exclu
+    assert "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83" in asked              # page NHL
     assert "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/a-b-m555" in asked       # site mobile
     assert not any("c-d-m777" in u for u in asked)                                         # KHL exclue
+    assert not any("e-f-m556" in u for u in asked)                                         # match en direct exclu
     assert ("POST", "/repos/Matttgic/Overstreamlit/git/refs") in [(m, p) for m, p, _ in calls]
     puts = {p.split("/contents/")[1]: b for m, p, b in calls if m == "PUT"}
     assert all(b["branch"] == "cotes-telephone" for b in puts.values())
     rep = json.loads(T.base64.b64decode(puts["sonde/rapport.json"]["content"]))
     assert rep["winamax_nhl_ids"] == ["103", "101"]
     assert gzip.decompress(T.base64.b64decode(puts["sonde/winamax_match_103.gz"]["content"])) == b"<html>match</html>"
+    assert rep["betclic_avant_match"] == ["/hockey-sur-glace-sice_hockey/nhl-c83/a-b-m555"]
+    assert "sonde/betclic_avant_match_0.gz" in puts and "sonde/betclic_nhl.gz" in puts
 
 
 def _phone_module():
@@ -656,6 +674,15 @@ def test_phone_parsers_on_real_winamax_and_betclic_pages():
             '<a href="/hockey-sur-glace-sice_hockey/nhl-c83/e-f-m13">z</a>')
     assert T.betclic_nhl_upcoming(html, datetime(2026, 10, 3, 12, 0, tzinfo=timezone.utc)) == \
         ["/hockey-sur-glace-sice_hockey/nhl-c83/a-b-m11"]
+    # match NHL de l'état sans lien dans la page (5 matchs sur 13 trouvés le 03/10/2026) :
+    # adresse construite depuis le nom, règle vérifiée sur les 20 liens d'une page réelle
+    html2 = html.replace('{"matchId": "12"', '{"matchId": "14", "name": "Dallas Stars - St. Louis Blues", '
+                                             '"matchDateUtc": "2026-10-03T22:00:00Z", "competition": {"name": "NHL"}}, '
+                                             '{"matchId": "12"')
+    assert T.betclic_nhl_upcoming(html2, datetime(2026, 10, 3, 12, 0, tzinfo=timezone.utc)) == \
+        ["/hockey-sur-glace-sice_hockey/nhl-c83/dallas-stars-st-louis-blues-m14",
+         "/hockey-sur-glace-sice_hockey/nhl-c83/a-b-m11"]
+    assert T._slug("Växjö Lakers HC - Rögle BK") == "vaxjo-lakers-hc-rogle-bk"
 
 
 def test_regulation_conversion_and_winamax_comparison():
@@ -738,6 +765,9 @@ def test_phone_collecte_offline(monkeypatch):
     def fake_gh(method, path, body=None):
         if method == "PUT":
             sent[path.split("/contents/")[1]] = body
+        if path.endswith("/dispatches"):
+            sent["dispatch"] = (method, body, "cotes_fr.json.gz" in sent)
+            return 204, {}
         return (200, {"object": {"sha": "a"}}) if method == "GET" and "/git/ref/" in path else (404 if method == "GET" else 201, {})
     monkeypatch.setattr(T, "http_get", fake_get)
     monkeypatch.setattr(T, "gh", fake_gh)
@@ -753,6 +783,7 @@ def test_phone_collecte_offline(monkeypatch):
     assert sent["cotes_fr.json.gz"]["branch"] == "cotes-telephone"
     assert payload["stats"]["winamax"]["cotes"] == 144 and payload["stats"]["betclic"]["cotes"] == 19
     assert {r["book"] for r in payload["rows"]} == {"Winamax", "Betclic"} and payload["at"] == "2026-10-03T01:30:00Z"
+    assert sent["dispatch"] == ("POST", {"event_type": "cotes-telephone"}, True)    # site relancé après l'envoi
 
 
 def test_compare_with_pinnacle_when_no_prop_matched():
@@ -781,3 +812,29 @@ def test_compare_books_mixed_unibet_and_phone_ids():
                        "player": names, "line": 0.5, "odds": [2.5, 3.1, 5.2], "book": "Winamax", "reg_only": True})
     c = L.compare_book_props(pd.concat([ub, ph], ignore_index=True), pd.DataFrame(), pred)
     assert set(c["book"]) == {"Unibet", "Winamax"} and len(c) == 6
+
+
+def test_mixed_and_implausible_book_odds_are_dropped():
+    """Betclic avant-match du 03/10/2026 : « Buteur » lu avec plusieurs onglets mélangés
+    (Tage Thompson 8,00 et 50,00 ; Winamax 2,25) -> cotes Betclic du match écartées ;
+    marché entier au-dessus de la cote juste -> écarté aussi."""
+    from sportpred.live import nhl_scorers as L
+    t = pd.Timestamp("2026-10-03T23:00:00Z")
+    names = ["Tage Thompson", "Jack Quinn", "Josh Doan", "Zach Benson", "Alex Tuch"]
+    bc = pd.DataFrame({"ub_event_id": "Betclic|BUF - CHI|x", "ub_event": "BUF - CHI", "start": t, "stat": "Buts",
+                       "player": names + names[:2], "line": 0.5, "odds": [8.0, 19.75, 19.75, 19.75, 9.0, 50.0, 200.0],
+                       "book": "Betclic", "reg_only": False})
+    wm = pd.DataFrame({"ub_event_id": "Winamax|BUF - CHI|x", "ub_event": "BUF - CHI", "start": t, "stat": "Buts",
+                       "player": names + ["Alex Tuch"], "line": 0.5, "odds": [2.25, 3.4, 3.6, 3.9, 2.9, 2.9],
+                       "book": "Winamax", "reg_only": True})       # doublon à cote identique : gardé une fois
+    kept, rej = L.drop_mixed_markets(pd.concat([bc, wm], ignore_index=True))
+    assert rej == {"Betclic": 1} and set(kept["book"]) == {"Winamax"} and len(kept) == 5
+
+    pred = pd.DataFrame({"event": "Buffalo Sabres - Chicago Blackhawks", "start": t, "name": names,
+                         "player_id": range(1, 6), "model_prob": [0.42, 0.28, 0.27, 0.24, 0.33],
+                         "team": ["BUF"] * 4 + ["BUF"], "match": "BUF-CHI", "lam": 3.3})
+    bad = bc.drop_duplicates("player")                  # mauvais onglet seul (pas de doublon)
+    c = L.compare_book_props(pd.concat([bad, kept], ignore_index=True), pd.DataFrame(), pred)
+    c2, rej2 = L.drop_implausible(c)
+    assert rej2 == {"Betclic": 1} and set(c2["book"]) == {"Winamax"} and len(c2) == 5
+    assert L.drop_implausible(c2)[1] == {}

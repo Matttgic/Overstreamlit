@@ -333,6 +333,10 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
       var ubTxt = bks.compared ? "Bookmakers comparés automatiquement : " + parts.join(", ") + ", écart médian à la cote juste " + pct(bks.ev_median) +
         ". Paris au-dessus du seuil ajoutés à « À jouer maintenant ». " + phTxt
         : "Cotes joueurs des bookmakers : publiées le jour du match, comparées automatiquement dès leur ouverture. " + phTxt;
+      var rej = bks.rejected || {};
+      Object.keys(rej).forEach(function (b) {
+        ubTxt += b + " : cotes écartées sur " + plural(rej[b], "match", "matchs") + " (cotes lues incohérentes : mauvais marché ou marchés mélangés). ";
+      });
       var evLabel = {}, evOrder = [];
       nr.forEach(function (r) { if (!evLabel[r.event]) { evLabel[r.event] = r.match || r.event; evOrder.push(r.event); } });
       if (state.nhlEv !== "all" && !evLabel[state.nhlEv]) state.nhlEv = "all";

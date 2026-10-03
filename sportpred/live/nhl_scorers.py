@@ -356,6 +356,27 @@ def pinnacle_player_props(pin: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def drop_mixed_markets(ub: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """Écarte les cotes d'un opérateur pour un match quand un même joueur a deux cotes
+    différentes sur la même ligne : la lecture a mélangé plusieurs marchés (03/10/2026,
+    Betclic avant-match : « Buteur » lu avec 8,00 et 50,00 pour Tage Thompson, Winamax 2,25).
+    Doublons à cote identique : simplement dédoublonnés.
+
+    Renvoie (cotes conservées, {opérateur: nombre de matchs écartés})."""
+    if ub is None or ub.empty:
+        return ub, {}
+    ub = ub.assign(book=ub["book"].fillna("Unibet") if "book" in ub else "Unibet",
+                   ub_event_id=ub["ub_event_id"].astype(str))
+    k = ub["player"].map(norm)
+    ub = ub.assign(_k=k).drop_duplicates(["book", "ub_event_id", "_k", "stat", "line", "odds"])
+    n = ub.groupby(["book", "ub_event_id", "_k", "stat", "line"])["odds"].transform("size")
+    bad = ub.loc[n > 1, ["book", "ub_event_id"]].drop_duplicates()
+    if bad.empty:
+        return ub.drop(columns="_k").reset_index(drop=True), {}
+    drop = ub.set_index(["book", "ub_event_id"]).index.isin(bad.set_index(["book", "ub_event_id"]).index)
+    return ub[~drop].drop(columns="_k").reset_index(drop=True), bad["book"].value_counts().to_dict()
+
+
 def compare_book_props(ub: pd.DataFrame, pin: pd.DataFrame, pred: pd.DataFrame, cfg_min_ev: float = 0.03,
                        max_hours: float = 1.5) -> pd.DataFrame:
     """Chaque cote joueur d'un opérateur (Unibet, Winamax, Betclic : colonne `book`) face à sa
@@ -430,6 +451,22 @@ def compare_book_props(ub: pd.DataFrame, pin: pd.DataFrame, pred: pd.DataFrame, 
 
 
 compare_unibet = compare_book_props
+
+
+def drop_implausible(cmp: pd.DataFrame, max_median_ev: float = 0.05, min_rows: int = 5) -> tuple[pd.DataFrame, dict]:
+    """Écarte les cotes d'un opérateur pour un match quand elles sont, en médiane, au-dessus de
+    la cote juste : impossible pour un vrai marché (marge des opérateurs : écart médian −10 à
+    −20 %), donc mauvais marché lu. Seulement à partir de `min_rows` cotes comparées.
+
+    Renvoie (comparaison conservée, {opérateur: nombre de matchs écartés})."""
+    if cmp is None or cmp.empty:
+        return cmp, {}
+    g = cmp.groupby(["book", "ub_event_id"])["ev"]
+    bad = (g.transform("size") >= min_rows) & (g.transform("median") > max_median_ev)
+    if not bad.any():
+        return cmp, {}
+    rej = cmp.loc[bad].drop_duplicates(["book", "ub_event_id"])["book"].value_counts().to_dict()
+    return cmp[~bad], rej
 
 
 def book_value_bets(cmp: pd.DataFrame, max_odds: float = 10.0, min_odds: float = 1.15,
