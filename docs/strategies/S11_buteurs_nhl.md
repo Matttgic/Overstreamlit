@@ -92,7 +92,7 @@ de 4 h) et le compare comme Unibet.
 | Opérateur | Marchés lus | Prolongation |
 |---|---|---|
 | Winamax (état `PRELOADED_STATE` des pages de match) | buteur, 2 / 3 buts ou +, points 1+/2+/3+, passes 1+/2+/3+ | **non** : « hors prolongations et tirs au but » → cote juste convertie en temps réglementaire |
-| Betclic (état `ng-state`, onglet « Le Top » des pages de match, site mobile ; ⚠️ avant-match à corriger, écarté en attendant) | buteur, « le joueur inscrit 2 buts ou + » | oui (« prolongations incluses », confirmé dans l'appli le 03/10/2026) : cote juste Pinnacle / modèle sans conversion |
+| Betclic (état `ng-state` des pages de match, site mobile ; marchés repérés par leur nom de ticket) | buteur (« Buteur (prol. inc.) » avant le match, « Buteur » en direct), 2 / 3 buts ou +, points 1+/2+/3+, passes 1+/2+/3+ | buteur : **oui** (« prol. inc. », confirmé dans l'appli le 03/10/2026), sans conversion ; autres marchés : sans mention, comptés **en temps réglementaire** par prudence (cote juste convertie) |
 
 Conversion « temps réglementaire » : sur 2018-19 → 2025-26 (9 781 matchs), 67,2 % des
 prolongations se terminent par un but et 2,46 % des buts de joueurs sont marqués en
@@ -106,8 +106,11 @@ Garde-fous (03/10/2026) : sur les matchs pas encore commencés, la lecture Betcl
 écart médian affiché +970 %). Les cotes d'un opérateur sont maintenant **écartées pour tout le
 match** si un même joueur a deux cotes différentes sur la même ligne, ou si l'écart médian à la
 cote juste dépasse +5 % (`drop_mixed_markets`, `drop_implausible`) ; le site indique le nombre de
-matchs écartés. Lecture Betclic avant-match à corriger avec une nouvelle sonde (pages de matchs pas
-encore commencés). La liste des matchs Betclic est complétée par des adresses construites depuis
+matchs écartés. Cause trouvée avec la sonde d'avant-match (04/10/2026) : avant le match, le marché
+Betclic nommé « Buteur » regroupe en fait « 2 buts ou + » et « 3 buts ou + » (MacKinnon 7,00 et 40,00),
+le vrai buteur à tout moment s'appelant « Buteur (prol. inc.) ». Lecture corrigée (nom de ticket de
+chaque sous-marché, combinés « Buteur & son équipe… » ignorés) ; contrôle sur Minnesota-Boston :
+126 cotes communes avec Winamax, Betclic/Winamax = 1,027 en médiane. La liste des matchs Betclic est complétée par des adresses construites depuis
 le nom du match (5 matchs trouvés sur 13 le 03/10/2026 : la page n'a pas de lien pour tous).
 
 Sonde du 03/10/2026 : Vegas-Anaheim chez Winamax, 324 cotes joueurs (36 joueurs × 9 marchés) ;

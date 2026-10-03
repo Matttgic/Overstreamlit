@@ -661,6 +661,18 @@ def test_phone_parsers_on_real_winamax_and_betclic_pages():
     br = T.parse_betclic_match(bc)
     assert len(br) == 19 and {r["stat"] for r in br} == {"Buts"} and not any(r["reg_only"] for r in br)
     assert ("Jack Eichel", 2.55) in {(r["player"], r["odds"]) for r in br}
+    # avant-match (03/10/2026, Colorado - St. Louis) : « Buteur » = 2 buts ou + / 3 buts ou + ;
+    # buteur à tout moment = « Buteur (prol. inc.) » ; combinés ignorés ; aucun doublon
+    pm = T.parse_betclic_match(_fixture("betclic_avant_match.json.gz"))
+    got = {(r["player"], r["stat"], r["line"]): (r["odds"], r["reg_only"]) for r in pm}
+    assert len(got) == len(pm) == 142
+    assert got[("Nathan MacKinnon", "Buts", 0.5)] == (2.12, False)         # prolongation incluse
+    assert got[("Nathan MacKinnon", "Buts", 1.5)] == (7.0, True)           # sans mention : 60 min
+    assert got[("Nathan MacKinnon", "Buts", 2.5)] == (40.0, True)
+    assert got[("Nathan MacKinnon", "Points", 0.5)][0] == 1.23 and got[("Nathan MacKinnon", "Points", 2.5)][0] == 4.7
+    assert got[("Nathan MacKinnon", "Passes décisives", 1.5)][0] == 3.33
+    assert sum(1 for r in pm if (r["stat"], r["line"]) == ("Buts", 0.5)) == 33          # 17 + 16 joueurs
+    assert 12.0 not in {o for (pl, st, li), (o, _) in got.items() if pl == "Nathan MacKinnon"}   # « & nul » ignoré
     html = ('<script id="ng-state" type="application/json">' + __import__("json").dumps(
         {"grpc:1": {"response": {"payload": {"matches": [
             {"matchId": "11", "matchDateUtc": "2026-10-03T23:00:00.0000000Z", "isLive": False,
