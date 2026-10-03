@@ -1,68 +1,68 @@
 {
- "at": "2026-10-03T23:53Z",
+ "at": "2026-10-03T23:55Z",
  "pages": [
   {
    "name": "winamax_hockey",
    "url": "https://www.winamax.fr/paris-sportifs/sports/4",
    "final_url": "https://www.winamax.fr/paris-sportifs/sports/4",
    "status": 200,
-   "bytes": 424979
+   "bytes": 424992
   },
   {
    "name": "winamax_match_72886444",
    "url": "https://www.winamax.fr/paris-sportifs/match/72886444",
    "final_url": "https://www.winamax.fr/paris-sportifs/match/72886444",
    "status": 200,
-   "bytes": 291522
+   "bytes": 291524
   },
   {
    "name": "winamax_match_72886446",
    "url": "https://www.winamax.fr/paris-sportifs/match/72886446",
    "final_url": "https://www.winamax.fr/paris-sportifs/match/72886446",
    "status": 200,
-   "bytes": 300548
+   "bytes": 300562
   },
   {
    "name": "winamax_match_72908922",
    "url": "https://www.winamax.fr/paris-sportifs/match/72908922",
    "final_url": "https://www.winamax.fr/paris-sportifs/match/72908922",
    "status": 200,
-   "bytes": 291548
+   "bytes": 291538
   },
   {
    "name": "betclic_hockey",
    "url": "https://www.betclic.fr/hockey-sur-glace-s13",
    "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey",
    "status": 200,
-   "bytes": 392903
+   "bytes": 393845
   },
   {
-   "name": "betclic_match_0",
-   "url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/buffalo-sabres-chicago-blackhawks-m1231912434679921",
-   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/buffalo-sabres-chicago-blackhawks-m1231912434679921",
+   "name": "betclic_nhl",
+   "url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83",
+   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83",
    "status": 200,
-   "bytes": 199767
+   "bytes": 294488
   },
   {
-   "name": "betclic_match_1",
-   "url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/edmonton-oilers-seattle-kraken-m1231940328890368",
-   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/edmonton-oilers-seattle-kraken-m1231940328890368",
+   "name": "betclic_avant_match_0",
+   "url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/minnesota-wild-boston-bruins-m1231940340428803",
+   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/minnesota-wild-boston-bruins-m1231940340428803",
    "status": 200,
-   "bytes": 196747
+   "bytes": 455434
   },
   {
-   "name": "betclic_match_2",
-   "url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/columbus-blue-jackets-utah-mammoth-m1231940338331648",
-   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/columbus-blue-jackets-utah-mammoth-m1231940338331648",
+   "name": "betclic_avant_match_1",
+   "url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/nashville-predators-dallas-stars-m1231964563582976",
+   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/nashville-predators-dallas-stars-m1231964563582976",
    "status": 200,
-   "bytes": 194342
+   "bytes": 446342
   },
   {
-   "name": "betclic_api_events",
-   "url": "https://offer.cdn.betclic.fr/api/pub/v4/events?application=2&countrycode=fr&language=fr&sitecode=frfr&sportIds=13&limit=50",
-   "final_url": "https://offer.cdn.betclic.fr/api/pub/v4/events?application=2&countrycode=fr&language=fr&sitecode=frfr&sportIds=13&limit=50",
-   "status": 0,
-   "bytes": 61
+   "name": "betclic_avant_match_2",
+   "url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/colorado-avalanche-st-louis-blues-m1231940341465088",
+   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/colorado-avalanche-st-louis-blues-m1231940341465088",
+   "status": 200,
+   "bytes": 454592
   }
  ],
  "winamax_nhl_ids": [
@@ -99,5 +99,17 @@
   "/hockey-sur-glace-sice_hockey/nhl-c83/minnesota-wild-boston-bruins-m1231940340428803",
   "/hockey-sur-glace-sice_hockey/nhl-c83/nashville-predators-dallas-stars-m1231964563582976",
   "/hockey-sur-glace-sice_hockey/nhl-c83/colorado-avalanche-st-louis-blues-m1231940341465088"
+ ],
+ "betclic_avant_match": [
+  "/hockey-sur-glace-sice_hockey/nhl-c83/minnesota-wild-boston-bruins-m1231940340428803",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/nashville-predators-dallas-stars-m1231964563582976",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/colorado-avalanche-st-louis-blues-m1231940341465088",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/san-jose-sharks-los-angeles-kings-m1231964560424960",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/vancouver-canucks-calgary-flames-m1231964562538497",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/detroit-red-wings-winnipeg-jets-m1231940334133249",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/new-york-rangers-utah-mammoth-m1231964559392768",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/anaheim-ducks-florida-panthers-m1231912435724288",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/seattle-kraken-calgary-flames-m1231964563574784",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/vancouver-canucks-vegas-golden-knights-m1231964558336000"
  ]
 }
