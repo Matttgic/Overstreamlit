@@ -141,7 +141,9 @@ def predict(pin: pd.DataFrame, now: pd.Timestamp, hist: pd.DataFrame | None = No
     if nhl.empty:
         return pd.DataFrame()
     params, so_adj = load_model()
-    sched = schedule(now)
+    sched = schedule(now - pd.Timedelta(days=1))      # la veille : matchs du soir américain (après minuit UTC)
+    if sched.empty:                                    # pause, présaison : aucun match de saison régulière
+        return pd.DataFrame()
     sched = sched[(sched["start"] > now) & (sched["start"] < now + pd.Timedelta(hours=horizon_hours))]
     if sched.empty:
         return pd.DataFrame()
@@ -270,3 +272,148 @@ def evaluate_archive(arch_dir: Path, hist: pd.DataFrame) -> dict:
                     "ll_pinnacle": round(ll(yb, b["pin_prob"]), 4), "ll_blend": round(ll(yb, blend), 4),
                     "obs_mean_both": round(float(yb.mean()), 4)})
     return out
+
+
+# ------------------------------------------------------------- comparaison avec Unibet.fr
+PIN_STATS = {"Total Goals": "Buts", "Total Points": "Points", "Total Assists": "Passes décisives"}
+MODEL_MIN_EV = 0.10        # marge exigée quand la cote juste vient du modèle (pas de Pinnacle)
+
+
+def pinnacle_player_props(pin: pd.DataFrame) -> pd.DataFrame:
+    """Props joueurs NHL Pinnacle (côté « Over ») : event, player, stat, line, fair_prob."""
+    if pin.empty or "league" not in pin:
+        return pd.DataFrame()
+    p = pin[(pin["league"] == "NHL") & pin["is_prop"] & (pin["selection"] == "Over")
+            & pin["market"].str.startswith("Player Props:")].copy()
+    rows = []
+    for r in p.itertuples():
+        d = r.market.replace("Player Props: ", "")
+        for en, fr in PIN_STATS.items():
+            if d.endswith(" " + en):
+                rows.append({"event": r.event, "player": d[: -len(en) - 1], "stat": fr, "line": float(r.line),
+                             "pin_prob": float(r.fair_prob), "pin_margin": float(r.pin_margin),
+                             "market_key": r.market_key})
+    return pd.DataFrame(rows)
+
+
+def compare_unibet(ub: pd.DataFrame, pin: pd.DataFrame, pred: pd.DataFrame, cfg_min_ev: float = 0.03,
+                   max_hours: float = 1.5) -> pd.DataFrame:
+    """Chaque cote joueur Unibet face à sa cote juste : Pinnacle s'il cote ce joueur et cette
+    ligne (seuil `cfg_min_ev`), sinon le modèle pour « buteur » (seuil MODEL_MIN_EV).
+
+    Appariement des matchs : même heure (± `max_hours`) et le plus de joueurs en commun
+    (noms Unibet ↔ composition du modèle et props Pinnacle). Les noms d'équipe Unibet
+    (« VEG GKnights », « CLB BJackets »…) ne sont pas utilisés.
+    """
+    if ub is None or ub.empty:
+        return pd.DataFrame()
+    pp = pinnacle_player_props(pin)
+    roster = []
+    if pred is not None and not pred.empty:
+        roster.append(pred[["event", "start", "name", "player_id", "model_prob", "team", "match"]]
+                      .rename(columns={"name": "player"}))
+    if not pp.empty:
+        st = pin.drop_duplicates("event").set_index("event")["start"]
+        roster.append(pp.assign(start=pp["event"].map(st))[["event", "start", "player"]])
+    if not roster:
+        return pd.DataFrame()
+    ro = pd.concat(roster, ignore_index=True)
+    ro["k"] = ro["player"].map(norm)
+    ro["start"] = pd.to_datetime(ro["start"], utc=True)
+    ub = ub.copy()
+    ub["k"] = ub["player"].map(norm)
+    out = []
+    for ub_id, g in ub.groupby("ub_event_id"):
+        t = pd.Timestamp(g["start"].iloc[0])
+        t = t.tz_localize("UTC") if t.tzinfo is None else t.tz_convert("UTC")
+        cand = ro[(ro["start"] - t).abs() <= pd.Timedelta(hours=max_hours)]
+        if cand.empty:
+            continue
+        common = cand[cand["k"].isin(set(g["k"]))].groupby("event")["k"].nunique()
+        if common.empty or common.max() < 3:
+            continue
+        event = common.idxmax()
+        pr = ro[(ro["event"] == event) & ro["model_prob"].notna()].drop_duplicates("k") if "model_prob" in ro else ro.iloc[0:0]
+        x = g.merge(pr[["k", "player_id", "model_prob", "team", "match"]], on="k", how="left") if not pr.empty \
+            else g.assign(player_id=np.nan, model_prob=np.nan, team=None, match=None)
+        pe = pp[pp["event"] == event].assign(k=lambda d: d["player"].map(norm)) if not pp.empty else pp
+        if not pe.empty:
+            x = x.merge(pe[["k", "stat", "line", "pin_prob", "pin_margin", "market_key"]], on=["k", "stat", "line"],
+                        how="left")
+        else:
+            x = x.assign(pin_prob=np.nan, pin_margin=np.nan, market_key=None)
+        x["event"] = event
+        x["start"] = t
+        use_model = x["pin_prob"].isna() & (x["stat"] == "Buts") & (x["line"] == 0.5)
+        x["ref"] = np.where(x["pin_prob"].notna(), "Pinnacle", np.where(use_model & x["model_prob"].notna(), "modèle", None))
+        x["fair_prob"] = x["pin_prob"].where(x["pin_prob"].notna(), x["model_prob"].where(use_model))
+        x = x[x["fair_prob"].notna()]
+        x["ev"] = x["fair_prob"] * x["odds"] - 1
+        x["threshold"] = np.where(x["ref"] == "Pinnacle", cfg_min_ev, MODEL_MIN_EV)
+        out.append(x)
+    if not out:
+        return pd.DataFrame()
+    res = pd.concat(out, ignore_index=True)
+    return res.drop(columns="k").sort_values(["start", "event", "ev"], ascending=[True, True, False])
+
+
+def unibet_value_bets(cmp: pd.DataFrame, max_odds: float = 10.0, min_odds: float = 1.15,
+                      max_ev: float = 0.30, max_pin_margin: float = 0.10) -> pd.DataFrame:
+    """Paris joueurs Unibet au-dessus du seuil, au format des « paris à jouer » du tableau.
+    Marge Pinnacle tolérée un peu plus haute que pour les matchs (props ≈ 7-9 %)."""
+    if cmp is None or cmp.empty:
+        return pd.DataFrame()
+    v = cmp[(cmp["ev"] >= cmp["threshold"]) & (cmp["ev"] <= max_ev) & (cmp["odds"] <= max_odds)
+            & (cmp["odds"] >= min_odds) & ~(cmp["pin_margin"] > max_pin_margin)].copy()
+    if v.empty:
+        return v
+    v["pin_margin"] = np.nan                  # déjà contrôlée ici (seuil propre aux props)
+    label = {"Buts": "Buteur", "Points": "Points", "Passes décisives": "Passes décisives"}
+    v["market"] = [f"{label[s]} — {p}" for s, p in zip(v["stat"], v["player"])]
+    v["selection"] = [f"{p} marque" if (s == "Buts" and l == 0.5) else f"{p} : {int(l + 0.5)}+ {label[s].lower()}"
+                      for p, s, l in zip(v["player"], v["stat"], v["line"])]
+    v["fair_odds"] = (1 / v["fair_prob"]).round(3)
+    v["pin_selection"] = "Over"
+    v["source"] = np.where(v["ref"] == "Pinnacle", "Pinnacle vs Unibet (joueurs)", "Modèle vs Unibet (buteurs)")
+    v = v.assign(sport="hockey", league="NHL", book="Unibet")
+    return v[["sport", "league", "start", "event", "market", "selection", "book", "odds", "fair_odds", "fair_prob",
+              "ev", "pin_margin", "market_key", "pin_selection", "source", "player", "stat", "line", "player_id"]]
+
+
+def settle_player_props(hist: list[dict], nhl: pd.DataFrame, now: pd.Timestamp) -> list[dict]:
+    """Règle les paris joueurs (champ « stat ») avec les feuilles de match NHL.
+
+    Joueur trouvé : gagné si sa stat dépasse la ligne. Joueur connu (player_id) absent d'un
+    match que son équipe a joué : « remboursé (n'a pas joué) », comme chez les opérateurs.
+    """
+    if nhl is None or nhl.empty:
+        return hist
+    nhl = nhl.assign(k=nhl["name"].map(norm))
+    for h in hist:
+        if not h.get("stat") or h.get("result"):
+            continue
+        start = pd.Timestamp(h["start"])
+        start = start.tz_localize("UTC") if start.tzinfo is None else start
+        if now < start + pd.Timedelta(hours=4):
+            continue
+        local = start.tz_convert("America/New_York").tz_localize(None).normalize()   # date NHL du match
+        day = nhl[(nhl["date"] >= local - pd.Timedelta(days=1)) & (nhl["date"] <= local + pd.Timedelta(days=1))]
+        pid = h.get("player_id")
+        rows = day[day["player_id"] == int(pid)] if pid not in (None, "") and pid == pid else day.iloc[0:0]
+        if rows.empty:
+            rows = day[day["k"] == norm(h.get("player", ""))]
+        if len(rows) == 1:
+            r = rows.iloc[0]
+            val = {"Buts": r["goals"], "Points": r["goals"] + r.get("assists", 0),
+                   "Passes décisives": r.get("assists", 0)}.get(h["stat"])
+            won = float(val) > float(h["line"])
+            h["result"] = "gagné" if won else "perdu"
+            h["score"] = f"{int(val)} ({h['stat'].lower()})"
+            h["profit_units"] = round(h["odds"] - 1, 3) if won else -1.0
+            h["status"] = "réglé"
+        elif now > start + pd.Timedelta(days=3):
+            h["result"] = "remboursé (n'a pas joué)" if pid == pid and pid not in (None, "") else \
+                "non réglé (joueur introuvable)"
+            if h["result"].startswith("remboursé"):
+                h["profit_units"], h["status"] = 0.0, "réglé"
+    return hist

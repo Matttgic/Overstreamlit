@@ -6,7 +6,7 @@ lignes par requête : on découpe chaque saison par mois (~7 000 lignes).
 
 Colonnes produites (une ligne par joueur de champ et par match) :
     game_id, date, season, team, opp, home (bool), player_id, name, pos (C/L/R/D),
-    goals, pp_goals, ot_goals, shots, toi, pp_toi, sh_toi   (temps en minutes)
+    goals, assists, pp_goals, ot_goals, shots, toi, pp_toi, sh_toi   (temps en minutes)
 Les buts en tirs au but ne sont crédités à aucun joueur : ils ne comptent pas pour
 le pari « buteur », comme chez les bookmakers.
 """
@@ -59,7 +59,8 @@ def season_games(season: int, game_type: int = 2) -> pd.DataFrame:
         "season": season, "team": df["teamAbbrev"], "opp": df["opponentTeamAbbrev"],
         "home": df["homeRoad"] == "H", "player_id": df["playerId"].astype(int),
         "name": df["skaterFullName"], "pos": df["positionCode"],
-        "goals": df["goals"].fillna(0).astype(int), "pp_goals": df["ppGoals"].fillna(0).astype(int),
+        "goals": df["goals"].fillna(0).astype(int), "assists": df["assists"].fillna(0).astype(int),
+        "pp_goals": df["ppGoals"].fillna(0).astype(int),
         "ot_goals": df["otGoals"].fillna(0).astype(int), "shots": df["shots"].fillna(0).astype(int),
         "toi": df["timeOnIce"].fillna(df["timeOnIcePerGame"]).astype(float) / 60,
         "pp_toi": df["ppTimeOnIce"].fillna(0).astype(float) / 60,

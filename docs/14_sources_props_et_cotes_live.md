@@ -246,6 +246,16 @@ Saison 2026-27 : `regularSeasonStartDate` = 2026-09-29 (selon `/v1/schedule`), f
   - Cotes en millièmes (`odds: 2250` → 2.25). Helpers testés : `kambi_events(path, operator='ub')`, `kambi_event_offers(event_id)`.
     Échantillon : `samples/kambi_ub_nhl_event_1028398378.csv`.
   - Utilité : (a) ★★★★★ — **seule source testée offrant des cotes européennes de buteur NHL & foot** (référence proche des books FR) ; (b) à archiver soi-même.
+- **Unibet.fr (testé le 03/10/2026) ✅** : le site lui-même est accessible depuis un serveur cloud
+  (contrairement à Kambi `ubfr`, qui n'est pas la plateforme d'Unibet France). Page de ligue
+  `https://www.unibet.fr/paris-hockey-sur-glace/etats-unis/nhl` → matchs en JSON-LD (`SportsEvent` : heure de Paris
+  sans fuseau, URL avec l'identifiant du match) ; page de match → balise `<script id="serverApp-state">`
+  (JSON Angular, entités `&q;`…) avec `EventsDetail.events[0].groupedMarkets[].markets[].outcomes[]`
+  (`description`, `price` au format « 3,90 »). Le jour du match : « Nombre de Buts - Joueur - Match (Hors TAB) »
+  (issues « Joueur 1+/2+/3+ »), « Nombre de Points », « Nombre de Passes décisives », « Buteurs - Tiers Temps ».
+  Helpers : `sportpred/live/unibet.py`. ZEbet redirige vers Unibet.fr.
+- **Autres opérateurs FR (03/10/2026)** : Winamax, Betclic, Betsson, ParionsSport → 403 depuis un serveur ;
+  NetBet.fr → 200 (non exploré) ; bwin.fr → fermé ; PokerStars.fr → redirigé hors de France.
 - **Betfair Exchange** : `www.betfair.com/www/sports/exchange/readonly/v1/bymarket`, `ero.betfair.com`, `apieds.betfair.com` → **403**.
   L'API officielle exige un compte + app key (gratuite pour usage perso mais login requis, compte FR impossible) → non retenue.
 - **Sites FR** : betclic.fr 403, winamax.fr 403, unibet.fr 403, enligne.parionssport.fdj.fr 403, zebet.fr timeout ; netbet.fr 200 et sports.pmu.fr 200 (HTML, pas d'API publique identifiée).

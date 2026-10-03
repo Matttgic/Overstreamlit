@@ -22,7 +22,7 @@ import pandas as pd
 
 from ..betting.kelly import kelly_fraction
 from . import nhl_scorers as nhl_mod
-from . import oddsapi, pinnacle
+from . import oddsapi, pinnacle, unibet
 from . import results as results_mod
 from . import scanner as fd_scanner
 from .matching import match_events
@@ -243,9 +243,14 @@ def update_history(hist: list[dict], picks: pd.DataFrame, pin: pd.DataFrame,
                      "fair_odds_at_pick": float(r.fair_odds), "fair_odds_last": float(r.fair_odds),
                      "pin_selection": getattr(r, "pin_selection", None) if isinstance(
                          getattr(r, "pin_selection", None), str) else r.selection,
-                     "ev_at_pick": float(r.ev), "market_key": r.market_key, "source": r.source,
+                     "ev_at_pick": float(r.ev), "market_key": r.market_key if isinstance(r.market_key, str) else None,
+                     "source": r.source,
                      "stake_pct": float(getattr(r, "stake_pct", 0) or 0),
                      "clv": None, "status": "en attente"})
+        for k in ("player", "stat", "line", "player_id"):          # paris joueurs (Unibet)
+            v = getattr(r, k, None)
+            if v is not None and not (isinstance(v, float) and np.isnan(v)):
+                hist[-1][k] = int(v) if k == "player_id" else (float(v) if k == "line" else v)
     latest = {}
     if not pin.empty:
         for r in pin.itertuples():
@@ -318,21 +323,40 @@ def archive_odds(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp) -> None:
     a.to_csv(f, mode="a", header=not f.exists(), index=False, compression="gzip")
 
 
-NHL_MODEL_MIN_EV = 0.10      # marge exigée quand seule la cote du modèle sert de référence
+NHL_MODEL_MIN_EV = nhl_mod.MODEL_MIN_EV   # marge exigée quand seule la cote du modèle sert de référence
 
 
-def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp, cfg: DashConfig) -> dict:
+def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
+              cfg: DashConfig) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
     """Buteurs NHL : tous les joueurs des matchs du jour, cote juste Pinnacle si elle existe,
-    sinon cote du modèle (marge exigée plus large) ; archive et bilan modèle vs Pinnacle."""
+    sinon cote du modèle (marge exigée plus large) ; cotes joueurs Unibet.fr comparées
+    automatiquement ; archive et bilan modèle vs Pinnacle.
+
+    Renvoie (bloc pour today.json, paris Unibet au-dessus du seuil, feuilles de match NHL)."""
+    empty = ({}, pd.DataFrame(), pd.DataFrame())
     if pin.empty or "league" not in pin or not (pin["league"] == "NHL").any():
-        return {}
+        return empty
     try:
         hist = nhl_mod.load_hist(now)
         pred = nhl_mod.predict(pin, now, hist=hist)
     except Exception as e:  # noqa: BLE001 — l'API NHL ne doit pas bloquer le tableau
         print("modèle buteurs NHL indisponible :", e)
-        return {}
+        return empty
     arch = out_dir / "archive"
+    ub_cmp, ub_vb = pd.DataFrame(), pd.DataFrame()
+    try:
+        ub = unibet.nhl_player_odds(now, min(cfg.horizon_hours, 20))   # marchés joueurs : jour du match
+        if not ub.empty:
+            arch.mkdir(parents=True, exist_ok=True)
+            fu = arch / f"unibet_nhl_joueurs_{now.strftime('%Y-%m-%d')}.csv.gz"
+            ub.assign(captured_at=now.strftime("%Y-%m-%dT%H:%MZ")).to_csv(
+                fu, mode="a", header=not fu.exists(), index=False, compression="gzip")
+        ub_cmp = nhl_mod.compare_unibet(ub, pin, pred, cfg.min_ev)
+        ub_vb = nhl_mod.unibet_value_bets(ub_cmp, cfg.max_odds, cfg.min_odds, cfg.max_ev,
+                                         cfg.max_pin_margin + 0.02)
+        print(f"Unibet joueurs NHL : {len(ub)} cotes, {len(ub_cmp)} comparées, {len(ub_vb)} au-dessus du seuil")
+    except Exception as e:  # noqa: BLE001 — Unibet peut bloquer ou changer de format
+        print("cotes joueurs Unibet indisponibles :", e)
     suivi = {}
     if not pred.empty:
         cmp = nhl_mod.compare_with_pinnacle(pin, pred)
@@ -350,7 +374,7 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp, cfg: DashConf
     except Exception as e:  # noqa: BLE001
         print("bilan buteurs NHL impossible :", e)
     if pred.empty:
-        return {"rows": [], "suivi": suivi, "model_min_ev": NHL_MODEL_MIN_EV}
+        return {"rows": [], "suivi": suivi, "model_min_ev": NHL_MODEL_MIN_EV}, ub_vb, hist
     has_pin = pred["pin_prob"].notna()
     r = pred[(pred["model_prob"] >= 1 / cfg.max_odds) | has_pin].copy()
     has_pin = r["pin_prob"].notna()
@@ -358,11 +382,34 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp, cfg: DashConf
     r["min_odds"] = (r["fair_odds"] * np.where(has_pin, 1 + cfg.min_ev, 1 + NHL_MODEL_MIN_EV)).round(2)
     r["ref"] = np.where(has_pin, "Pinnacle", "modèle")
     r["start"] = pd.to_datetime(r["start"], utc=True).dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    cols = ["event", "match", "start", "team", "name", "model_prob", "pin_prob", "fair_odds", "min_odds", "ref", "lineup"]
+    if not ub_cmp.empty:                       # cote Unibet « marque » face à chaque joueur
+        ug = ub_cmp[(ub_cmp["stat"] == "Buts") & (ub_cmp["line"] == 0.5)][["event", "player_id", "odds"]]
+        ug = ug.dropna(subset=["player_id"]).astype({"player_id": int}).drop_duplicates(["event", "player_id"])
+        r = r.merge(ug.rename(columns={"odds": "unibet"}), on=["event", "player_id"], how="left")
+    else:
+        r["unibet"] = np.nan
+    cols = ["event", "match", "start", "team", "name", "model_prob", "pin_prob", "fair_odds", "min_odds", "ref",
+            "lineup", "unibet"]
     r = r.sort_values(["start", "event", "model_prob"], ascending=[True, True, False])[cols]
     r[["model_prob", "pin_prob"]] = r[["model_prob", "pin_prob"]].round(4)
-    return {"rows": r.replace({np.nan: None}).to_dict("records"), "suivi": suivi,
-            "model_min_ev": NHL_MODEL_MIN_EV}
+    block = {"rows": r.replace({np.nan: None}).to_dict("records"), "suivi": suivi,
+             "model_min_ev": NHL_MODEL_MIN_EV,
+             "unibet": {"compared": int(len(ub_cmp)), "value": int(len(ub_vb)),
+                        "ev_median": round(float(ub_cmp["ev"].median()), 4) if not ub_cmp.empty else None}}
+    return block, ub_vb, hist
+
+
+def json_safe(o):
+    """Remplace NaN / infini par None (JSON strict : sinon le navigateur rejette tout le fichier)."""
+    if isinstance(o, float):
+        return o if np.isfinite(o) else None
+    if isinstance(o, dict):
+        return {k: json_safe(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [json_safe(v) for v in o]
+    if isinstance(o, np.generic):
+        return json_safe(o.item())
+    return o
 
 
 def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None = None) -> dict:
@@ -377,7 +424,8 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
     budget = oddsapi.Budget()
     fr, fr_at = load_fr_odds(out_dir, now, budget)
     fr = _upcoming(fr, cfg, now)
-    frames = [value_from_oddsapi(pin, fr, cfg), value_from_football_data(cfg)]
+    nhl, nhl_vb, nhl_hist = nhl_block(pin, out_dir, now, cfg)
+    frames = [value_from_oddsapi(pin, fr, cfg), value_from_football_data(cfg), nhl_vb]
     vb = pd.concat([f for f in frames if not f.empty], ignore_index=True) if any(
         not f.empty for f in frames) else pd.DataFrame()
     if not vb.empty:
@@ -389,7 +437,6 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
         vb = vb.sort_values("start")
     wl = watchlist(pin, cfg)
     pr = watchlist(pin, cfg, props=True)
-    nhl = nhl_block(pin, out_dir, now, cfg)
 
     hist_path = out_dir / "history.json"
     hist = json.loads(hist_path.read_text()) if hist_path.exists() else []
@@ -399,7 +446,12 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
         hist = results_mod.settle(hist, now)
     except Exception as e:  # noqa: BLE001 — un échec ESPN ne doit pas bloquer le tableau
         print("règlement ESPN impossible :", e)
-    hist_path.write_text(json.dumps(hist, ensure_ascii=False, indent=0), encoding="utf-8")
+    try:
+        hist = nhl_mod.settle_player_props(hist, nhl_hist, now)
+    except Exception as e:  # noqa: BLE001
+        print("règlement des paris joueurs impossible :", e)
+    hist = json_safe(hist)
+    hist_path.write_text(json.dumps(hist, ensure_ascii=False, indent=0, allow_nan=False), encoding="utf-8")
 
     def rec(df, cols):
         if df is None or df.empty:
@@ -432,5 +484,6 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
                      "clv_positive_share": round(float(np.mean([c > 0 for c in clvs])), 3) if clvs else None,
                      "recent": hist[-30:][::-1]},
     }
-    (out_dir / "today.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    data = json_safe(data)
+    (out_dir / "today.json").write_text(json.dumps(data, ensure_ascii=False, allow_nan=False), encoding="utf-8")
     return data

@@ -55,8 +55,35 @@ P(i marque) = 1 − exp(−λ_équipe × 0,98 × part_i)    (0,98 : buts en tirs
    opérateurs, mais fausse aussi les parts de ses coéquipiers.
 4. Mise : Kelly ¼ plafonné à 2 % (voir [S07](S07_gestion_bankroll_kelly.md)) ; les
    buteurs sont des paris à forte variance (cotes 3 à 10).
+5. Unibet est comparé automatiquement (section 5) : colonne « Unibet » en vert quand la cote
+   atteint le seuil, et le pari s'ajoute à « À jouer maintenant ».
 
-## 5. Le vrai test, en cours
+## 5. Comparaison automatique avec Unibet.fr
+
+Plus besoin de comparer à la main pour Unibet : à chaque mise à jour, le site lit les
+cotes joueurs d'Unibet.fr (buteur, points, passes décisives : « Joueur 1+ », « 2+ »…, ouvertes
+le jour du match) sur les pages publiques du site (`sportpred/live/unibet.py`), les compare
+à la cote juste et **ajoute à « À jouer maintenant » celles qui passent le seuil** :
+
+| Référence | Marchés | Seuil |
+|---|---|---|
+| Pinnacle (joueur et ligne cotés) | buteur, points, passes | EV ≥ +3 % |
+| Modèle (joueur non coté par Pinnacle) | buteur seulement | EV ≥ +10 % |
+
+Garde-fous communs : cote ≤ 10, EV ≤ 30 %, marge Pinnacle ≤ 10 %. Mise Kelly ¼ plafonnée à
+2 %. Les paris sont suivis (CLV quand Pinnacle cote le joueur) et réglés automatiquement
+avec les feuilles de match NHL (joueur absent → remboursé, comme chez l'opérateur).
+
+Premier relevé (03/10/2026, Dallas-St. Louis et Vegas-Anaheim) : 493 cotes joueurs lues,
+109 comparées à une cote juste, **écart médian −15,6 %** (−11 à −21 % sur les buteurs cotés
+par Pinnacle) ; 1 seul pari au-dessus du seuil (Jonatan Berggren buteur à 8,80, cote juste
+modèle 7,28). Il faut donc s'attendre à 0 à 2 paris par soir : la marge d'Unibet sur les
+buteurs est d'environ 20 %.
+
+Winamax, Betclic, Betsson et ParionsSport bloquent les serveurs (403) ; NetBet est
+accessible mais pas encore branché. Pour eux, la colonne « À prendre si ≥ » reste la règle.
+
+## 6. Le vrai test, en cours
 
 Chaque mise à jour archive les prédictions (`archive/nhl_buteurs_AAAA-MM-JJ.csv.gz` sur
 la branche `dashboard-data`). Le site affiche le bilan au fil des matchs : log-loss du
@@ -67,11 +94,12 @@ modèle, de Pinnacle et du mélange des deux sur les mêmes joueurs. Décision a
   la marge exigée ;
 - sinon → le modèle reste un outil pour les joueurs non cotés par Pinnacle.
 
-## 6. Limites
+## 7. Limites
 
 - Composition estimée, pas lue sur la feuille de match (DailyFaceoff n'est pas encore
   branché) ; gardien adverse et blessures en cours de match non modélisés.
 - La cote du modèle pour les joueurs non cotés ne peut pas encore être vérifiée contre un
   marché sharp : seule la calibration historique la garantit.
-- Les cotes buteurs des opérateurs français ne sont dans aucune API gratuite :
-  la comparaison reste manuelle.
+- Les cotes buteurs des opérateurs français ne sont dans aucune API gratuite : Unibet.fr est
+  lu directement sur son site (une page par match, 9 fois par jour) ; si le site change de
+  format ou bloque les serveurs de GitHub, la comparaison s'arrête sans casser le tableau.
