@@ -1,0 +1,70 @@
+{
+ "at": "2026-10-03T01:58Z",
+ "pages": [
+  {
+   "name": "winamax_hockey",
+   "url": "https://www.winamax.fr/paris-sportifs/sports/4",
+   "final_url": "https://www.winamax.fr/paris-sportifs/sports/4",
+   "status": 200,
+   "bytes": 452143
+  },
+  {
+   "name": "winamax_match_72886432",
+   "url": "https://www.winamax.fr/paris-sportifs/match/72886432",
+   "final_url": "https://www.winamax.fr/paris-sportifs/match/72886432",
+   "status": 200,
+   "bytes": 294991
+  },
+  {
+   "name": "winamax_match_72886436",
+   "url": "https://www.winamax.fr/paris-sportifs/match/72886436",
+   "final_url": "https://www.winamax.fr/paris-sportifs/match/72886436",
+   "status": 200,
+   "bytes": 300150
+  },
+  {
+   "name": "winamax_match_72908910",
+   "url": "https://www.winamax.fr/paris-sportifs/match/72908910",
+   "final_url": "https://www.winamax.fr/paris-sportifs/match/72908910",
+   "status": 200,
+   "bytes": 442939
+  },
+  {
+   "name": "betclic_hockey",
+   "url": "https://www.betclic.fr/hockey-sur-glace-s13",
+   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey",
+   "status": 200,
+   "bytes": 352502
+  },
+  {
+   "name": "betclic_api_events",
+   "url": "https://offer.cdn.betclic.fr/api/pub/v4/events?application=2&countrycode=fr&language=fr&sitecode=frfr&sportIds=13&limit=50",
+   "final_url": "https://offer.cdn.betclic.fr/api/pub/v4/events?application=2&countrycode=fr&language=fr&sitecode=frfr&sportIds=13&limit=50",
+   "status": 0,
+   "bytes": 61
+  }
+ ],
+ "winamax_nhl_ids": [
+  "72886432",
+  "72886436",
+  "72908910",
+  "72886438",
+  "72886444",
+  "72886446",
+  "72908922",
+  "72908924",
+  "72908926",
+  "72908928",
+  "72886442",
+  "72886440",
+  "72908914",
+  "72908916",
+  "72908918",
+  "72908920",
+  "72886448",
+  "72886450",
+  "72886460",
+  "1000180886"
+ ],
+ "betclic_links": []
+}
