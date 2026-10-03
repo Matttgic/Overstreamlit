@@ -80,8 +80,33 @@ par Pinnacle) ; 1 seul pari au-dessus du seuil (Jonatan Berggren buteur à 8,80,
 modèle 7,28). Il faut donc s'attendre à 0 à 2 paris par soir : la marge d'Unibet sur les
 buteurs est d'environ 20 %.
 
-Winamax, Betclic, Betsson et ParionsSport bloquent les serveurs (403) ; NetBet est
-accessible mais pas encore branché. Pour eux, la colonne « À prendre si ≥ » reste la règle.
+### Winamax et Betclic, via le téléphone
+
+Winamax et Betclic bloquent tous les serveurs (GitHub compris, versions étrangères comprises)
+et aucune API gratuite ne fournit leurs cotes joueurs. Le **téléphone Android** de
+l'utilisateur (Termux, `telephone/collecte_fr.py`, mode d'emploi `telephone/README.md`) lit
+leurs pages 4 fois par jour depuis sa connexion et dépose `cotes_fr.json.gz` sur la branche
+`cotes-telephone` ; le tableau de bord le relit (`sportpred/live/fr_phone.py`, données de moins
+de 4 h) et le compare comme Unibet.
+
+| Opérateur | Marchés lus | Prolongation |
+|---|---|---|
+| Winamax (état `PRELOADED_STATE` des pages de match) | buteur, 2 / 3 buts ou +, points 1+/2+/3+, passes 1+/2+/3+ | **non** : « hors prolongations et tirs au but » → cote juste convertie en temps réglementaire |
+| Betclic (état `ng-state`, onglet « Le Top » des pages de match, site mobile) | buteur, « le joueur inscrit 2 buts ou + » | supposée oui (marché sans mention « tps rég. ») — à confirmer dans l'appli |
+
+Conversion « temps réglementaire » : sur 2018-19 → 2025-26 (9 781 matchs), 67,2 % des
+prolongations se terminent par un but et 2,46 % des buts de joueurs sont marqués en
+prolongation. Pour chaque match : ratio = 1 − 0,672 × P(égalité après 60 min) / (λ_dom + λ_ext),
+puis P(marque en 60 min) = 1 − (1 − P(marque, prolongation comprise))^ratio (≈ −2,5 % de
+probabilité). Les paris Winamax sont réglés sur les buts hors prolongation (`ot_goals` de
+l'API NHL).
+
+Sonde du 03/10/2026 : Vegas-Anaheim chez Winamax, 324 cotes joueurs (36 joueurs × 9 marchés) ;
+chez Betclic, 19 à 29 buteurs par match. Berggren (Dallas-St. Louis), cote juste modèle 7,28
+(prolongation comprise) : 10,0 chez Winamax (constaté par l'utilisateur) contre 8,80 chez Unibet.
+
+Restent bloqués et non couverts : PMU, ParionsSport, Betsson, bet365 (403). NetBet est
+accessible depuis GitHub mais pas encore branché.
 
 ## 6. Le vrai test, en cours
 

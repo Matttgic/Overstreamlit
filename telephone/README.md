@@ -7,10 +7,10 @@ maintenant » et alerte Telegram.
 
 Deux étapes :
 
-1. **Sonde (une seule fois, maintenant)** : le téléphone envoie quelques pages NHL de
-   Winamax et Betclic pour que Claude règle la lecture des cotes.
-2. **Collecte automatique (ensuite)** : toutes les 2 heures, le téléphone envoie seulement
-   les cotes utiles (quelques dizaines de Ko). Les instructions seront ajoutées ici.
+1. **Sonde** (fait le 03/10/2026) : le téléphone a envoyé des pages NHL de Winamax et Betclic
+   pour régler la lecture des cotes.
+2. **Collecte automatique** (section 6) : 4 fois par jour, le téléphone lit les cotes joueurs
+   NHL (buteur, 2 buts ou +, points, passes) et envoie un petit fichier compressé.
 
 Durée : ~15 minutes. Coût : 0 €.
 
@@ -80,6 +80,59 @@ Dites ensuite à Claude « sonde faite », en recopiant les lignes affichées (e
 contiennent pas le jeton). Si une page affiche `403`, signalez-le aussi : cela voudra dire
 que le site bloque aussi le téléphone pour cette adresse.
 
+## 6. Collecte automatique (4 fois par jour)
+
+Mettre d'abord le script à jour (même commande qu'à l'étape 2), puis le tester à la main :
+
+```
+python collecte_fr.py
+```
+
+Il affiche par exemple :
+
+```
+  Winamax : 13 matchs NHL, 9 avec cotes joueurs, 2650 cotes
+  Betclic : 13 matchs NHL, 9 avec cotes joueurs, 230 cotes
+Envoyé sur GitHub.
+```
+
+(Le matin, « 0 avec cotes joueurs » est normal : les bookmakers ouvrent les buteurs le jour
+du match, en général à partir de midi.)
+
+Ensuite, programmer la collecte à 12 h, 16 h, 19 h et 22 h. Copier-coller, une ligne à la fois :
+
+```
+pkg install -y cronie termux-services
+```
+
+**Fermer complètement Termux** (notification Termux → *Exit*) et le rouvrir, puis :
+
+```
+sv-enable crond
+```
+
+```
+(crontab -l 2>/dev/null; echo "5 12,16,19,22 * * * cd ~ && python collecte_fr.py >> ~/collecte.log 2>&1") | crontab -
+```
+
+```
+termux-wake-lock
+```
+
+Enfin, dans les **réglages Android** : Applications → Termux → Batterie → **Non restreinte**
+(sinon Android endort Termux et la collecte ne part pas). Laisser Termux ouvert en arrière-plan
+(la notification « Termux » doit rester affichée).
+
+Vérifier que tout marche (le lendemain) : `tail -20 ~/collecte.log` affiche les dernières
+collectes ; le site indique aussi « Winamax et Betclic reçus du téléphone (heure) » dans la
+section Buteurs NHL.
+
+Consommation : les pages sont demandées compressées, environ 2 Mo par collecte (≈ 8 Mo par
+jour, surtout en wifi à la maison).
+
+Arrêter : `crontab -r` (supprime la programmation). Le jeton peut être supprimé à tout moment
+sur https://github.com/settings/personal-access-tokens.
+
 ## En cas de souci
 
 | Message | Que faire |
@@ -88,3 +141,5 @@ que le site bloque aussi le téléphone pour cette adresse.
 | `Accès au dépôt refusé (401 ou 403)` | Jeton mal copié ou sans *Contents : Read and write* → refaire les étapes 3 et 4. |
 | `command not found: python` | Refaire `pkg install -y python`. |
 | Codes `0` partout | Pas de connexion internet sur le téléphone. |
+| `crontab: command not found` | Refaire `pkg install -y cronie termux-services`, fermer et rouvrir Termux. |
+| Pas de nouvelle ligne dans `collecte.log` | Termux endormi : batterie « Non restreinte » + `termux-wake-lock`. |

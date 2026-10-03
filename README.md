@@ -41,8 +41,9 @@ Actions, après activation de GitHub Pages — voir [docs/12](docs/12_plan_autom
 - **Paris joueurs** : buteurs, points, tirs (les jours de match).
 - **Buteurs NHL** : cote juste pour tous les joueurs de chaque match (Pinnacle quand il les
   cote, sinon modèle ancré sur le marché, voir [S11](docs/strategies/S11_buteurs_nhl.md)) ;
-  les cotes joueurs d'Unibet.fr sont comparées automatiquement et celles qui passent le seuil
-  s'ajoutent aux paris à jouer.
+  les cotes joueurs d'Unibet.fr, et de Winamax et Betclic (lues par le téléphone Android,
+  voir [telephone/](telephone/README.md)), sont comparées automatiquement et celles qui
+  passent le seuil s'ajoutent aux paris à jouer.
 - **Suivi** : CLV de chaque pari proposé. Notifications Telegram en option.
 
 ## Ce que contient le dépôt

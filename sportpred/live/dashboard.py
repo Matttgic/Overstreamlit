@@ -22,7 +22,7 @@ import pandas as pd
 
 from ..betting.kelly import kelly_fraction
 from . import nhl_scorers as nhl_mod
-from . import oddsapi, pinnacle, unibet
+from . import fr_phone, oddsapi, pinnacle, unibet
 from . import results as results_mod
 from . import scanner as fd_scanner
 from .matching import match_events
@@ -247,10 +247,11 @@ def update_history(hist: list[dict], picks: pd.DataFrame, pin: pd.DataFrame,
                      "source": r.source,
                      "stake_pct": float(getattr(r, "stake_pct", 0) or 0),
                      "clv": None, "status": "en attente"})
-        for k in ("player", "stat", "line", "player_id"):          # paris joueurs (Unibet)
+        for k in ("player", "stat", "line", "player_id", "reg_only"):   # paris joueurs (opérateurs FR)
             v = getattr(r, k, None)
             if v is not None and not (isinstance(v, float) and np.isnan(v)):
-                hist[-1][k] = int(v) if k == "player_id" else (float(v) if k == "line" else v)
+                hist[-1][k] = (int(v) if k == "player_id" else float(v) if k == "line"
+                               else bool(v) if k == "reg_only" else v)
     latest = {}
     if not pin.empty:
         for r in pin.itertuples():
@@ -329,10 +330,11 @@ NHL_MODEL_MIN_EV = nhl_mod.MODEL_MIN_EV   # marge exigée quand seule la cote du
 def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
               cfg: DashConfig) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
     """Buteurs NHL : tous les joueurs des matchs du jour, cote juste Pinnacle si elle existe,
-    sinon cote du modèle (marge exigée plus large) ; cotes joueurs Unibet.fr comparées
-    automatiquement ; archive et bilan modèle vs Pinnacle.
+    sinon cote du modèle (marge exigée plus large) ; cotes joueurs Unibet.fr (lues par GitHub)
+    et Winamax / Betclic (envoyées par le téléphone) comparées automatiquement ; archive et
+    bilan modèle vs Pinnacle.
 
-    Renvoie (bloc pour today.json, paris Unibet au-dessus du seuil, feuilles de match NHL)."""
+    Renvoie (bloc pour today.json, paris joueurs au-dessus du seuil, feuilles de match NHL)."""
     empty = ({}, pd.DataFrame(), pd.DataFrame())
     if pin.empty or "league" not in pin or not (pin["league"] == "NHL").any():
         return empty
@@ -343,7 +345,7 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
     except Exception as e:  # noqa: BLE001 — l'API NHL ne doit pas bloquer le tableau
         print("modèle buteurs NHL indisponible :", e)   # Unibet reste comparé à Pinnacle
     arch = out_dir / "archive"
-    ub_cmp, ub_vb = pd.DataFrame(), pd.DataFrame()
+    frames, phone_meta = [], {"status": "non lu"}
     try:
         ub = unibet.nhl_player_odds(now, min(cfg.horizon_hours, 20))   # marchés joueurs : jour du match
         if not ub.empty:
@@ -351,15 +353,40 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
             fu = arch / f"unibet_nhl_joueurs_{now.strftime('%Y-%m-%d')}.csv.gz"
             ub.assign(captured_at=now.strftime("%Y-%m-%dT%H:%MZ")).to_csv(
                 fu, mode="a", header=not fu.exists(), index=False, compression="gzip")
-        ub_cmp = nhl_mod.compare_unibet(ub, pin, pred, cfg.min_ev)
-        ub_vb = nhl_mod.unibet_value_bets(ub_cmp, cfg.max_odds, cfg.min_odds, cfg.max_ev,
-                                         cfg.max_pin_margin + 0.02)
-        print(f"Unibet joueurs NHL : {len(ub)} cotes, {len(ub_cmp)} comparées, {len(ub_vb)} au-dessus du seuil")
+            frames.append(ub.assign(book="Unibet", reg_only=False))
     except Exception as e:  # noqa: BLE001 — Unibet peut bloquer ou changer de format
         print("cotes joueurs Unibet indisponibles :", e)
+    try:                                       # Winamax + Betclic, envoyés par le téléphone
+        ph, phone_meta = fr_phone.load(now)
+        if not ph.empty:
+            frames.append(ph)
+            state_f = out_dir / "fr_phone_state.json"
+            last = json.loads(state_f.read_text()).get("last_at") if state_f.exists() else None
+            if phone_meta.get("at") != last:      # une seule copie par collecte du téléphone
+                arch.mkdir(parents=True, exist_ok=True)
+                fp = arch / f"fr_telephone_{now.strftime('%Y-%m-%d')}.csv.gz"
+                ph.drop(columns=["ub_event_id", "ub_event"]).assign(captured_at=phone_meta.get("at")).to_csv(
+                    fp, mode="a", header=not fp.exists(), index=False, compression="gzip")
+                state_f.write_text(json.dumps({"last_at": phone_meta.get("at")}))
+        print("téléphone (Winamax, Betclic) :", phone_meta.get("status"), phone_meta.get("at"), len(ph), "cotes")
+    except Exception as e:  # noqa: BLE001
+        print("cotes du téléphone illisibles :", e)
+    b_cmp, b_vb = pd.DataFrame(), pd.DataFrame()
+    try:
+        allb = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+        b_cmp = nhl_mod.compare_book_props(allb, pin, pred, cfg.min_ev)
+        b_vb = nhl_mod.book_value_bets(b_cmp, cfg.max_odds, cfg.min_odds, cfg.max_ev, cfg.max_pin_margin + 0.02)
+        for bk, g in (b_cmp.groupby("book") if not b_cmp.empty else []):
+            print(f"{bk} joueurs NHL : {len(g)} cotes comparées, {int((g['ev'] >= g['threshold']).sum())} au-dessus du seuil")
+    except Exception as e:  # noqa: BLE001
+        print("comparaison des cotes joueurs impossible :", e)
     suivi = {}
     if not pred.empty:
-        cmp = nhl_mod.compare_with_pinnacle(pin, pred)
+        try:
+            cmp = nhl_mod.compare_with_pinnacle(pin, pred)
+        except Exception as e:  # noqa: BLE001 — ne doit jamais bloquer tout le tableau
+            print("comparaison modèle / Pinnacle impossible :", e)
+            cmp = pd.DataFrame()
         pred = pred.merge(cmp[["event", "prop_name", "pin_prob"]].drop_duplicates(["event", "prop_name"]),
                           on=["event", "prop_name"], how="left") if not cmp.empty else pred.assign(pin_prob=np.nan)
         a = pred[["event", "start", "game_id", "team", "player_id", "name", "lam", "share", "model_prob",
@@ -373,10 +400,13 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
         suivi = nhl_mod.evaluate_archive(arch, hist)
     except Exception as e:  # noqa: BLE001
         print("bilan buteurs NHL impossible :", e)
-    ub_summary = {"compared": int(len(ub_cmp)), "value": int(len(ub_vb)),
-                  "ev_median": round(float(ub_cmp["ev"].median()), 4) if not ub_cmp.empty else None}
+    def summ(c: pd.DataFrame) -> dict:
+        return {"compared": int(len(c)), "value": int((c["ev"] >= c["threshold"]).sum()) if not c.empty else 0,
+                "ev_median": round(float(c["ev"].median()), 4) if not c.empty else None}
+    books_summary = {**summ(b_cmp), "by_book": {bk: summ(g) for bk, g in b_cmp.groupby("book")} if not b_cmp.empty
+                     else {}, "phone": {k: phone_meta.get(k) for k in ("status", "at", "stats")}}
     if pred.empty:
-        return {"rows": [], "suivi": suivi, "model_min_ev": NHL_MODEL_MIN_EV, "unibet": ub_summary}, ub_vb, hist
+        return {"rows": [], "suivi": suivi, "model_min_ev": NHL_MODEL_MIN_EV, "books": books_summary}, b_vb, hist
     has_pin = pred["pin_prob"].notna()
     r = pred[(pred["model_prob"] >= 1 / cfg.max_odds) | has_pin].copy()
     has_pin = r["pin_prob"].notna()
@@ -384,20 +414,20 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
     r["min_odds"] = (r["fair_odds"] * np.where(has_pin, 1 + cfg.min_ev, 1 + NHL_MODEL_MIN_EV)).round(2)
     r["ref"] = np.where(has_pin, "Pinnacle", "modèle")
     r["start"] = pd.to_datetime(r["start"], utc=True).dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    if not ub_cmp.empty:                       # cote Unibet « marque » face à chaque joueur
-        ug = ub_cmp[(ub_cmp["stat"] == "Buts") & (ub_cmp["line"] == 0.5)][["event", "player_id", "odds"]]
-        ug = ug.dropna(subset=["player_id"]).astype({"player_id": int}).drop_duplicates(["event", "player_id"])
-        r = r.merge(ug.rename(columns={"odds": "unibet"}), on=["event", "player_id"], how="left")
-    else:
-        r["unibet"] = np.nan
+    books_map = {}                             # cotes « marque » des opérateurs face à chaque joueur
+    if not b_cmp.empty:
+        g = b_cmp[(b_cmp["stat"] == "Buts") & (b_cmp["line"] == 0.5)].dropna(subset=["player_id"])
+        for x in g.sort_values("odds", ascending=False).itertuples():
+            books_map.setdefault((x.event, int(x.player_id)), []).append(
+                {"b": x.book, "o": float(x.odds), "hit": bool(x.ev >= x.threshold), "reg": bool(x.reg_only)})
+    r["books"] = [books_map.get((e, int(p)), []) for e, p in zip(r["event"], r["player_id"])]
     cols = ["event", "match", "start", "team", "name", "model_prob", "pin_prob", "fair_odds", "min_odds", "ref",
-            "lineup", "unibet"]
+            "lineup", "books"]
     r = r.sort_values(["start", "event", "model_prob"], ascending=[True, True, False])[cols]
     r[["model_prob", "pin_prob"]] = r[["model_prob", "pin_prob"]].round(4)
     block = {"rows": r.replace({np.nan: None}).to_dict("records"), "suivi": suivi,
-             "model_min_ev": NHL_MODEL_MIN_EV,
-             "unibet": ub_summary}
-    return block, ub_vb, hist
+             "model_min_ev": NHL_MODEL_MIN_EV, "books": books_summary}
+    return block, b_vb, hist
 
 
 def json_safe(o):
@@ -425,7 +455,11 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
     budget = oddsapi.Budget()
     fr, fr_at = load_fr_odds(out_dir, now, budget)
     fr = _upcoming(fr, cfg, now)
-    nhl, nhl_vb, nhl_hist = nhl_block(pin, out_dir, now, cfg)
+    try:
+        nhl, nhl_vb, nhl_hist = nhl_block(pin, out_dir, now, cfg)
+    except Exception as e:  # noqa: BLE001 — le bloc NHL ne doit jamais empêcher la mise à jour du site
+        print("bloc NHL indisponible :", e)
+        nhl, nhl_vb, nhl_hist = {}, pd.DataFrame(), pd.DataFrame()
     frames = [value_from_oddsapi(pin, fr, cfg), value_from_football_data(cfg), nhl_vb]
     vb = pd.concat([f for f in frames if not f.empty], ignore_index=True) if any(
         not f.empty for f in frames) else pd.DataFrame()

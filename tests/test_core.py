@@ -549,9 +549,11 @@ def test_nhl_block_compares_unibet_even_if_model_fails(monkeypatch, tmp_path):
     ub = pd.DataFrame({"ub_event_id": 9, "ub_event": "PIT vs MON", "start": t, "stat": "Buts", "player": names,
                        "line": 0.5, "odds": [2.60, 2.50, 3.00]})
     monkeypatch.setattr(D.unibet, "nhl_player_odds", lambda now, h: ub)
+    monkeypatch.setattr(D.fr_phone, "load", lambda now: (pd.DataFrame(), {"status": "pas encore de collecte"}))
     block, vb, nhl_hist = D.nhl_block(pin, tmp_path, pd.Timestamp("2026-10-03T12:00Z"), D.DashConfig())
     assert list(vb["player"]) == ["Sidney Crosby"] and np.isclose(vb["ev"].iloc[0], 0.42 * 2.6 - 1)
-    assert block["unibet"]["compared"] == 3 and nhl_hist.empty
+    assert block["books"]["compared"] == 3 and block["books"]["by_book"]["Unibet"]["value"] == 1 and nhl_hist.empty
+    assert block["books"]["phone"]["status"] == "pas encore de collecte"
 
 
 def test_telephone_sonde_offline(monkeypatch, tmp_path):
@@ -604,3 +606,178 @@ def test_telephone_sonde_offline(monkeypatch, tmp_path):
     rep = json.loads(T.base64.b64decode(puts["sonde/rapport.json"]["content"]))
     assert rep["winamax_nhl_ids"] == ["103", "101"]
     assert gzip.decompress(T.base64.b64decode(puts["sonde/winamax_match_103.gz"]["content"])) == b"<html>match</html>"
+
+
+def _phone_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("collecte_fr", "telephone/collecte_fr.py")
+    T = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(T)
+    return T
+
+
+def _fixture(name):
+    import gzip
+    import json
+    return json.loads(gzip.decompress(open(f"tests/fixtures/{name}", "rb").read()))
+
+
+def test_phone_parsers_on_real_winamax_and_betclic_pages():
+    """Lecteurs du téléphone sur des extraits réels (sonde du 03/10/2026)."""
+    from collections import Counter
+    from datetime import datetime, timezone
+    T = _phone_module()
+    wm = _fixture("winamax_match.json.gz")
+    rows = T.parse_winamax_match(wm, "72908910")
+    c = Counter((r["stat"], r["line"]) for r in rows)
+    assert c == {("Buts", 0.5): 36, ("Buts", 1.5): 36, ("Points", 0.5): 36, ("Passes décisives", 0.5): 36}
+    stone = next(r for r in rows if r["player"] == "Mark Stone" and r["stat"] == "Buts" and r["line"] == 0.5)
+    assert stone["odds"] == 2.5 and stone["reg_only"] is True and stone["event"] == "Vegas Golden Knights - Anaheim Ducks"
+    assert all(r["reg_only"] for r in rows)                          # Winamax : hors prolongation
+    assert stone["start"] == "2026-10-03T02:00:00Z"
+    wl = _fixture("winamax_liste.json.gz")
+    up = T.winamax_nhl_upcoming(wl, datetime(2026, 10, 3, 1, 30, tzinfo=timezone.utc))
+    assert up and "72886432" not in up and "72886438" in up          # en cours exclu, à venir gardé
+    assert all(wl["matches"][i]["tournamentId"] == 142 for i in up)
+    bc = _fixture("betclic_match.json.gz")
+    br = T.parse_betclic_match(bc)
+    assert len(br) == 19 and {r["stat"] for r in br} == {"Buts"} and not any(r["reg_only"] for r in br)
+    assert ("Jack Eichel", 2.55) in {(r["player"], r["odds"]) for r in br}
+    html = ('<script id="ng-state" type="application/json">' + __import__("json").dumps(
+        {"grpc:1": {"response": {"payload": {"matches": [
+            {"matchId": "11", "matchDateUtc": "2026-10-03T23:00:00.0000000Z", "isLive": False,
+             "competition": {"name": "NHL"}},
+            {"matchId": "12", "matchDateUtc": "2026-10-03T23:00:00.0000000Z", "isLive": False,
+             "competition": {"name": "AHL"}},
+            {"matchId": "13", "matchDateUtc": "2026-10-03T01:00:00.0000000Z", "isLive": True,
+             "competition": {"name": "NHL"}}]}}}}) + '</script>'
+            '<a href="/hockey-sur-glace-sice_hockey/nhl-c83/a-b-m11">x</a>'
+            '<a href="/hockey-sur-glace-sice_hockey/ahl-c2128/c-d-m12">y</a>'
+            '<a href="/hockey-sur-glace-sice_hockey/nhl-c83/e-f-m13">z</a>')
+    assert T.betclic_nhl_upcoming(html, datetime(2026, 10, 3, 12, 0, tzinfo=timezone.utc)) == \
+        ["/hockey-sur-glace-sice_hockey/nhl-c83/a-b-m11"]
+
+
+def test_regulation_conversion_and_winamax_comparison():
+    import numpy as np
+    from sportpred.live import nhl_scorers as L
+    r = L.reg_ratio(3.0, 3.0)
+    assert 0.96 < r < 0.985                                         # ~2,5 % des buts en prolongation
+    assert L.to_regulation(0.40, r) < 0.40 and np.isclose(L.to_regulation(0.40, 1.0), 0.40)
+    t = pd.Timestamp("2026-10-03T23:00:00Z")
+    names = ["Sidney Crosby", "Evgeni Malkin", "Bryan Rust"]
+    pred = pd.DataFrame({"event": "Pittsburgh Penguins - Montreal Canadiens", "start": t, "name": names,
+                         "player_id": [1, 2, 3], "model_prob": [0.40, 0.30, 0.20], "team": ["PIT", "PIT", "MTL"],
+                         "match": "PIT-MTL", "lam": [3.2, 3.2, 2.8]})
+    pin = pd.DataFrame([{"event": "Pittsburgh Penguins - Montreal Canadiens", "start": t, "league": "NHL",
+                         "is_prop": True, "market": "Player Props: Sidney Crosby Total Goals", "selection": "Over",
+                         "line": 0.5, "fair_prob": 0.42, "pin_margin": 0.07, "market_key": "k1"}])
+    books = pd.DataFrame({"ub_event_id": ["W"] * 3 + ["B"] * 3, "ub_event": "x", "start": t,
+                          "book": ["Winamax"] * 3 + ["Betclic"] * 3, "reg_only": [True] * 3 + [False] * 3,
+                          "stat": "Buts", "line": 0.5, "player": names * 2,
+                          "odds": [2.55, 3.0, 6.0, 2.55, 3.0, 6.0]})
+    c = L.compare_book_props(books, pin, pred).set_index(["book", "player"])
+    ratio = L.reg_ratio(3.2, 2.8)
+    assert np.isclose(c.loc[("Winamax", "Sidney Crosby"), "fair_prob"], L.to_regulation(0.42, ratio))
+    assert np.isclose(c.loc[("Betclic", "Sidney Crosby"), "fair_prob"], 0.42)
+    # même cote 2,55 : +7,1 % chez Betclic (prolongation comprise), moins chez Winamax (60 min)
+    assert c.loc[("Winamax", "Sidney Crosby"), "ev"] < c.loc[("Betclic", "Sidney Crosby"), "ev"]
+    v = L.book_value_bets(c.reset_index())
+    w = v[v["book"] == "Winamax"]
+    assert (w["selection"].str.contains("60 min")).all() and (w["source"].str.contains("Winamax")).all()
+    hist = [{"stat": "Buts", "player": "Sidney Crosby", "player_id": 1, "line": 0.5, "odds": 2.55, "reg_only": True,
+             "start": "2026-10-03T23:00:00+00:00"},
+            {"stat": "Buts", "player": "Sidney Crosby", "player_id": 1, "line": 0.5, "odds": 2.55,
+             "start": "2026-10-03T23:00:00+00:00"}]
+    nhl = pd.DataFrame({"date": pd.Timestamp("2026-10-03"), "player_id": [1], "name": ["Sidney Crosby"],
+                        "goals": [1], "ot_goals": [1], "assists": [0]})
+    L.settle_player_props(hist, nhl, pd.Timestamp("2026-10-04T06:00Z"))
+    assert hist[0]["result"] == "perdu" and hist[1]["result"] == "gagné"   # but en prolongation seulement
+
+
+def test_fr_phone_parse_freshness():
+    from sportpred.live import fr_phone
+    now = pd.Timestamp("2026-10-03T15:00Z")
+    rows = [{"book": "Winamax", "event": "A - B", "start": "2026-10-03T23:00:00Z", "stat": "Buts", "line": 0.5,
+             "player": "X", "odds": 3.1, "reg_only": True},
+            {"book": "Betclic", "event": "C - D", "start": "2026-10-03T14:00:00Z", "stat": "Buts", "line": 0.5,
+             "player": "Y", "odds": 2.0, "reg_only": False}]
+    df, meta = fr_phone.parse({"at": "2026-10-03T13:00:00Z", "rows": rows}, now)
+    assert meta["status"] == "ok" and list(df["player"]) == ["X"]          # match déjà commencé exclu
+    assert df["ub_event_id"].iloc[0].startswith("Winamax|A - B|") and bool(df["reg_only"].iloc[0])
+    old, meta = fr_phone.parse({"at": "2026-10-03T08:00:00Z", "rows": rows}, now)
+    assert old.empty and meta["status"] == "trop ancien"
+
+
+def test_phone_collecte_offline(monkeypatch):
+    """Collecte complète du téléphone avec des pages réelles réduites, sans réseau."""
+    import base64
+    import gzip
+    import json
+    from datetime import datetime, timezone
+    T = _phone_module()
+    wl, wm, bc = _fixture("winamax_liste.json.gz"), _fixture("winamax_match.json.gz"), _fixture("betclic_match.json.gz")
+    wl["matches"]["72908910"] = dict(wm["matches"]["72908910"], status="PREMATCH")
+    bc_list = {"grpc:1": {"response": {"payload": {"matches": [
+        {"matchId": "1231964571975680", "matchDateUtc": "2026-10-03T02:00:00.0000000Z", "isLive": False,
+         "competition": {"name": "NHL"}}]}}}}
+    ng = lambda st: '<script id="ng-state" type="application/json">' + json.dumps(st) + "</script>"  # noqa: E731
+    pages = {
+        "https://www.winamax.fr/paris-sportifs/sports/4": "var PRELOADED_STATE = " + json.dumps(wl) + ";",
+        "https://www.winamax.fr/paris-sportifs/match/72908910": "var PRELOADED_STATE = " + json.dumps(wm) + ";",
+        "https://www.betclic.fr/hockey-sur-glace-s13": '<a href="/hockey-sur-glace-sice_hockey/nhl-c83/x-m1">x</a>',
+        "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83":
+            ng(bc_list) + '<a href="/hockey-sur-glace-sice_hockey/nhl-c83/vegas-anaheim-m1231964571975680">v</a>',
+        "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/vegas-anaheim-m1231964571975680": ng(bc)}
+
+    def fake_get(url, timeout=30):
+        final = "https://m.betclic.fr/hockey-sur-glace-sice_hockey" if url.endswith("hockey-sur-glace-s13") else url
+        return (200, final, pages[url].encode()) if url in pages else (404, url, b"")
+    sent = {}
+
+    def fake_gh(method, path, body=None):
+        if method == "PUT":
+            sent[path.split("/contents/")[1]] = body
+        return (200, {"object": {"sha": "a"}}) if method == "GET" and "/git/ref/" in path else (404 if method == "GET" else 201, {})
+    monkeypatch.setattr(T, "http_get", fake_get)
+    monkeypatch.setattr(T, "gh", fake_gh)
+    monkeypatch.setattr(T.time, "sleep", lambda s: None)
+
+    class FixedDT(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 10, 3, 1, 30, tzinfo=timezone.utc)
+    monkeypatch.setattr(T, "datetime", FixedDT)
+    T.collecte()
+    payload = json.loads(gzip.decompress(base64.b64decode(sent["cotes_fr.json.gz"]["content"])))
+    assert sent["cotes_fr.json.gz"]["branch"] == "cotes-telephone"
+    assert payload["stats"]["winamax"]["cotes"] == 144 and payload["stats"]["betclic"]["cotes"] == 19
+    assert {r["book"] for r in payload["rows"]} == {"Winamax", "Betclic"} and payload["at"] == "2026-10-03T01:30:00Z"
+
+
+def test_compare_with_pinnacle_when_no_prop_matched():
+    """Pinnacle publie des buteurs mais aucun n'est apparié au modèle (colonne prop_name vide) :
+    pas de plantage (cas réel du 03/10/2026, avant l'ouverture des buteurs du soir)."""
+    import numpy as np
+    from sportpred.live import nhl_scorers as L
+    pin = pd.DataFrame([{"event": "A - B", "is_prop": True, "market": "Player Props: X Total Goals",
+                         "line": 0.5, "selection": "Over", "fair_prob": 0.3, "fair_odds": 3.3, "pin_margin": 0.07}])
+    pred = pd.DataFrame({"event": ["C - D"], "prop_name": [np.nan], "team": ["T"], "lam": [3.0], "share": [0.1],
+                         "model_prob": [0.25], "lineup": ["x"]})
+    assert L.compare_with_pinnacle(pin, pred).empty
+
+
+def test_compare_books_mixed_unibet_and_phone_ids():
+    """Unibet (identifiants entiers) et téléphone (identifiants texte) comparés ensemble."""
+    from sportpred.live import nhl_scorers as L
+    t = pd.Timestamp("2026-10-03T23:00:00Z")
+    names = ["Sidney Crosby", "Evgeni Malkin", "Bryan Rust"]
+    pred = pd.DataFrame({"event": "Pittsburgh Penguins - Montreal Canadiens", "start": t, "name": names,
+                         "player_id": [1, 2, 3], "model_prob": [0.40, 0.30, 0.20], "team": ["PIT", "PIT", "MTL"],
+                         "match": "PIT-MTL", "lam": [3.2, 3.2, 2.8]})
+    ub = pd.DataFrame({"ub_event_id": 3383086, "ub_event": "PIT vs MON", "start": t, "stat": "Buts",
+                       "player": names, "line": 0.5, "odds": [2.4, 3.0, 5.0], "book": "Unibet", "reg_only": False})
+    ph = pd.DataFrame({"ub_event_id": "Winamax|PIT - MTL|x", "ub_event": "PIT - MTL", "start": t, "stat": "Buts",
+                       "player": names, "line": 0.5, "odds": [2.5, 3.1, 5.2], "book": "Winamax", "reg_only": True})
+    c = L.compare_book_props(pd.concat([ub, ph], ignore_index=True), pd.DataFrame(), pred)
+    assert set(c["book"]) == {"Unibet", "Winamax"} and len(c) == 6

@@ -315,7 +315,8 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
 
     // buteurs NHL : cote Pinnacle si elle existe, sinon cote du modèle
     var nb = d.nhl_buteurs || {}, nr = nb.rows || [], su = nb.suivi || {};
-    var ubSum = (nb.unibet || {}).compared;
+    var bks = nb.books || {}, ph = bks.phone || {};
+    var ubSum = bks.compared || (ph.status === "ok");
     $("nhl-sec").hidden = !nr.length && !su.n_model && !ubSum;
     if (nr.length || su.n_model || ubSum) {
       var p0 = function (x) { return x == null ? "–" : Math.round(100 * x) + " %"; };
@@ -325,10 +326,13 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
         ", réussite prédite " + p0(su.pred_mean) + ", observée " + p0(su.obs_mean) +
         (su.n_both ? ". Log-loss sur " + su.n_both + " joueurs cotés par Pinnacle (plus bas = mieux) : modèle " + su.ll_model_both + ", Pinnacle " + su.ll_pinnacle + ", mélange " + su.ll_blend : "") + "."
         : "Suivi du modèle : démarre avec les premiers matchs joués.";
-      var ubs = nb.unibet || {};
-      var ubTxt = ubs.compared ? "Unibet comparé automatiquement : " + ubs.compared + " cotes joueurs (buteur, points, passes), " +
-        plural(ubs.value, "pari au-dessus du seuil", "paris au-dessus du seuil") + " (ajouté" + (ubs.value > 1 ? "s" : "") + " à « À jouer maintenant »), écart médian à la cote juste " + pct(ubs.ev_median) + ". "
-        : "Cotes joueurs Unibet : publiées le jour du match, comparées automatiquement dès leur ouverture. ";
+      var byb = bks.by_book || {};
+      var parts = Object.keys(byb).map(function (b) { return b + " " + byb[b].compared + " cotes (" + plural(byb[b].value, "pari", "paris") + ")"; });
+      var phTxt = ph.status === "ok" ? "Winamax et Betclic reçus du téléphone (" + esc(df.format(new Date(ph.at))) + "). "
+        : "Winamax et Betclic : " + (ph.status === "trop ancien" ? "dernière collecte du téléphone trop ancienne. " : "pas de collecte récente du téléphone. ");
+      var ubTxt = bks.compared ? "Bookmakers comparés automatiquement : " + parts.join(", ") + ", écart médian à la cote juste " + pct(bks.ev_median) +
+        ". Paris au-dessus du seuil ajoutés à « À jouer maintenant ». " + phTxt
+        : "Cotes joueurs des bookmakers : publiées le jour du match, comparées automatiquement dès leur ouverture. " + phTxt;
       var evLabel = {}, evOrder = [];
       nr.forEach(function (r) { if (!evLabel[r.event]) { evLabel[r.event] = r.match || r.event; evOrder.push(r.event); } });
       if (state.nhlEv !== "all" && !evLabel[state.nhlEv]) state.nhlEv = "all";
@@ -344,11 +348,14 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
       var capN = state.nhlEv === "all" && !state.q ? 60 : 400, moreN = rowsN.length - capN;
       rowsN = rowsN.slice(0, capN);
       var lastN = null;
-      $("nhl").innerHTML = '<div class="filters">' + chipsN + '</div><div class="tablebox"><table><thead><tr><th>Joueur</th><th class="num">Modèle</th><th class="num hide-sm">Pinnacle</th><th class="num hide-sm">Cote juste</th><th class="num">À prendre si ≥</th><th class="num">Unibet</th></tr></thead><tbody>' +
+      $("nhl").innerHTML = '<div class="filters">' + chipsN + '</div><div class="tablebox"><table><thead><tr><th>Joueur</th><th class="num">Modèle</th><th class="num hide-sm">Pinnacle</th><th class="num hide-sm">Cote juste</th><th class="num">À prendre si ≥</th><th class="num">Bookmakers</th></tr></thead><tbody>' +
         (rowsN.map(function (r) {
           var first = r.event !== lastN; lastN = r.event;
-          var ub = r.unibet == null ? '<span class="muted">–</span>' :
-            '<span class="' + (r.unibet >= r.min_odds ? "hit" : "muted") + '">' + n2(r.unibet) + "</span>";
+          var short = { Unibet: "Uni", Winamax: "Wmx", Betclic: "Btc" };
+          var ub = (r.books || []).length ? (r.books || []).map(function (x) {
+            return '<span class="' + (x.hit ? "hit" : "muted") + '" title="' + esc(x.b + (x.reg ? " (60 min, hors prolongation)" : "")) + '">' +
+              esc(short[x.b] || x.b) + "&nbsp;" + n2(x.o) + "</span>";
+          }).join("<br>") : '<span class="muted">–</span>';
           return (first ? '<tr class="ev-first"><td colspan="6"><b>' + esc(r.event) + '</b> <span class="small muted mono">' + esc(when(r.start)) + "</span></td></tr>" : "") +
             '<tr data-fair="' + Number(r.fair_odds).toFixed(3) + '" data-what="' + esc(r.name + " — Buteur · " + r.event) + '"><td>' + esc(r.name) +
             ' <span class="small muted">' + esc(r.team) + "</span>" + (r.ref === "modèle" ? '<span class="ref">modèle</span>' : "") +

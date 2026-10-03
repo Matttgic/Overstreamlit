@@ -254,6 +254,20 @@ Saison 2026-27 : `regularSeasonStartDate` = 2026-09-29 (selon `/v1/schedule`), f
   (`description`, `price` au format « 3,90 »). Le jour du match : « Nombre de Buts - Joueur - Match (Hors TAB) »
   (issues « Joueur 1+/2+/3+ »), « Nombre de Points », « Nombre de Passes décisives », « Buteurs - Tiers Temps ».
   Helpers : `sportpred/live/unibet.py`. ZEbet redirige vers Unibet.fr.
+- **Winamax.fr et Betclic.fr depuis un téléphone (03/10/2026) ✅** : bloqués depuis tout serveur
+  (Winamax : pare-feu CloudFront « Request blocked » ; Betclic : « Err 0x2005002 » ; aussi .es, .de,
+  .pt, .pl, .ci), accessibles depuis une connexion française. **Winamax** : `/paris-sportifs/sports/4`
+  (hockey) et `/paris-sportifs/match/{id}` contiennent `PRELOADED_STATE` (JSON) : `matches`
+  (tournoi NHL = 142, `status` PREMATCH/LIVE, `matchStart`), `bets` (`betTitle` « Buteur »,
+  « Marque N buts ou plus », « Points du joueur : N ou plus », « Passes décisives du joueur : N ou
+  plus », `betTypeHelp` « Hors prolongations et tirs au but éventuels »), `outcomes` (`label` =
+  joueur, `srPlayerId`), `odds` (cote par issue). **Betclic** : redirige un téléphone vers
+  `m.betclic.fr` ; page NHL `/hockey-sur-glace-sice_hockey/nhl-c83`, pages de match `…-m{id}` ;
+  état Angular `<script id="ng-state">` → clé `grpc:*` → `response.payload` (`matches` sur les
+  listes, `match.subCategories[].markets[]` sur les pages de match : onglet « Le Top » seulement,
+  avec « Buteur » et « Le joueur inscrit 2 buts ou + » ; sélections `name`, `odds`, `status` = 1).
+  L'API `offer.cdn.betclic.fr` ne répond pas (pas de résolution DNS). Lecteurs :
+  `telephone/collecte_fr.py`.
 - **Autres opérateurs FR (03/10/2026)** : Winamax, Betclic, Betsson, ParionsSport → 403 depuis un serveur ;
   NetBet.fr → 200 (non exploré) ; bwin.fr → fermé ; PokerStars.fr → redirigé hors de France.
 - **Betfair Exchange** : `www.betfair.com/www/sports/exchange/readonly/v1/bymarket`, `ero.betfair.com`, `apieds.betfair.com` → **403**.
