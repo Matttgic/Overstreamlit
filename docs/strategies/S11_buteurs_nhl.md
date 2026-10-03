@@ -92,7 +92,7 @@ de 4 h) et le compare comme Unibet.
 | Opérateur | Marchés lus | Prolongation |
 |---|---|---|
 | Winamax (état `PRELOADED_STATE` des pages de match) | buteur, 2 / 3 buts ou +, points 1+/2+/3+, passes 1+/2+/3+ | **non** : « hors prolongations et tirs au but » → cote juste convertie en temps réglementaire |
-| Betclic (état `ng-state`, onglet « Le Top » des pages de match, site mobile) | buteur, « le joueur inscrit 2 buts ou + » | supposée oui (marché sans mention « tps rég. ») — à confirmer dans l'appli |
+| Betclic (état `ng-state`, onglet « Le Top » des pages de match, site mobile) | buteur, « le joueur inscrit 2 buts ou + » | oui (« prolongations incluses », confirmé dans l'appli le 03/10/2026) : cote juste Pinnacle / modèle sans conversion |
 
 Conversion « temps réglementaire » : sur 2018-19 → 2025-26 (9 781 matchs), 67,2 % des
 prolongations se terminent par un but et 2,46 % des buts de joueurs sont marqués en

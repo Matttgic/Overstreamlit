@@ -272,7 +272,7 @@ def parse_betclic_match(state: dict | None) -> list[dict]:
                         rows.append({"book": "Betclic", "event": m.get("name"),
                                      "home": names[0] if names else None, "away": names[1] if len(names) > 1 else None,
                                      "start": start, "stat": stat, "line": k - 0.5, "player": sel.get("name"),
-                                     "odds": od, "reg_only": "tps r" in name.lower()})
+                                     "odds": od, "reg_only": "tps r" in name.lower()})   # buteur : prolongation incluse
                 break
     return rows
 
