@@ -16,11 +16,13 @@ Le modèle est INDICATIF : il n'a pas encore été comparé à Pinnacle sur des 
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import requests
+from scipy.stats import poisson
 
 from ..data import nhl_players
 from ..models import nhl_scorers as M
@@ -39,10 +41,23 @@ def load_model(path: Path = MODEL_FILE) -> tuple[M.ShareParams, float]:
     return p, float(d["so_adj"])
 
 
-def _json(url: str) -> dict:
-    r = requests.get(url, timeout=30)
-    r.raise_for_status()
-    return r.json()
+def _json(url: str, attempts: int = 4) -> dict:
+    """GET JSON avec nouvelles tentatives sur 429 / 5xx (les serveurs GitHub sont partagés et
+    l'API web de la NHL les limite parfois) ; respecte l'en-tête Retry-After (plafonné à 15 s)."""
+    for i in range(attempts):
+        r = requests.get(url, timeout=30)
+        if r.status_code == 429 or r.status_code >= 500:
+            if i == attempts - 1:
+                r.raise_for_status()
+            try:
+                wait = float(r.headers.get("Retry-After", 2 ** (i + 1)))
+            except ValueError:
+                wait = 2 ** (i + 1)
+            time.sleep(min(wait, 15))
+            continue
+        r.raise_for_status()
+        return r.json()
+    raise RuntimeError(url)
 
 
 def schedule(day: pd.Timestamp) -> pd.DataFrame:
@@ -62,11 +77,25 @@ def schedule(day: pd.Timestamp) -> pd.DataFrame:
 
 
 def roster(abbr: str) -> pd.DataFrame:
-    d = _json(f"{WEB}/roster/{abbr}/current")
+    """Effectif actuel (attaquants, défenseurs) ; tableau vide si l'API reste inaccessible."""
+    try:
+        d = _json(f"{WEB}/roster/{abbr}/current")
+    except (requests.RequestException, RuntimeError, ValueError) as e:
+        print(f"effectif {abbr} indisponible ({e}) : composition tirée de l'historique")
+        return pd.DataFrame(columns=["player_id", "name", "pos"])
     rows = [{"player_id": int(x["id"]), "name": f'{x["firstName"]["default"]} {x["lastName"]["default"]}',
              "pos": x.get("positionCode", "C")}
             for grp in ("forwards", "defensemen") for x in d.get(grp, [])]
     return pd.DataFrame(rows)
+
+
+def roster_from_hist(team: str, hist: pd.DataFrame, days: int = 400) -> pd.DataFrame:
+    """Effectif de repli : joueurs dont le dernier match (moins de `days` jours) était avec `team`."""
+    if hist.empty:
+        return pd.DataFrame(columns=["player_id", "name", "pos"])
+    recent = hist[hist["date"] >= hist["date"].max() - pd.Timedelta(days=days)]
+    last = recent.sort_values("date").groupby("player_id").tail(1)
+    return last.loc[last["team"] == team, ["player_id", "name", "pos"]].reset_index(drop=True)
 
 
 def _find(name: str, cands: pd.DataFrame) -> int | None:
@@ -173,7 +202,11 @@ def predict(pin: pd.DataFrame, now: pd.Timestamp, hist: pd.DataFrame | None = No
         event = ev["event"].iloc[0]
         names = goal_props.loc[goal_props["event"] == event, "market"] \
             .str.replace("Player Props: ", "", regex=False).str.replace(" Total Goals", "", regex=False).unique()
-        rosters = {s: roster(g[f"{s}_abbr"]) for s in ("home", "away")}
+        rosters = {}
+        for side in ("home", "away"):
+            ros = roster(g[f"{side}_abbr"])
+            rosters[side] = ros if not ros.empty else roster_from_hist(g[f"{side}_abbr"], hist)
+            time.sleep(0.3)
         both = pd.concat([rosters["home"].assign(side="home"), rosters["away"].assign(side="away")],
                          ignore_index=True)
         ros_names.append(both[["player_id", "name"]])
@@ -228,8 +261,12 @@ def compare_with_pinnacle(pin: pd.DataFrame, pred: pd.DataFrame) -> pd.DataFrame
              & (pin["selection"] == "Over")]
     gp = gp.assign(prop_name=gp["market"].str.replace("Player Props: ", "", regex=False)
                    .str.replace(" Total Goals", "", regex=False))
+    right = pred.dropna(subset=["prop_name"]) if "prop_name" in pred else pred.iloc[0:0]
+    if gp.empty or right.empty:            # aucun buteur Pinnacle apparié (props pas encore publiées)
+        return pd.DataFrame()
+    right = right.assign(prop_name=right["prop_name"].astype(str))
     out = gp[["event", "prop_name", "fair_prob", "fair_odds", "pin_margin"]].merge(
-        pred.dropna(subset=["prop_name"])[["event", "prop_name", "team", "lam", "share", "model_prob", "lineup"]],
+        right[["event", "prop_name", "team", "lam", "share", "model_prob", "lineup"]],
         on=["event", "prop_name"], how="inner")
     out["ecart"] = out["model_prob"] - out["fair_prob"]
     return out.rename(columns={"fair_prob": "pin_prob", "fair_odds": "pin_fair_odds"})
@@ -277,6 +314,29 @@ def evaluate_archive(arch_dir: Path, hist: pd.DataFrame) -> dict:
 # ------------------------------------------------------------- comparaison avec Unibet.fr
 PIN_STATS = {"Total Goals": "Buts", "Total Points": "Points", "Total Assists": "Passes décisives"}
 MODEL_MIN_EV = 0.10        # marge exigée quand la cote juste vient du modèle (pas de Pinnacle)
+# Prolongations NHL (saisons 2018-19 -> 2025-26, 9 781 matchs) : 67,2 % des prolongations se
+# terminent par un but (le reste aux tirs au but) ; 2,46 % des buts de joueurs sont marqués en
+# prolongation. Sert à convertir une cote juste « prolongation comprise » (Pinnacle, modèle)
+# en cote « temps réglementaire » (paris joueurs Winamax).
+P_OT_GOAL = 0.672
+OT_GOAL_SHARE = 0.0246
+
+
+def reg_ratio(lam_home: float, lam_away: float) -> float:
+    """Part des buts attendus d'une équipe marqués dans le temps réglementaire.
+
+    Buts de prolongation attendus d'une équipe = P(égalité après 60 min) × P(but en prolongation)
+    × λ_équipe / (λ_dom + λ_ext) ; le rapport est le même pour les deux équipes."""
+    if not (np.isfinite(lam_home) and np.isfinite(lam_away)) or lam_home + lam_away <= 0:
+        return 1 - OT_GOAL_SHARE
+    ks = np.arange(0, 25)
+    p_tie = float((poisson.pmf(ks, lam_home) * poisson.pmf(ks, lam_away)).sum())
+    return 1 - P_OT_GOAL * p_tie / (lam_home + lam_away)
+
+
+def to_regulation(p_full, ratio):
+    """P(au moins un) prolongation comprise -> temps réglementaire (Poisson : μ_rég = μ × ratio)."""
+    return 1 - (1 - np.asarray(p_full, float)) ** np.asarray(ratio, float)
 
 
 def pinnacle_player_props(pin: pd.DataFrame) -> pd.DataFrame:
@@ -296,17 +356,28 @@ def pinnacle_player_props(pin: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def compare_unibet(ub: pd.DataFrame, pin: pd.DataFrame, pred: pd.DataFrame, cfg_min_ev: float = 0.03,
-                   max_hours: float = 1.5) -> pd.DataFrame:
-    """Chaque cote joueur Unibet face à sa cote juste : Pinnacle s'il cote ce joueur et cette
-    ligne (seuil `cfg_min_ev`), sinon le modèle pour « buteur » (seuil MODEL_MIN_EV).
+def compare_book_props(ub: pd.DataFrame, pin: pd.DataFrame, pred: pd.DataFrame, cfg_min_ev: float = 0.03,
+                       max_hours: float = 1.5) -> pd.DataFrame:
+    """Chaque cote joueur d'un opérateur (Unibet, Winamax, Betclic : colonne `book`) face à sa
+    cote juste : Pinnacle s'il cote ce joueur et cette ligne (seuil `cfg_min_ev`), sinon le
+    modèle pour « buteur » (seuil MODEL_MIN_EV). Pari « hors prolongation » (`reg_only`,
+    Winamax) : cote juste convertie en temps réglementaire (`reg_ratio`).
 
     Appariement des matchs : même heure (± `max_hours`) et le plus de joueurs en commun
-    (noms Unibet ↔ composition du modèle et props Pinnacle). Les noms d'équipe Unibet
-    (« VEG GKnights », « CLB BJackets »…) ne sont pas utilisés.
+    (noms de l'opérateur ↔ composition du modèle et props Pinnacle). Les noms d'équipe des
+    opérateurs (« VEG GKnights », « CLB BJackets »…) ne sont pas utilisés.
     """
     if ub is None or ub.empty:
         return pd.DataFrame()
+    ub = ub.assign(book=ub["book"].fillna("Unibet") if "book" in ub else "Unibet",
+                   reg_only=ub["reg_only"].astype("boolean").fillna(False).astype(bool) if "reg_only" in ub else False,
+                   ub_event_id=ub["ub_event_id"].astype(str))    # Unibet : entiers ; téléphone : texte
+    ratios = {}
+    if pred is not None and not pred.empty and "lam" in pred:
+        for ev, g in pred.groupby("event"):
+            lams = g.drop_duplicates("team")["lam"].tolist()
+            if len(lams) == 2:
+                ratios[ev] = reg_ratio(lams[0], lams[1])
     pp = pinnacle_player_props(pin)
     roster = []
     if pred is not None and not pred.empty:
@@ -320,7 +391,6 @@ def compare_unibet(ub: pd.DataFrame, pin: pd.DataFrame, pred: pd.DataFrame, cfg_
     ro = pd.concat(roster, ignore_index=True)
     ro["k"] = ro["player"].map(norm)
     ro["start"] = pd.to_datetime(ro["start"], utc=True)
-    ub = ub.copy()
     ub["k"] = ub["player"].map(norm)
     out = []
     for ub_id, g in ub.groupby("ub_event_id"):
@@ -347,7 +417,9 @@ def compare_unibet(ub: pd.DataFrame, pin: pd.DataFrame, pred: pd.DataFrame, cfg_
         use_model = x["pin_prob"].isna() & (x["stat"] == "Buts") & (x["line"] == 0.5)
         x["ref"] = np.where(x["pin_prob"].notna(), "Pinnacle", np.where(use_model & x["model_prob"].notna(), "modèle", None))
         x["fair_prob"] = x["pin_prob"].where(x["pin_prob"].notna(), x["model_prob"].where(use_model))
-        x = x[x["fair_prob"].notna()]
+        x = x[x["fair_prob"].notna()].copy()
+        ratio = ratios.get(event, 1 - OT_GOAL_SHARE)
+        x["fair_prob"] = np.where(x["reg_only"], to_regulation(x["fair_prob"], ratio), x["fair_prob"])
         x["ev"] = x["fair_prob"] * x["odds"] - 1
         x["threshold"] = np.where(x["ref"] == "Pinnacle", cfg_min_ev, MODEL_MIN_EV)
         out.append(x)
@@ -357,9 +429,12 @@ def compare_unibet(ub: pd.DataFrame, pin: pd.DataFrame, pred: pd.DataFrame, cfg_
     return res.drop(columns="k").sort_values(["start", "event", "ev"], ascending=[True, True, False])
 
 
-def unibet_value_bets(cmp: pd.DataFrame, max_odds: float = 10.0, min_odds: float = 1.15,
+compare_unibet = compare_book_props
+
+
+def book_value_bets(cmp: pd.DataFrame, max_odds: float = 10.0, min_odds: float = 1.15,
                       max_ev: float = 0.30, max_pin_margin: float = 0.10) -> pd.DataFrame:
-    """Paris joueurs Unibet au-dessus du seuil, au format des « paris à jouer » du tableau.
+    """Paris joueurs des opérateurs au-dessus du seuil, au format des « paris à jouer ».
     Marge Pinnacle tolérée un peu plus haute que pour les matchs (props ≈ 7-9 %)."""
     if cmp is None or cmp.empty:
         return pd.DataFrame()
@@ -370,14 +445,24 @@ def unibet_value_bets(cmp: pd.DataFrame, max_odds: float = 10.0, min_odds: float
     v["pin_margin"] = np.nan                  # déjà contrôlée ici (seuil propre aux props)
     label = {"Buts": "Buteur", "Points": "Points", "Passes décisives": "Passes décisives"}
     v["market"] = [f"{label[s]} — {p}" for s, p in zip(v["stat"], v["player"])]
-    v["selection"] = [f"{p} marque" if (s == "Buts" and l == 0.5) else f"{p} : {int(l + 0.5)}+ {label[s].lower()}"
-                      for p, s, l in zip(v["player"], v["stat"], v["line"])]
+    if "book" not in v:
+        v["book"] = "Unibet"
+    if "reg_only" not in v:
+        v["reg_only"] = False
+    v["selection"] = [(f"{p} marque" if (s == "Buts" and l == 0.5) else f"{p} : {int(l + 0.5)}+ {label[s].lower()}")
+                      + (" (60 min, hors prolongation)" if r else "")
+                      for p, s, l, r in zip(v["player"], v["stat"], v["line"], v["reg_only"])]
     v["fair_odds"] = (1 / v["fair_prob"]).round(3)
     v["pin_selection"] = "Over"
-    v["source"] = np.where(v["ref"] == "Pinnacle", "Pinnacle vs Unibet (joueurs)", "Modèle vs Unibet (buteurs)")
-    v = v.assign(sport="hockey", league="NHL", book="Unibet")
+    v["source"] = [f"Pinnacle vs {b} (joueurs)" if r == "Pinnacle" else f"Modèle vs {b} (buteurs)"
+                   for b, r in zip(v["book"], v["ref"])]
+    v = v.assign(sport="hockey", league="NHL")
     return v[["sport", "league", "start", "event", "market", "selection", "book", "odds", "fair_odds", "fair_prob",
-              "ev", "pin_margin", "market_key", "pin_selection", "source", "player", "stat", "line", "player_id"]]
+              "ev", "pin_margin", "market_key", "pin_selection", "source", "player", "stat", "line", "player_id",
+              "reg_only"]]
+
+
+unibet_value_bets = book_value_bets
 
 
 def settle_player_props(hist: list[dict], nhl: pd.DataFrame, now: pd.Timestamp) -> list[dict]:
@@ -404,7 +489,8 @@ def settle_player_props(hist: list[dict], nhl: pd.DataFrame, now: pd.Timestamp) 
             rows = day[day["k"] == norm(h.get("player", ""))]
         if len(rows) == 1:
             r = rows.iloc[0]
-            val = {"Buts": r["goals"], "Points": r["goals"] + r.get("assists", 0),
+            goals = r["goals"] - (r.get("ot_goals", 0) if h.get("reg_only") else 0)   # Winamax : 60 min
+            val = {"Buts": goals, "Points": goals + r.get("assists", 0),
                    "Passes décisives": r.get("assists", 0)}.get(h["stat"])
             won = float(val) > float(h["line"])
             h["result"] = "gagné" if won else "perdu"
