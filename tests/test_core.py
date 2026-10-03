@@ -552,3 +552,54 @@ def test_nhl_block_compares_unibet_even_if_model_fails(monkeypatch, tmp_path):
     block, vb, nhl_hist = D.nhl_block(pin, tmp_path, pd.Timestamp("2026-10-03T12:00Z"), D.DashConfig())
     assert list(vb["player"]) == ["Sidney Crosby"] and np.isclose(vb["ev"].iloc[0], 0.42 * 2.6 - 1)
     assert block["unibet"]["compared"] == 3 and nhl_hist.empty
+
+
+def test_telephone_sonde_offline(monkeypatch, tmp_path):
+    """Script du téléphone : lecture de l'état Winamax, matchs NHL, dépôt sur la branche dédiée."""
+    import gzip
+    import importlib.util
+    import json
+    spec = importlib.util.spec_from_file_location("collecte_fr", "telephone/collecte_fr.py")
+    T = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(T)
+    state = {"tournaments": {"7": {"tournamentName": "NHL"}, "8": {"tournamentName": "KHL"}},
+             "matches": {"1": {"matchId": 101, "tournamentId": 7, "matchStart": 2},
+                         "2": {"matchId": 102, "tournamentId": 8, "matchStart": 1},
+                         "3": {"matchId": 103, "tournamentId": 7, "matchStart": 1}}}
+    pages = {
+        "https://www.winamax.fr/paris-sportifs/sports/4":
+            "<script>var PRELOADED_STATE = " + json.dumps(state) + ";var X = 1;</script>",
+        "https://www.betclic.fr/hockey-sur-glace-s13":
+            '<a href="/hockey-sur-glace-s13/nhl-c13">NHL</a>',
+        "https://www.betclic.fr/hockey-sur-glace-s13/nhl-c13":
+            '<a href="/hockey-sur-glace-s13/nhl-c13/a-b-m555">A-B</a>'}
+    asked = []
+
+    def fake_get(url, timeout=30):
+        asked.append(url)
+        return 200, url, pages.get(url, "<html>match</html>").encode()
+    calls = []
+
+    def fake_gh(method, path, body=None):
+        calls.append((method, path, body))
+        if method == "GET" and "/git/ref/heads/cotes-telephone" in path:
+            return 404, {}
+        if method == "GET" and "/git/ref/heads/main" in path:
+            return 200, {"object": {"sha": "abc"}}
+        if method == "GET":
+            return 404, {}
+        return 201, {}
+    monkeypatch.setattr(T, "http_get", fake_get)
+    monkeypatch.setattr(T, "gh", fake_gh)
+    monkeypatch.setattr(T.time, "sleep", lambda s: None)
+    T.sonde()
+    assert T.extract_json_after(pages["https://www.winamax.fr/paris-sportifs/sports/4"], "PRELOADED_STATE") == state
+    assert "https://www.winamax.fr/paris-sportifs/match/103" in asked             # NHL, le plus tôt d'abord
+    assert "https://www.winamax.fr/paris-sportifs/match/102" not in asked         # KHL exclu
+    assert "https://www.betclic.fr/hockey-sur-glace-s13/nhl-c13/a-b-m555" in asked
+    assert ("POST", "/repos/Matttgic/Overstreamlit/git/refs") in [(m, p) for m, p, _ in calls]
+    puts = {p.split("/contents/")[1]: b for m, p, b in calls if m == "PUT"}
+    assert all(b["branch"] == "cotes-telephone" for b in puts.values())
+    rep = json.loads(T.base64.b64decode(puts["sonde/rapport.json"]["content"]))
+    assert rep["winamax_nhl_ids"] == ["103", "101"]
+    assert gzip.decompress(T.base64.b64decode(puts["sonde/winamax_match_103.gz"]["content"])) == b"<html>match</html>"
