@@ -41,7 +41,10 @@ Code : `sportpred/live/` (pinnacle, oddsapi, matching, dashboard, notify),
 | 4 | **Telegram** : @BotFather → /newbot → jeton ; écrire au bot ; lire le chat id sur `https://api.telegram.org/bot<JETON>/getUpdates` ; secrets `TELEGRAM_BOT_TOKEN` et `TELEGRAM_CHAT_ID` | Telegram + GitHub | Optionnel |
 | 5 | Lancer une première fois : Actions → « Tableau de bord » → Run workflow | GitHub | Oui |
 
-Ensuite tout tourne seul : 9 mises à jour par jour (05:07 → 21:07 UTC).
+Ensuite tout tourne seul : 9 mises à jour programmées par jour (05:07 → 21:07 UTC), plus 5
+déclenchées par le téléphone juste après ses collectes Winamax/Betclic (12 h, 16 h, 18 h, 22 h et
+minuit, heure de Paris ; 18 h et minuit : une heure avant les matchs NHL de 19 h et de 1 h). GitHub retarde ou saute souvent les passages programmés (2 sur 9 le
+03/10/2026) : ceux du téléphone (`repository_dispatch`, type `cotes-telephone`) partent tout de suite.
 
 ## 3. La routine quotidienne (2 minutes)
 
@@ -65,9 +68,10 @@ Ensuite tout tourne seul : 9 mises à jour par jour (05:07 → 21:07 UTC).
 ## 4. Gestion du quota The Odds API
 
 Réglage actuel (abonnement de **20 000 crédits/mois**) : relevé des cotes françaises à
-chaque mise à jour (9 par jour), jusqu'à 25 sports, vainqueur/1N2 **et totaux** (2 crédits
-par sport) : au plus 450 crédits par jour, soit ~14 000 par mois, avec arrêt automatique
-sous 2 000 crédits restants (`ODDS_API_RESERVE`). Les crédits restants s'affichent en bas
+chaque mise à jour (jusqu'à 14 par jour : 9 programmées + 5 du téléphone ; en pratique 7 à 9,
+GitHub sautant beaucoup de passages programmés), jusqu'à 25 sports, vainqueur/1N2 **et totaux**
+(2 crédits par sport, seulement les sports avec des matchs dans les 36 h) : au plus 50 crédits
+par passage, avec arrêt automatique sous 2 000 crédits restants (`ODDS_API_RESERVE`). Les crédits restants s'affichent en bas
 du tableau de bord.
 
 Pour l'offre gratuite (500 crédits/mois), remettre dans le workflow :
@@ -89,6 +93,7 @@ Pour l'offre gratuite (500 crédits/mois), remettre dans le workflow :
 |---|---|
 | Mauvais match apparié (le bug « Salernitana » de l'ancien système) | Heures de début à ± 3 h, similarité ≥ 0,8 sur les deux équipes, abstention si deux candidats sont proches ; tests unitaires |
 | Erreur de cote (EV énorme) | EV plafonnée à 30 % : au-delà, le pari est ignoré |
+| Mauvais marché lu sur une page d'opérateur (03/10/2026 : « Buteur » Betclic avant-match lu avec plusieurs onglets, Tage Thompson à 8,00 et 50,00 contre 2,25 chez Winamax) | Cotes de l'opérateur écartées pour le match si un joueur a deux cotes sur la même ligne, ou si l'écart médian à la cote juste dépasse +5 % (un vrai marché est à −10/−20 %) ; nombre de matchs écartés affiché sur le site ; test unitaire |
 | Marchés différents sous le même nom (hockey, handball : 1N2 temps réglementaire chez Betclic/Winamax/Unibet/PMU, vainqueur à 2 issues chez Pinnacle) | Comparaison seulement si les deux marchés ont les mêmes issues (avec ou sans « Nul ») ; test unitaire. Bug vu au premier passage (02/10/2026 : 15 faux value bets NHL/handball à +4 à +27 %), corrigé et retiré du suivi |
 | Référence Pinnacle peu fiable | Marchés dont la marge Pinnacle dépasse 8 % exclus |
 | Marchés non autorisés en France | Cartons, corners, ITF, Challengers, WTA 125 exclus ; compétitions suivies alignées sur la liste ANJ |
@@ -107,7 +112,7 @@ Pour l'offre gratuite (500 crédits/mois), remettre dans le workflow :
 | 3c | **Modèle buteurs NHL ancré sur le marché** : buts attendus de l'équipe tirés des cotes Pinnacle, seule la répartition entre joueurs est modélisée (temps de jeu, supériorité numérique, tirs, réussite). Calibré sur 8 saisons hors échantillon ; section « Buteurs NHL » du site avec une cote juste pour tous les joueurs ; prédictions archivées et comparées à Pinnacle au fil des matchs ([S11](strategies/S11_buteurs_nhl.md)) | ✅ fait (indicatif) |
 | 3d | **Cotes joueurs Unibet.fr comparées automatiquement** (buteur, points, passes NHL) : lues sur le site d'Unibet, comparées à Pinnacle (+3 %) ou au modèle (+10 %), paris au-dessus du seuil ajoutés à « À jouer maintenant », réglés avec les feuilles de match NHL ([S11](strategies/S11_buteurs_nhl.md)) | ✅ fait |
 | 3e | Composition officielle (DailyFaceoff / feuille de match) et gardien partant dans le modèle buteurs ; décision sur la marge exigée après ~1 500 joueurs comparés à Pinnacle | à faire |
-| 4 | **Cotes Winamax et Betclic** : ces deux sites bloquent tous les serveurs (GitHub, cloud ; testé depuis GitHub Actions le 03/10/2026), y compris leurs versions étrangères, et aucune API gratuite ne fournit leurs cotes joueurs (The Odds API : bookmakers US ; OddsPapi : rien reçu ; odds-api.io : payant). Solution : le **téléphone Android** (Termux) lit leurs cotes joueurs NHL 4 fois par jour depuis la connexion de l'utilisateur et les dépose sur la branche `cotes-telephone` ; le tableau les compare comme Unibet (Winamax : cote juste convertie en temps réglementaire). `telephone/`, [S11](strategies/S11_buteurs_nhl.md) | ✅ fait (collecte à activer sur le téléphone) |
+| 4 | **Cotes Winamax et Betclic** : ces deux sites bloquent tous les serveurs (GitHub, cloud ; testé depuis GitHub Actions le 03/10/2026), y compris leurs versions étrangères, et aucune API gratuite ne fournit leurs cotes joueurs (The Odds API : bookmakers US ; OddsPapi : rien reçu ; odds-api.io : payant). Solution : le **téléphone Android** (Termux) lit leurs cotes joueurs NHL 5 fois par jour (dont 18 h et minuit, une heure avant les matchs) depuis la connexion de l'utilisateur et les dépose sur la branche `cotes-telephone` ; le tableau les compare comme Unibet (Winamax : cote juste convertie en temps réglementaire). `telephone/`, [S11](strategies/S11_buteurs_nhl.md) | ✅ fait (collecte à activer sur le téléphone) |
 | 5 | Alertes de cotes boostées (S09) : comparer chaque boost à la cote juste | à étudier |
 
 ## 7. Ce qu'il ne faut pas attendre

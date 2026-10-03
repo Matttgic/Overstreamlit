@@ -85,14 +85,14 @@ buteurs est d'environ 20 %.
 Winamax et Betclic bloquent tous les serveurs (GitHub compris, versions étrangères comprises)
 et aucune API gratuite ne fournit leurs cotes joueurs. Le **téléphone Android** de
 l'utilisateur (Termux, `telephone/collecte_fr.py`, mode d'emploi `telephone/README.md`) lit
-leurs pages 4 fois par jour depuis sa connexion et dépose `cotes_fr.json.gz` sur la branche
+leurs pages 5 fois par jour (12 h, 16 h, 18 h, 22 h, minuit : une heure avant les matchs de 19 h et de 1 h) depuis sa connexion et dépose `cotes_fr.json.gz` sur la branche
 `cotes-telephone` ; le tableau de bord le relit (`sportpred/live/fr_phone.py`, données de moins
 de 4 h) et le compare comme Unibet.
 
 | Opérateur | Marchés lus | Prolongation |
 |---|---|---|
 | Winamax (état `PRELOADED_STATE` des pages de match) | buteur, 2 / 3 buts ou +, points 1+/2+/3+, passes 1+/2+/3+ | **non** : « hors prolongations et tirs au but » → cote juste convertie en temps réglementaire |
-| Betclic (état `ng-state`, onglet « Le Top » des pages de match, site mobile) | buteur, « le joueur inscrit 2 buts ou + » | supposée oui (marché sans mention « tps rég. ») — à confirmer dans l'appli |
+| Betclic (état `ng-state`, onglet « Le Top » des pages de match, site mobile ; ⚠️ avant-match à corriger, écarté en attendant) | buteur, « le joueur inscrit 2 buts ou + » | oui (« prolongations incluses », confirmé dans l'appli le 03/10/2026) : cote juste Pinnacle / modèle sans conversion |
 
 Conversion « temps réglementaire » : sur 2018-19 → 2025-26 (9 781 matchs), 67,2 % des
 prolongations se terminent par un but et 2,46 % des buts de joueurs sont marqués en
@@ -100,6 +100,15 @@ prolongation. Pour chaque match : ratio = 1 − 0,672 × P(égalité après 60 m
 puis P(marque en 60 min) = 1 − (1 − P(marque, prolongation comprise))^ratio (≈ −2,5 % de
 probabilité). Les paris Winamax sont réglés sur les buts hors prolongation (`ot_goals` de
 l'API NHL).
+
+Garde-fous (03/10/2026) : sur les matchs pas encore commencés, la lecture Betclic du marché
+« Buteur » a mélangé plusieurs onglets (Tage Thompson à 8,00 et 50,00, contre 2,25 chez Winamax ;
+écart médian affiché +970 %). Les cotes d'un opérateur sont maintenant **écartées pour tout le
+match** si un même joueur a deux cotes différentes sur la même ligne, ou si l'écart médian à la
+cote juste dépasse +5 % (`drop_mixed_markets`, `drop_implausible`) ; le site indique le nombre de
+matchs écartés. Lecture Betclic avant-match à corriger avec une nouvelle sonde (pages de matchs pas
+encore commencés). La liste des matchs Betclic est complétée par des adresses construites depuis
+le nom du match (5 matchs trouvés sur 13 le 03/10/2026 : la page n'a pas de lien pour tous).
 
 Sonde du 03/10/2026 : Vegas-Anaheim chez Winamax, 324 cotes joueurs (36 joueurs × 9 marchés) ;
 chez Betclic, 19 à 29 buteurs par match. Berggren (Dallas-St. Louis), cote juste modèle 7,28

@@ -25,6 +25,7 @@ import json
 import re
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -215,19 +216,39 @@ def _betclic_matches(o, out: list) -> list:
     return out
 
 
+def _slug(name: str) -> str:
+    """« Dallas Stars - St. Louis Blues » -> « dallas-stars-st-louis-blues » (adresses Betclic)."""
+    txt = unicodedata.normalize("NFKD", str(name)).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", txt).strip("-")
+
+
+BC_NHL = "/hockey-sur-glace-sice_hockey/nhl-c83"
+
+
 def betclic_nhl_upcoming(html: str, now: datetime, horizon_h: float = HORIZON_H) -> list[str]:
-    """Chemins des pages de match NHL pas encore commencés (page hockey ou page NHL)."""
-    ids = set()
-    for m in _betclic_matches(betclic_state(html) or {}, []):
+    """Chemins des pages de match NHL pas encore commencés (page hockey et/ou page NHL, à la
+    suite). La page n'a pas de lien pour tous les matchs de son état : adresse construite
+    depuis le nom du match dans ce cas (même règle que les liens réels)."""
+    found = {}
+    for st in re.findall(r'<script id="ng-state" type="application/json">(.*?)</script>', html, re.S):
         try:
-            t = _betclic_date(m["matchDateUtc"])
-        except (KeyError, ValueError):
+            state = json.loads(st)
+        except ValueError:
             continue
-        if (str((m.get("competition") or {}).get("name")) == "NHL" and not m.get("isLive")
-                and now < t < now + timedelta(hours=horizon_h)):
-            ids.add(str(m["matchId"]))
-    links = re.findall(r'href="(/[a-z0-9_\-]+/nhl-c\d+/[a-z0-9\-]+-m(\d+))"', html, re.I)
-    return list(dict.fromkeys(path for path, mid in links if mid in ids))
+        for m in _betclic_matches(state, []):
+            try:
+                t = _betclic_date(m["matchDateUtc"])
+            except (KeyError, ValueError):
+                continue
+            if (str((m.get("competition") or {}).get("name")) == "NHL" and not m.get("isLive")
+                    and now < t < now + timedelta(hours=horizon_h)):
+                found.setdefault(str(m["matchId"]), (t, m.get("name")))
+    links = dict((mid, path) for path, mid in
+                 re.findall(r'href="(/[a-z0-9_\-]+/nhl-c\d+/[a-z0-9\-]+-m(\d+))"', html, re.I)[::-1])
+    comp = re.search(r'href="(/[a-z0-9_\-]+/nhl-c\d+)/', html, re.I)
+    order = sorted(found, key=lambda k: found[k][0])
+    return [links.get(mid) or f"{comp.group(1) if comp else BC_NHL}/{_slug(found[mid][1])}-m{mid}"
+            for mid in order if links.get(mid) or found[mid][1]]
 
 
 def _selections(o, out: list) -> list:
@@ -272,7 +293,7 @@ def parse_betclic_match(state: dict | None) -> list[dict]:
                         rows.append({"book": "Betclic", "event": m.get("name"),
                                      "home": names[0] if names else None, "away": names[1] if len(names) > 1 else None,
                                      "start": start, "stat": stat, "line": k - 0.5, "player": sel.get("name"),
-                                     "odds": od, "reg_only": "tps r" in name.lower()})
+                                     "odds": od, "reg_only": "tps r" in name.lower()})   # buteur : prolongation incluse
                 break
     return rows
 
@@ -308,9 +329,9 @@ def collecte(horizon_h: float = HORIZON_H, pause: float = 1.0) -> None:
     base = re.match(r"https?://[^/]+", final or BETCLIC).group(0)        # m.betclic.fr sur téléphone
     comp = re.search(r'href="(/[a-z0-9_\-]+/nhl-c\d+)/', html, re.I)
     time.sleep(pause)                    # page NHL : tous les matchs à venir, pas seulement ceux du jour
-    st2, _, data2 = http_get(base + (comp.group(1) if comp else "/hockey-sur-glace-sice_hockey/nhl-c83"))
+    st2, _, data2 = http_get(base + (comp.group(1) if comp else BC_NHL))
     html2 = data2.decode("utf-8", "ignore") if st2 == 200 else ""
-    paths = list(dict.fromkeys(betclic_nhl_upcoming(html2, now, horizon_h) + betclic_nhl_upcoming(html, now, horizon_h)))
+    paths = betclic_nhl_upcoming(html2 + html, now, horizon_h)
     if st != 200 and st2 != 200:
         errors.append(f"betclic liste : {st}/{st2}")
     n = 0
@@ -329,8 +350,18 @@ def collecte(horizon_h: float = HORIZON_H, pause: float = 1.0) -> None:
     code = put_file("cotes_fr.json.gz", gzip.compress(json.dumps(payload, ensure_ascii=False).encode()),
                     f"Cotes téléphone {_iso(now)} : {len(rows)} cotes")
     print("Envoyé sur GitHub." if code in (200, 201) else "Échec de l'envoi sur GitHub.")
+    if code in (200, 201):
+        relance_site()
     for e in errors:
         print("  !", e)
+
+
+def relance_site() -> None:
+    """Demande à GitHub de mettre le site à jour tout de suite (les mises à jour programmées
+    de GitHub sont souvent retardées ou sautées). Même jeton : droit « Contents : Read and write »."""
+    st, out = gh("POST", f"/repos/{REPO}/dispatches", {"event_type": "cotes-telephone"})
+    print("Mise à jour du site demandée." if st == 204
+          else f"  ! mise à jour du site non demandée ({st}) : {out.get('message')}")
 
 
 # ----------------------------------------------------------------------------- sonde
@@ -379,12 +410,16 @@ def sonde(max_matches: int = 3) -> None:
     print("Betclic :")
     page = grab("betclic_hockey", f"{BETCLIC}/hockey-sur-glace-s13").decode("utf-8", "ignore")
     base = re.match(r"https?://[^/]+", last_final[0] or BETCLIC).group(0)   # m.betclic.fr sur téléphone
-    links = list(dict.fromkeys(re.findall(r'href="(/[a-z0-9_\-]+/nhl-c\d+/[a-z0-9\-]+-m\d+)"', page, re.I)))
-    report["betclic_links"] = links[:20]
-    for k, path in enumerate(links[:max_matches]):
-        grab(f"betclic_match_{k}", base + path)
-    grab("betclic_api_events", "https://offer.cdn.betclic.fr/api/pub/v4/events?application=2&countrycode=fr"
-                               "&language=fr&sitecode=frfr&sportIds=13&limit=50")
+    comp = re.search(r'href="(/[a-z0-9_\-]+/nhl-c\d+)/', page, re.I)
+    nhl = grab("betclic_nhl", base + (comp.group(1) if comp else BC_NHL))
+    nhl = nhl.decode("utf-8", "ignore")
+    now = datetime.now(timezone.utc)
+    avant = betclic_nhl_upcoming(nhl + page, now, 48)                                 # pas commencés
+    links = list(dict.fromkeys(re.findall(r'href="(/[a-z0-9_\-]+/nhl-c\d+/[a-z0-9\-]+-m\d+)"', nhl + page, re.I)))
+    report["betclic_links"] = links[:30]
+    report["betclic_avant_match"] = avant[:30]
+    for k, path in enumerate(avant[:max_matches]):
+        grab(f"betclic_avant_match_{k}", base + path)
 
     print("Envoi sur GitHub (branche cotes-telephone) :")
     files["sonde/rapport.json"] = json.dumps(report, indent=1, ensure_ascii=False).encode()

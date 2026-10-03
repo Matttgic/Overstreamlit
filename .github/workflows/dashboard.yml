@@ -2,8 +2,10 @@ name: Tableau de bord - quoi parier aujourd'hui
 
 on:
   schedule:
-    - cron: '7 5-21/2 * * *'     # toutes les 2 h de 05:07 à 21:07 UTC
+    - cron: '7 5-21/2 * * *'     # toutes les 2 h de 05:07 à 21:07 UTC (GitHub en saute souvent)
   workflow_dispatch:
+  repository_dispatch:           # demandé par le téléphone après chaque collecte Winamax/Betclic
+    types: [cotes-telephone]
 
 permissions:
   contents: write

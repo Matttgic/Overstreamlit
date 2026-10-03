@@ -371,10 +371,17 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
         print("téléphone (Winamax, Betclic) :", phone_meta.get("status"), phone_meta.get("at"), len(ph), "cotes")
     except Exception as e:  # noqa: BLE001
         print("cotes du téléphone illisibles :", e)
-    b_cmp, b_vb = pd.DataFrame(), pd.DataFrame()
+    b_cmp, b_vb, mixed = pd.DataFrame(), pd.DataFrame(), {}
     try:
         allb = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+        allb, mixed = nhl_mod.drop_mixed_markets(allb)      # marchés mélangés à la lecture -> écartés
+        for bk, n in mixed.items():
+            print(f"{bk} : cotes joueurs écartées sur {n} match(s) (même joueur, deux cotes sur la même ligne)")
         b_cmp = nhl_mod.compare_book_props(allb, pin, pred, cfg.min_ev)
+        b_cmp, odd = nhl_mod.drop_implausible(b_cmp)          # cotes au-dessus de la cote juste en médiane
+        for bk, n in odd.items():
+            print(f"{bk} : cotes joueurs écartées sur {n} match(s) (écart médian à la cote juste > +5 %)")
+            mixed[bk] = mixed.get(bk, 0) + n
         b_vb = nhl_mod.book_value_bets(b_cmp, cfg.max_odds, cfg.min_odds, cfg.max_ev, cfg.max_pin_margin + 0.02)
         for bk, g in (b_cmp.groupby("book") if not b_cmp.empty else []):
             print(f"{bk} joueurs NHL : {len(g)} cotes comparées, {int((g['ev'] >= g['threshold']).sum())} au-dessus du seuil")
@@ -404,7 +411,8 @@ def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
         return {"compared": int(len(c)), "value": int((c["ev"] >= c["threshold"]).sum()) if not c.empty else 0,
                 "ev_median": round(float(c["ev"].median()), 4) if not c.empty else None}
     books_summary = {**summ(b_cmp), "by_book": {bk: summ(g) for bk, g in b_cmp.groupby("book")} if not b_cmp.empty
-                     else {}, "phone": {k: phone_meta.get(k) for k in ("status", "at", "stats")}}
+                     else {}, "phone": {k: phone_meta.get(k) for k in ("status", "at", "stats")},
+                     "rejected": {bk: int(n) for bk, n in mixed.items()}}
     if pred.empty:
         return {"rows": [], "suivi": suivi, "model_min_ev": NHL_MODEL_MIN_EV, "books": books_summary}, b_vb, hist
     has_pin = pred["pin_prob"].notna()

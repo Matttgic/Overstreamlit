@@ -7,9 +7,9 @@ maintenant » et alerte Telegram.
 
 Deux étapes :
 
-1. **Sonde** (fait le 03/10/2026) : le téléphone a envoyé des pages NHL de Winamax et Betclic
-   pour régler la lecture des cotes.
-2. **Collecte automatique** (section 6) : 4 fois par jour, le téléphone lit les cotes joueurs
+1. **Sonde** (faite le 03/10/2026, à refaire quand Claude le demande : `python collecte_fr.py sonde`) :
+   le téléphone envoie des pages NHL brutes de Winamax et Betclic pour régler la lecture des cotes.
+2. **Collecte automatique** (section 6) : 5 fois par jour, le téléphone lit les cotes joueurs
    NHL (buteur, 2 buts ou +, points, passes) et envoie un petit fichier compressé.
 
 Durée : ~15 minutes. Coût : 0 €.
@@ -80,7 +80,7 @@ Dites ensuite à Claude « sonde faite », en recopiant les lignes affichées (e
 contiennent pas le jeton). Si une page affiche `403`, signalez-le aussi : cela voudra dire
 que le site bloque aussi le téléphone pour cette adresse.
 
-## 6. Collecte automatique (4 fois par jour)
+## 6. Collecte automatique (5 fois par jour)
 
 Mettre d'abord le script à jour (même commande qu'à l'étape 2), puis le tester à la main :
 
@@ -99,7 +99,10 @@ Envoyé sur GitHub.
 (Le matin, « 0 avec cotes joueurs » est normal : les bookmakers ouvrent les buteurs le jour
 du match, en général à partir de midi.)
 
-Ensuite, programmer la collecte à 12 h, 16 h, 19 h et 22 h. Copier-coller, une ligne à la fois :
+Ensuite, programmer la collecte à 12 h, 16 h, **18 h**, 22 h et **minuit** (heure du téléphone). 18 h et
+minuit tombent une heure avant les matchs : 19 h pour les matchs d'après-midi du week-end, 1 h du
+matin pour la plupart des soirs ; ce sont les cotes les plus utiles (buteurs ouverts chez tous les
+bookmakers et chez Pinnacle). Copier-coller, une ligne à la fois :
 
 ```
 pkg install -y cronie termux-services
@@ -112,8 +115,12 @@ sv-enable crond
 ```
 
 ```
-(crontab -l 2>/dev/null; echo "5 12,16,19,22 * * * cd ~ && python collecte_fr.py >> ~/collecte.log 2>&1") | crontab -
+echo '0 0,12,16,18,22 * * * cd ~ && (curl -fsSL -o collecte_fr.py.new https://raw.githubusercontent.com/Matttgic/Overstreamlit/main/telephone/collecte_fr.py && mv collecte_fr.py.new collecte_fr.py; python collecte_fr.py) >> ~/collecte.log 2>&1' | crontab -
 ```
+
+(Cette ligne remplace toute la programmation existante. Avant chaque collecte, le téléphone
+récupère la dernière version du script : plus rien à mettre à jour à la main. Si le
+téléchargement échoue, l'ancienne version est gardée.)
 
 ```
 termux-wake-lock
@@ -123,11 +130,16 @@ Enfin, dans les **réglages Android** : Applications → Termux → Batterie →
 (sinon Android endort Termux et la collecte ne part pas). Laisser Termux ouvert en arrière-plan
 (la notification « Termux » doit rester affichée).
 
+Après chaque envoi, le téléphone **demande à GitHub de mettre le site à jour tout de suite**
+(« Mise à jour du site demandée. ») : les mises à jour programmées de GitHub sont souvent
+retardées ou sautées (2 sur 9 le 03/10/2026). Le site est donc à jour quelques minutes après
+12 h, 16 h, 18 h, 22 h et minuit. Même jeton, rien à régler.
+
 Vérifier que tout marche (le lendemain) : `tail -20 ~/collecte.log` affiche les dernières
 collectes ; le site indique aussi « Winamax et Betclic reçus du téléphone (heure) » dans la
 section Buteurs NHL.
 
-Consommation : les pages sont demandées compressées, environ 2 Mo par collecte (≈ 8 Mo par
+Consommation : les pages sont demandées compressées, environ 2 Mo par collecte (≈ 10 Mo par
 jour, surtout en wifi à la maison).
 
 Arrêter : `crontab -r` (supprime la programmation). Le jeton peut être supprimé à tout moment
@@ -141,5 +153,7 @@ sur https://github.com/settings/personal-access-tokens.
 | `Accès au dépôt refusé (401 ou 403)` | Jeton mal copié ou sans *Contents : Read and write* → refaire les étapes 3 et 4. |
 | `command not found: python` | Refaire `pkg install -y python`. |
 | Codes `0` partout | Pas de connexion internet sur le téléphone. |
+| `mise à jour du site non demandée (403)` | Jeton sans *Contents : Read and write* → refaire les étapes 3 et 4 (la collecte, elle, est bien envoyée). |
+| `mise à jour du site non demandée (404/422)` | La mise à jour sera faite au prochain passage programmé de GitHub ; prévenir Claude. |
 | `crontab: command not found` | Refaire `pkg install -y cronie termux-services`, fermer et rouvrir Termux. |
 | Pas de nouvelle ligne dans `collecte.log` | Termux endormi : batterie « Non restreinte » + `termux-wake-lock`. |
