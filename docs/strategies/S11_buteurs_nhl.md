@@ -85,7 +85,7 @@ buteurs est d'environ 20 %.
 Winamax et Betclic bloquent tous les serveurs (GitHub compris, versions étrangères comprises)
 et aucune API gratuite ne fournit leurs cotes joueurs. Le **téléphone Android** de
 l'utilisateur (Termux, `telephone/collecte_fr.py`, mode d'emploi `telephone/README.md`) lit
-leurs pages 4 fois par jour depuis sa connexion et dépose `cotes_fr.json.gz` sur la branche
+leurs pages 5 fois par jour (12 h, 16 h, 18 h, 22 h, minuit : une heure avant les matchs de 19 h et de 1 h) depuis sa connexion et dépose `cotes_fr.json.gz` sur la branche
 `cotes-telephone` ; le tableau de bord le relit (`sportpred/live/fr_phone.py`, données de moins
 de 4 h) et le compare comme Unibet.
 
