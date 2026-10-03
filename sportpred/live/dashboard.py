@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 from ..betting.kelly import kelly_fraction
+from . import nhl_scorers as nhl_mod
 from . import oddsapi, pinnacle
 from . import results as results_mod
 from . import scanner as fd_scanner
@@ -317,6 +318,53 @@ def archive_odds(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp) -> None:
     a.to_csv(f, mode="a", header=not f.exists(), index=False, compression="gzip")
 
 
+NHL_MODEL_MIN_EV = 0.10      # marge exigée quand seule la cote du modèle sert de référence
+
+
+def nhl_block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp, cfg: DashConfig) -> dict:
+    """Buteurs NHL : tous les joueurs des matchs du jour, cote juste Pinnacle si elle existe,
+    sinon cote du modèle (marge exigée plus large) ; archive et bilan modèle vs Pinnacle."""
+    if pin.empty or "league" not in pin or not (pin["league"] == "NHL").any():
+        return {}
+    try:
+        hist = nhl_mod.load_hist(now)
+        pred = nhl_mod.predict(pin, now, hist=hist)
+    except Exception as e:  # noqa: BLE001 — l'API NHL ne doit pas bloquer le tableau
+        print("modèle buteurs NHL indisponible :", e)
+        return {}
+    arch = out_dir / "archive"
+    suivi = {}
+    if not pred.empty:
+        cmp = nhl_mod.compare_with_pinnacle(pin, pred)
+        pred = pred.merge(cmp[["event", "prop_name", "pin_prob"]].drop_duplicates(["event", "prop_name"]),
+                          on=["event", "prop_name"], how="left") if not cmp.empty else pred.assign(pin_prob=np.nan)
+        a = pred[["event", "start", "game_id", "team", "player_id", "name", "lam", "share", "model_prob",
+                  "pin_prob"]].copy()
+        a.insert(0, "captured_at", now.strftime("%Y-%m-%dT%H:%MZ"))
+        a[["lam", "share", "model_prob", "pin_prob"]] = a[["lam", "share", "model_prob", "pin_prob"]].round(4)
+        arch.mkdir(parents=True, exist_ok=True)
+        f = arch / f"nhl_buteurs_{now.strftime('%Y-%m-%d')}.csv.gz"
+        a.to_csv(f, mode="a", header=not f.exists(), index=False, compression="gzip")
+    try:
+        suivi = nhl_mod.evaluate_archive(arch, hist)
+    except Exception as e:  # noqa: BLE001
+        print("bilan buteurs NHL impossible :", e)
+    if pred.empty:
+        return {"rows": [], "suivi": suivi, "model_min_ev": NHL_MODEL_MIN_EV}
+    has_pin = pred["pin_prob"].notna()
+    r = pred[(pred["model_prob"] >= 1 / cfg.max_odds) | has_pin].copy()
+    has_pin = r["pin_prob"].notna()
+    r["fair_odds"] = np.where(has_pin, 1 / r["pin_prob"], 1 / r["model_prob"]).round(2)
+    r["min_odds"] = (r["fair_odds"] * np.where(has_pin, 1 + cfg.min_ev, 1 + NHL_MODEL_MIN_EV)).round(2)
+    r["ref"] = np.where(has_pin, "Pinnacle", "modèle")
+    r["start"] = pd.to_datetime(r["start"], utc=True).dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    cols = ["event", "match", "start", "team", "name", "model_prob", "pin_prob", "fair_odds", "min_odds", "ref", "lineup"]
+    r = r.sort_values(["start", "event", "model_prob"], ascending=[True, True, False])[cols]
+    r[["model_prob", "pin_prob"]] = r[["model_prob", "pin_prob"]].round(4)
+    return {"rows": r.replace({np.nan: None}).to_dict("records"), "suivi": suivi,
+            "model_min_ev": NHL_MODEL_MIN_EV}
+
+
 def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None = None) -> dict:
     cfg = cfg or DashConfig()
     now = now or pd.Timestamp.now(tz="UTC")
@@ -341,6 +389,7 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
         vb = vb.sort_values("start")
     wl = watchlist(pin, cfg)
     pr = watchlist(pin, cfg, props=True)
+    nhl = nhl_block(pin, out_dir, now, cfg)
 
     hist_path = out_dir / "history.json"
     hist = json.loads(hist_path.read_text()) if hist_path.exists() else []
@@ -375,6 +424,7 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
                               "fair_odds", "min_odds", "pin_odds"]),
         "props": rec(pr, ["sport", "league", "start", "event", "market_label", "selection_label",
                           "fair_odds", "min_odds", "pin_odds"]),
+        "nhl_buteurs": nhl,
         "tracking": {"n_picks": len(hist), "n_closed": len(clvs), "n_with_clv": len(clv_any),
                      "n_settled": len(settled), "profit_units": round(sum(settled), 2) if settled else None,
                      "roi_flat": round(sum(settled) / len(settled), 4) if settled else None,
