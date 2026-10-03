@@ -1,40 +1,61 @@
 {
- "at": "2026-10-03T01:58Z",
+ "at": "2026-10-03T02:03Z",
  "pages": [
   {
    "name": "winamax_hockey",
    "url": "https://www.winamax.fr/paris-sportifs/sports/4",
    "final_url": "https://www.winamax.fr/paris-sportifs/sports/4",
    "status": 200,
-   "bytes": 452143
+   "bytes": 447837
   },
   {
    "name": "winamax_match_72886432",
    "url": "https://www.winamax.fr/paris-sportifs/match/72886432",
    "final_url": "https://www.winamax.fr/paris-sportifs/match/72886432",
    "status": 200,
-   "bytes": 294991
+   "bytes": 294803
   },
   {
    "name": "winamax_match_72886436",
    "url": "https://www.winamax.fr/paris-sportifs/match/72886436",
    "final_url": "https://www.winamax.fr/paris-sportifs/match/72886436",
    "status": 200,
-   "bytes": 300150
+   "bytes": 299975
   },
   {
-   "name": "winamax_match_72908910",
-   "url": "https://www.winamax.fr/paris-sportifs/match/72908910",
-   "final_url": "https://www.winamax.fr/paris-sportifs/match/72908910",
+   "name": "winamax_match_72886438",
+   "url": "https://www.winamax.fr/paris-sportifs/match/72886438",
+   "final_url": "https://www.winamax.fr/paris-sportifs/match/72886438",
    "status": 200,
-   "bytes": 442939
+   "bytes": 269679
   },
   {
    "name": "betclic_hockey",
    "url": "https://www.betclic.fr/hockey-sur-glace-s13",
    "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey",
    "status": 200,
-   "bytes": 352502
+   "bytes": 308522
+  },
+  {
+   "name": "betclic_match_0",
+   "url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/winnipeg-jets-boston-bruins-m1231964560437248",
+   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/winnipeg-jets-boston-bruins-m1231964560437248",
+   "status": 200,
+   "bytes": 193399
+  },
+  {
+   "name": "betclic_match_1",
+   "url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/dallas-stars-st-louis-blues-m1170404247027712",
+   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/dallas-stars-st-louis-blues-m1170404247027712",
+   "status": 200,
+   "bytes": 198097
+  },
+  {
+   "name": "betclic_match_2",
+   "url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/vegas-golden-knights-anaheim-ducks-m1231964571975680",
+   "final_url": "https://m.betclic.fr/hockey-sur-glace-sice_hockey/nhl-c83/vegas-golden-knights-anaheim-ducks-m1231964571975680",
+   "status": 200,
+   "bytes": 186549
   },
   {
    "name": "betclic_api_events",
@@ -47,7 +68,6 @@
  "winamax_nhl_ids": [
   "72886432",
   "72886436",
-  "72908910",
   "72886438",
   "72886444",
   "72886446",
@@ -66,5 +86,9 @@
   "72886460",
   "1000180886"
  ],
- "betclic_links": []
+ "betclic_links": [
+  "/hockey-sur-glace-sice_hockey/nhl-c83/winnipeg-jets-boston-bruins-m1231964560437248",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/dallas-stars-st-louis-blues-m1170404247027712",
+  "/hockey-sur-glace-sice_hockey/nhl-c83/vegas-golden-knights-anaheim-ducks-m1231964571975680"
+ ]
 }
