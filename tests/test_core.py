@@ -380,3 +380,104 @@ def test_nhl_predict_back_to_back_offline(monkeypatch):
     assert (p0["prop_name"] == "P0").all() and set(pred["match"]) == {"AAA-BBB", "CCC-AAA"}
     cmp = L.compare_with_pinnacle(pin, pred)
     assert len(cmp) == 2 and cmp["pin_prob"].eq(0.4).all()
+
+
+def test_unibet_parse_events_and_player_props(monkeypatch):
+    from sportpred.live import unibet
+    html = ('<script type="application/ld+json">[{"@type":"SportsEvent","startDate":"2026-10-04T01:00:00",'
+            '"name":"PIT Penguins vs MON Canadiens","url":"https://www.unibet.fr/paris-hockey-sur-glace/etats-unis/nhl/'
+            '3383086/pit-penguins-vs-mon-canadiens"}]</script>')
+    monkeypatch.setattr(unibet, "_get", lambda url: html)
+    ev = unibet.list_events()
+    assert ev.iloc[0]["event_id"] == 3383086
+    assert ev.iloc[0]["start"] == pd.Timestamp("2026-10-03T23:00:00Z")          # heure de Paris -> UTC
+    out = lambda d, p, susp=False: {"description": d, "price": p, "suspended": susp}  # noqa: E731
+    state = {"EventsDetail": {"events": [{"id": 1, "description": "A vs B", "parsedStart": "2026-10-03T23:00:00.000Z",
+             "groupedMarkets": [
+                 {"description": "Nombre de Buts - Joueur - Match (Hors TAB)", "markets": [
+                     {"outcomes": [out("Sidney Crosby 1+", "2,90"), out("Sidney Crosby 2+", "11,00"),
+                                   out("Kris Letang 1+", "9,00", susp=True)]}]},
+                 {"description": "Buteurs - Tiers Temps", "markets": [{"outcomes": [out("Sidney Crosby 1+", "7,00")]}]},
+                 {"description": "Nombre de Points - Joueur - Match (Hors TAB)", "markets": [
+                     {"outcomes": [out("Sidney Crosby 1+", "1,60")]}]},
+                 {"description": "1 N 2 - Temps Réglementaire", "markets": [{"outcomes": [out("A", "2,00")]}]}]}]}}
+    p = unibet.parse_player_props(state)
+    assert len(p) == 3 and set(p["stat"]) == {"Buts", "Points"}                 # suspendu et tiers-temps exclus
+    g = p[(p["stat"] == "Buts") & (p["line"] == 0.5)].iloc[0]
+    assert g["player"] == "Sidney Crosby" and g["odds"] == 2.9
+
+
+def test_unibet_compare_value_and_settlement():
+    import numpy as np
+    from sportpred.live import nhl_scorers as L
+    t = pd.Timestamp("2026-10-03T23:00:00Z")
+    names = ["Sidney Crosby", "Evgeni Malkin", "Bryan Rust", "Erik Karlsson"]
+    pred = pd.DataFrame({"event": "Pittsburgh Penguins - Montreal Canadiens", "start": t, "name": names,
+                         "player_id": [1, 2, 3, 4], "model_prob": [0.40, 0.30, 0.20, 0.10], "team": "PIT",
+                         "match": "PIT-MTL"})
+    pin = pd.DataFrame([{"event": "Pittsburgh Penguins - Montreal Canadiens", "start": t, "league": "NHL",
+                         "is_prop": True, "market": "Player Props: Sidney Crosby Total Goals", "selection": "Over",
+                         "line": 0.5, "fair_prob": 0.42, "pin_margin": 0.07, "market_key": "k1"}])
+    ub = pd.DataFrame({"ub_event_id": 9, "ub_event": "PIT Penguins vs MON Canadiens", "start": t + pd.Timedelta(minutes=5),
+                       "stat": "Buts", "player": names, "line": 0.5, "odds": [2.50, 3.00, 6.00, 9.00]})
+    cmp = L.compare_unibet(ub, pin, pred)
+    c = cmp.set_index("player")
+    assert c.loc["Sidney Crosby", "ref"] == "Pinnacle" and np.isclose(c.loc["Sidney Crosby", "ev"], 0.42 * 2.5 - 1)
+    assert c.loc["Bryan Rust", "ref"] == "modèle" and np.isclose(c.loc["Bryan Rust", "ev"], 0.2 * 6 - 1)
+    v = L.unibet_value_bets(cmp)
+    # Crosby +5 % (seuil Pinnacle 3 %) et Rust +20 % (seuil modèle 10 %) ; Malkin -10 %, Karlsson -10 %
+    assert set(v["player"]) == {"Sidney Crosby", "Bryan Rust"}
+    assert v.set_index("player").loc["Sidney Crosby", "selection"] == "Sidney Crosby marque"
+    hist = [{"stat": "Buts", "player": "Sidney Crosby", "player_id": 1, "line": 0.5, "odds": 2.5,
+             "start": "2026-10-03T23:00:00+00:00"},
+            {"stat": "Points", "player": "Bryan Rust", "player_id": 3, "line": 0.5, "odds": 1.8,
+             "start": "2026-10-03T23:00:00+00:00"},
+            {"stat": "Buts", "player": "Erik Karlsson", "player_id": 4, "line": 0.5, "odds": 9.0,
+             "start": "2026-10-03T23:00:00+00:00"}]
+    nhl = pd.DataFrame({"date": pd.Timestamp("2026-10-03"), "player_id": [1, 3], "name": ["Sidney Crosby", "Bryan Rust"],
+                        "goals": [0, 0], "assists": [0, 2]})
+    L.settle_player_props(hist, nhl, pd.Timestamp("2026-10-04T06:00Z"))
+    assert hist[0]["result"] == "perdu" and hist[1]["result"] == "gagné" and hist[1]["profit_units"] == 0.8
+    assert "result" not in hist[2]                                            # pas encore 3 jours
+    L.settle_player_props(hist, nhl, pd.Timestamp("2026-10-08T06:00Z"))
+    assert hist[2]["result"].startswith("remboursé") and hist[2]["profit_units"] == 0.0
+
+
+def test_history_keeps_player_prop_fields_and_espn_skips_them():
+    from sportpred.live import results as rs
+    from sportpred.live.dashboard import update_history
+    picks = pd.DataFrame([{"event": "A - B", "selection": "X marque", "book": "Unibet", "sport": "hockey",
+                           "league": "NHL", "start": pd.Timestamp("2026-10-03T23:00Z"), "market": "Buteur — X",
+                           "odds": 8.8, "fair_odds": 7.3, "ev": 0.2, "market_key": None, "source": "s",
+                           "pin_selection": "Over", "player": "X", "stat": "Buts", "line": 0.5, "player_id": 7.0}])
+    h = update_history([], picks, pd.DataFrame(), pd.Timestamp("2026-10-03T12:00Z"))
+    assert h[0]["stat"] == "Buts" and h[0]["player_id"] == 7 and h[0]["line"] == 0.5
+    h[0]["status"] = "commencé (CLV figée)"
+    out = rs.settle(h, pd.Timestamp("2026-10-05T12:00Z"))
+    assert "result" not in out[0]                                             # pas réglé via ESPN
+
+
+def test_nhl_schedule_includes_previous_us_day(monkeypatch):
+    """Après minuit UTC, les matchs du soir américain sont datés de la veille dans l'API NHL."""
+    from sportpred.live import nhl_scorers as L
+    asked = []
+    monkeypatch.setattr(L, "schedule", lambda day: asked.append(day) or pd.DataFrame())
+    monkeypatch.setattr(L, "load_model", lambda: (None, 0.98))
+    pin = pd.DataFrame([{"league": "NHL", "event_id": 1, "start": pd.Timestamp("2026-10-03T01:00Z"), "home": "A",
+                         "away": "B", "is_prop": False, "event": "A - B", "market": "moneyline"}])
+    L.predict(pin, pd.Timestamp("2026-10-03T00:30Z"), hist=pd.DataFrame())
+    assert asked and asked[0].date() == pd.Timestamp("2026-10-02").date()
+
+
+def test_json_safe_and_history_market_key():
+    import json
+    import numpy as np
+    from sportpred.live.dashboard import json_safe, update_history
+    d = json_safe({"a": float("nan"), "b": [1.0, np.float64("inf"), {"c": np.int64(3)}], "e": "x"})
+    assert json.dumps(d, allow_nan=False) == '{"a": null, "b": [1.0, null, {"c": 3}], "e": "x"}'
+    picks = pd.DataFrame([{"event": "A - B", "selection": "X marque", "book": "Unibet", "sport": "hockey", "league": "NHL",
+                           "start": pd.Timestamp("2026-10-03T23:00Z"), "market": "Buteur — X", "odds": 8.8,
+                           "fair_odds": 7.3, "ev": 0.2, "market_key": np.nan, "source": "s"}])
+    h = update_history([], picks, pd.DataFrame(), pd.Timestamp("2026-10-03T12:00Z"))
+    assert h[0]["market_key"] is None
+    json.dumps(h, allow_nan=False)

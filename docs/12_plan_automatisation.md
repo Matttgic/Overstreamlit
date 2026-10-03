@@ -57,6 +57,8 @@ Ensuite tout tourne seul : 9 mises à jour par jour (05:07 → 21:07 UTC).
    minimum des buteurs, points, tirs.
    **Buteurs NHL** : la section dédiée donne une cote juste pour tous les joueurs ; ceux
    marqués « modèle » (non cotés par Pinnacle) demandent une cote ≥ +10 % (voir S11).
+   Unibet est comparé automatiquement : ses paris joueurs au-dessus du seuil arrivent seuls
+   dans « À jouer maintenant ».
 5. Une fois par semaine : regarder la **CLV moyenne** dans « Suivi ». Si elle reste
    négative après ~200 paris, arrêter et revoir la méthode.
 
@@ -103,7 +105,8 @@ Pour l'offre gratuite (500 crédits/mois), remettre dans le workflow :
 | 3a | **Paris joueurs NHL/NBA** : cotes justes Pinnacle (buteur, tirs cadrés, points, passes, arrêts ; NBA points/rebonds/passes dès le 20/10) affichées avec la cote minimum à prendre, filtres par type de stat | ✅ fait |
 | 3b | **Archive quotidienne des cotes Pinnacle** (marchés principaux + paris joueurs, branche `dashboard-data`, dossier `archive/`) : il n'existe aucun historique gratuit de cotes de paris joueurs, on le construit | ✅ fait |
 | 3c | **Modèle buteurs NHL ancré sur le marché** : buts attendus de l'équipe tirés des cotes Pinnacle, seule la répartition entre joueurs est modélisée (temps de jeu, supériorité numérique, tirs, réussite). Calibré sur 8 saisons hors échantillon ; section « Buteurs NHL » du site avec une cote juste pour tous les joueurs ; prédictions archivées et comparées à Pinnacle au fil des matchs ([S11](strategies/S11_buteurs_nhl.md)) | ✅ fait (indicatif) |
-| 3d | Composition officielle (DailyFaceoff / feuille de match) et gardien partant dans le modèle buteurs ; décision sur la marge exigée après ~1 500 joueurs comparés à Pinnacle | à faire |
+| 3d | **Cotes joueurs Unibet.fr comparées automatiquement** (buteur, points, passes NHL) : lues sur le site d'Unibet, comparées à Pinnacle (+3 %) ou au modèle (+10 %), paris au-dessus du seuil ajoutés à « À jouer maintenant », réglés avec les feuilles de match NHL ([S11](strategies/S11_buteurs_nhl.md)) | ✅ fait |
+| 3e | Composition officielle (DailyFaceoff / feuille de match) et gardien partant dans le modèle buteurs ; décision sur la marge exigée après ~1 500 joueurs comparés à Pinnacle | à faire |
 | 4 | **Cotes des opérateurs français non couverts** (ParionsSport fusionné dans Unibet, bet365.fr, Betsson, Vbet…) : petit script à lancer depuis une connexion française (PC ou Raspberry Pi), car ces sites bloquent les serveurs étrangers | à étudier |
 | 5 | Alertes de cotes boostées (S09) : comparer chaque boost à la cote juste | à étudier |
 
