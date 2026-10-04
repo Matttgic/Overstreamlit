@@ -9,6 +9,7 @@ comparaison avec la cote juste, alertes) tourne sur GitHub.
 Usage (dans Termux) :
     python collecte_fr.py           # collecte : cotes joueurs NHL Winamax + Betclic -> GitHub
     python collecte_fr.py sonde     # diagnostic : échantillon de pages NHL brutes
+    python collecte_fr.py sonde-auto   # pages demandées par le dépôt (aussi lancé après chaque collecte)
 
 Le jeton GitHub est lu dans ~/.overstreamlit_token (jamais affiché, jamais envoyé
 ailleurs qu'à api.github.com). Il doit avoir uniquement l'accès « Contents : Read and
@@ -27,6 +28,7 @@ import sys
 import time
 import unicodedata
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -382,6 +384,10 @@ def collecte(horizon_h: float = HORIZON_H, pause: float = 1.0) -> None:
         relance_site()
     for e in errors:
         print("  !", e)
+    try:
+        sonde_auto()
+    except Exception as e:  # noqa: BLE001 — la sonde ne doit jamais gêner la collecte
+        print("  ! sonde automatique :", type(e).__name__)
 
 
 def relance_site() -> None:
@@ -390,6 +396,94 @@ def relance_site() -> None:
     st, out = gh("POST", f"/repos/{REPO}/dispatches", {"event_type": "cotes-telephone"})
     print("Mise à jour du site demandée." if st == 204
           else f"  ! mise à jour du site non demandée ({st}) : {out.get('message')}")
+
+
+# ----------------------------------------------------------------------------- sonde automatique
+# Pages demandées par le dépôt (telephone/sonde_auto.json sur main) : capturées une seule fois par
+# identifiant, à la fin d'une collecte, et déposées dans sonde/auto/ sur la branche cotes-telephone.
+# Permet de régler la lecture d'un nouveau marché sans rien demander à l'utilisateur.
+# Seulement des pages publiques Winamax / Betclic (https), 14 pages et 8 Mo au plus.
+SONDE_AUTO = "https://raw.githubusercontent.com/Matttgic/Overstreamlit/main/telephone/sonde_auto.json"
+SONDE_ETAT = Path.home() / ".overstreamlit_sonde_auto"
+_SITES_OK = ("winamax.fr", "betclic.fr")
+
+
+def site_autorise(url: str) -> bool:
+    u = urllib.parse.urlparse(str(url))
+    host = (u.hostname or "").lower()
+    return u.scheme == "https" and any(host == d or host.endswith("." + d) for d in _SITES_OK)
+
+
+def _nom(x) -> str:
+    return re.sub(r"[^a-z0-9_]", "", str(x).lower())[:48] or "page"
+
+
+def liens_a_suivre(regle: dict, html: str, now: datetime) -> list[str]:
+    """Chemins des pages de match à capturer depuis une page de liste.
+    Winamax (« site » = winamax) : matchs pas encore commencés du sport `sport`, tournois dont le nom
+    contient un des `tournois` (si donné), les plus proches d'abord. Sinon : liens `regex`, ceux qui
+    contiennent un des `prefere` d'abord."""
+    if regle.get("site") == "winamax":
+        state = extract_json_after(html, "PRELOADED_STATE") or {}
+        tours = state.get("tournaments") or {}
+        noms = [str(t).lower() for t in regle.get("tournois") or []]
+        ok_t = {str(k) for k, t in tours.items() if isinstance(t, dict)
+                and (not noms or any(n in str(t.get("tournamentName", "")).lower() for n in noms))}
+        ms = [m for m in (state.get("matches") or {}).values()
+              if isinstance(m, dict) and str(m.get("sportId")) == str(regle.get("sport", 1))
+              and str(m.get("tournamentId")) in ok_t and m.get("status") == "PREMATCH"
+              and (m.get("matchStart") or 0) > now.timestamp()]
+        return [f"/paris-sportifs/match/{m['matchId']}" for m in sorted(ms, key=lambda m: m["matchStart"])]
+    try:
+        found = list(dict.fromkeys(re.findall(str(regle.get("regex", "$^")), html, re.I)))
+    except re.error:
+        return []
+    pref = [str(x).lower() for x in regle.get("prefere") or []]
+    return sorted(found, key=lambda x: not any(p in x.lower() for p in pref))
+
+
+def sonde_auto(force: bool = False, pause: float = 1.5) -> None:
+    st, _, data = http_get(SONDE_AUTO)
+    try:
+        cfg = json.loads(data) if st == 200 else {}
+    except ValueError:
+        cfg = {}
+    sid = str(cfg.get("id") or "")
+    if not sid or (not force and SONDE_ETAT.exists() and SONDE_ETAT.read_text().strip() == sid):
+        return
+    now = datetime.now(timezone.utc)
+    print(f"Sonde automatique {sid} :")
+    files, pages, budget = {}, {}, [8_000_000]
+    report = {"id": sid, "at": _iso(now), "pages": []}
+
+    def grab(name: str, url: str) -> tuple[str, str]:
+        if not site_autorise(url) or len(files) >= 14 or budget[0] <= 0:
+            report["pages"].append({"name": name, "url": url, "status": "refusée"})
+            return "", ""
+        time.sleep(pause)
+        code, final, body = http_get(url)
+        report["pages"].append({"name": name, "url": url, "final_url": final, "status": code, "bytes": len(body)})
+        print(f"  {code} {len(body) // 1024:>6} Ko  {name}")
+        if code == 200 and body:
+            files[f"sonde/auto/{name}.gz"] = gzip.compress(body)
+            budget[0] -= len(body)
+        return body.decode("utf-8", "ignore"), final or url
+
+    for pg in (cfg.get("pages") or [])[:12]:
+        name = _nom(pg.get("name"))
+        pages[name] = grab(name, str(pg.get("url", "")))
+    for rg in (cfg.get("suivre") or [])[:6]:
+        html, final = pages.get(_nom(rg.get("depuis")), ("", ""))
+        if not html:
+            continue
+        base = re.match(r"https?://[^/]+", final).group(0)
+        for k, path in enumerate(liens_a_suivre(rg, html, now)[:min(int(rg.get("n", 1)), 4)]):
+            grab(f"{_nom(rg.get('name'))}_{k}", base + path if path.startswith("/") else path)
+    files["sonde/auto/rapport.json"] = json.dumps(report, indent=1, ensure_ascii=False).encode()
+    ok = sum(put_file(p, c, f"Sonde automatique {sid} : {p}") in (200, 201) for p, c in files.items())
+    print(f"  {ok}/{len(files)} fichiers déposés.")
+    if ok == len(files):
+        SONDE_ETAT.write_text(sid)
 
 
 # ----------------------------------------------------------------------------- sonde
@@ -459,6 +553,8 @@ if __name__ == "__main__":
     arg = sys.argv[1] if len(sys.argv) > 1 else ""
     if arg == "sonde":
         sonde()
+    elif arg == "sonde-auto":
+        sonde_auto(force=True)
     elif arg in ("", "collecte"):
         collecte()
     else:

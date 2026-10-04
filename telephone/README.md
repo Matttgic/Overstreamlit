@@ -145,6 +145,15 @@ jour, surtout en wifi à la maison).
 Arrêter : `crontab -r` (supprime la programmation). Le jeton peut être supprimé à tout moment
 sur https://github.com/settings/personal-access-tokens.
 
+## 7. Sonde automatique (rien à faire)
+
+Pour régler la lecture d'un nouveau marché (cotes boostées, buteurs de football…), le dépôt peut
+demander au téléphone quelques pages brutes : liste dans `telephone/sonde_auto.json` (sur `main`).
+Après une collecte, le téléphone la lit et, si son identifiant est nouveau, capture ces pages une
+seule fois et les dépose dans `sonde/auto/` sur la branche `cotes-telephone`. Garde-fous : pages
+publiques Winamax / Betclic en https uniquement, 14 pages et 8 Mo au plus par identifiant ; la
+collecte des cotes n'en dépend jamais. À la main : `python collecte_fr.py sonde-auto`.
+
 ## En cas de souci
 
 | Message | Que faire |
