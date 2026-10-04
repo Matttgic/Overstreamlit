@@ -58,9 +58,11 @@ Léger excès de 0,3 à 0,5 point en moyenne : prudent pour l'usage (cote juste 
 2. Jouer si la cote de l'opérateur est **≥ cote juste × 1,12** (colonne « À prendre si ≥ »).
    La marge est plus large que pour Pinnacle : erreur du modèle, compositions et blessures
    de dernière minute non modélisées.
-3. Unibet est comparé automatiquement (cotes « Buteur », « Buteur 2+ », « Buteur 3+ »). Les
+3. Unibet (lu par GitHub) et Winamax (lu par le téléphone : « Buteur », « Marque 2 / 3 buts ou
+   plus », matchs des 30 h suivantes) sont comparés automatiquement. Les
    paris au-dessus du seuil s'ajoutent à « À jouer maintenant » pour les titulaires quasi sûrs
-   (≥ 85 % de titularisations récentes) ; Winamax et Betclic suivront via le téléphone.
+   (≥ 85 % de titularisations récentes, ou titulaire confirmé) ; Betclic (« Buteur (t. rég) »)
+   suivra une fois les adresses des championnats vérifiées par la sonde automatique.
 4. Mise : Kelly ¼ plafonné à 2 % ([S07](S07_gestion_bankroll_kelly.md)).
 5. Suivi : chaque relevé est archivé (`archive/foot_buteurs_*.csv.gz`) puis comparé aux
    feuilles de match Understat. Les paris joués sont réglés automatiquement : titulaire →

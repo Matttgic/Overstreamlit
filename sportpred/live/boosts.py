@@ -80,6 +80,8 @@ _LEGS = [
     ("over", re.compile(r"^(?:plus de|\+ ?de|\+) ?(?P<n>\d+(?:[,.]5)?) (?:buts?|points?|jeux|sets?|essais?)(?: dans le match)?$")),
     ("under", re.compile(r"^(?:moins de|\- ?de) ?(?P<n>\d+(?:[,.]5)?) (?:buts?|points?|jeux|sets?|essais?)(?: dans le match)?$")),
     ("atleast", re.compile(r"^au moins (?P<k>\d+) buts?(?: dans le match)?$")),
+    ("ht_ft", re.compile(r"^(?P<who>.+?) (?:gagne|mene) mt_fm$")),
+    ("both_halves", re.compile(r"^(?P<who>.+?) marque (?:dans|lors) (?:les deux|des deux|chacune des deux) mi-temps$")),
     ("win_nil", re.compile(r"^(?P<who>.+?) (?:gagne|s'impose|l'emporte) sans encaisser de buts?$")),
     ("margin", re.compile(r"^(?P<who>.+?) (?:gagne|s'impose|l'emporte) (?:avec|par) (?:au moins )?(?P<k>\d+) buts? d'ecart(?: ou (?:plus|\+))?$")),
     ("win", re.compile(r"^(?:victoire (?:de |du |des |d')(?P<who2>.+)|(?P<who>.+?) (?:gagne|s'impose|l'emporte|bat .+)(?: le match| la rencontre)?)$")),
@@ -94,6 +96,8 @@ def parse_legs(text: str) -> list[dict] | None:
     """Jambes du libellé ; None si une partie n'est pas reconnue."""
     t = _fold(text)
     t = re.sub(r"^(?:le |la |l'|les )(?=[a-z])", "", t)
+    # « gagne à la mi-temps et à la fin du match » : une seule jambe (le « et » ne sépare pas deux paris)
+    t = re.sub(r"a la mi-temps et (?:a la fin du match|gagne le match|l'emporte|a la fin)", "mt_fm", t)
     parts = [p.strip(" .?!") for p in re.split(r"\s+(?:et|&)\s+", t) if p.strip(" .?!")]
     legs = []
     for p in parts:
@@ -116,6 +120,31 @@ def parse_legs(text: str) -> list[dict] | None:
 
 
 # ------------------------------------------------------------------ probabilité juste (football)
+PAYS = {"allemagne": "germany", "pays bas": "netherlands", "grece": "greece", "norvege": "norway", "espagne": "spain",
+        "angleterre": "england", "italie": "italy", "belgique": "belgium", "suisse": "switzerland", "croatie": "croatia",
+        "serbie": "serbia", "pologne": "poland", "danemark": "denmark", "suede": "sweden", "ecosse": "scotland",
+        "pays de galles": "wales", "irlande": "ireland", "irlande du nord": "northern ireland", "autriche": "austria",
+        "turquie": "turkey", "hongrie": "hungary", "republique tcheque": "czech republic", "tchequie": "czech republic",
+        "roumanie": "romania", "etats unis": "usa", "mexique": "mexico", "bresil": "brazil", "argentine": "argentina",
+        "maroc": "morocco", "japon": "japan", "coree du sud": "south korea", "egypte": "egypt",
+        "afrique du sud": "south africa", "slovaquie": "slovakia", "slovenie": "slovenia", "finlande": "finland",
+        "islande": "iceland", "georgie": "georgia", "albanie": "albania", "bosnie herzegovine": "bosnia and herzegovina",
+        "macedoine du nord": "north macedonia", "lituanie": "lithuania", "lettonie": "latvia", "estonie": "estonia",
+        "azerbaidjan": "azerbaijan", "kazakhstan": "kazakhstan", "bulgarie": "bulgaria", "chypre": "cyprus",
+        "israel": "israel", "montenegro": "montenegro", "luxembourg": "luxembourg", "colombie": "colombia",
+        "uruguay": "uruguay", "equateur": "ecuador", "perou": "peru", "chili": "chile", "canada": "canada",
+        "australie": "australia", "senegal": "senegal", "algerie": "algeria", "tunisie": "tunisia", "nigeria": "nigeria",
+        "cote d'ivoire": "ivory coast", "cameroun": "cameroon", "ghana": "ghana"}
+
+
+def _en(txt: str) -> str:
+    """Remplace les noms de pays français par leur nom anglais (Pinnacle)."""
+    t = _fold(txt).replace("-", " ")
+    for fr, en in sorted(PAYS.items(), key=lambda x: -len(x[0])):
+        t = re.sub(rf"\b{re.escape(fr)}\b", en, t)
+    return t
+
+
 NICK = {"om": "marseille", "ol": "lyon", "losc": "lille", "asse": "saint etienne", "ogcn": "nice", "asm": "monaco",
         "barca": "barcelona", "real": "real madrid", "atletico": "atletico madrid", "city": "manchester city",
         "united": "manchester united", "man u": "manchester united", "juve": "juventus", "bayern": "bayern munchen",
@@ -127,7 +156,7 @@ NICK = {"om": "marseille", "ol": "lyon", "losc": "lille", "asse": "saint etienne
 def _resolve(who: str, home: str, away: str, players: pd.DataFrame) -> tuple[str, object] | None:
     """('team', 'h'|'a') ou ('player', ligne du joueur) ou None."""
     who = re.sub(r"^(?:le |la |l'|les )", "", _fold(who)).strip()
-    who = NICK.get(who, who)
+    who = NICK.get(who, PAYS.get(who.replace("-", " "), who))
     w = norm(who)
     sh, sa = sim(who, home), sim(who, away)
     if max(sh, sa) >= 0.8:
@@ -256,6 +285,18 @@ def pinnacle_combo(legs: list[dict], ev: pd.DataFrame) -> float | None:
         return None
     lg = legs[0]
     t = team(lg)
+    if lg["kind"] == "ht_ft" and t:
+        return get("Team Props: Half-Time/Full-Time", f"{t} - {t}")
+    if lg["kind"] == "both_halves" and t:
+        # buts de l'équipe : 1re mi-temps (Pinnacle) et match entier ; mi-temps indépendantes (Poisson)
+        h1 = get(f"Team Props: {t} To Score? 1st Half", "Yes")
+        full = ev[ev["market"] == f"Team Props: {t} Goals"]
+        if h1 is None or full.empty:
+            return None
+        n = pd.to_numeric(full["selection"].str.extract(r"(\d+)")[0], errors="coerce")
+        lam = float((n.fillna(n.max()) * full["fair_prob"]).sum())          # buts attendus (dernière classe « k+ » ≈ k)
+        lam1 = -np.log(max(1 - h1, 1e-6))
+        return float(h1 * (1 - np.exp(-max(lam - lam1, 0.0))))
     if lg["kind"] == "win_nil" and t:
         return get(f"Team Props: {t} To Win to Nil?", "Yes")
     if lg["kind"] == "margin" and t:
@@ -284,7 +325,7 @@ def find_event(b: dict, pin: pd.DataFrame, max_hours: float = 4.0) -> pd.DataFra
         cand = pin[(pd.to_datetime(pin["start"], utc=True) - t).abs() <= pd.Timedelta(hours=max_hours)]
     if cand.empty:
         return cand
-    label = " ".join(str(b.get(k) or "") for k in ("event", "text"))
+    label = _en(" ".join(str(b.get(k) or "") for k in ("event", "text")))
     best, score = None, 0.0
     for ev, e in cand.groupby("event"):
         s = max(sim(e["home"].iloc[0], w) for w in _words(label)) + max(sim(e["away"].iloc[0], w) for w in _words(label))

@@ -137,7 +137,7 @@ _WM_BETS = [(re.compile(r"^Buteur$"), "Buts", None),
 # Combinés (« Buteur & son équipe gagne », « Double Chance Buteur ») ignorés.
 # Prolongation : « Buteur » / « Buteur (prol. inc.) » incluse (confirmé dans l'appli) ; marchés sans
 # mention (2 buts ou +, points, passes) comptés en temps réglementaire, par prudence.
-_BC_BETS = [(re.compile(r"^Buteur( \(prol\. inc\.\))?$"), "Buts", None),
+_BC_BETS = [(re.compile(r"^Buteur( \(prol\. inc\.\)| \(t\. r[ée]g\.?\))?$"), "Buts", None),
             (re.compile(r"^Buteur (\d+) fois ou \+"), "Buts", 1),
             (re.compile(r"^Le joueur inscrit (\d+) buts? ou \+"), "Buts", 1),
             (re.compile(r"^Le joueur inscrit (\d+) points? ou \+"), "Points", 1),
@@ -192,6 +192,57 @@ def parse_winamax_match(state: dict, match_id: str) -> list[dict]:
                                  "away": m.get("competitor2Name"), "start": start, "stat": stat,
                                  "line": k - 0.5, "player": o["label"], "odds": od, "reg_only": reg_only})
             break
+    return rows
+
+
+# ----------------------------------------------------------------------------- football et cotes boostées
+WM_FOOT_TOURNAMENTS = {4: "Ligue_1", 1: "EPL", 36: "La_liga", 33: "Serie_A", 42: "Bundesliga"}   # identifiants Winamax
+FOOT_HORIZON_H = 30
+MAX_FOOT = 12
+_MISE_MAX = re.compile(r"mise max\.?\s*(\d+)", re.I)
+
+
+def winamax_foot_upcoming(state: dict, now: datetime, horizon_h: float = FOOT_HORIZON_H) -> list[str]:
+    """Matchs des 5 grands championnats pas encore commencés, dans les `horizon_h` heures."""
+    lo, hi = now.timestamp(), now.timestamp() + horizon_h * 3600
+    ms = [m for m in (state.get("matches") or {}).values()
+          if isinstance(m, dict) and m.get("sportId") == 1 and m.get("status") == "PREMATCH"
+          and int(m.get("tournamentId") or 0) in WM_FOOT_TOURNAMENTS and lo < (m.get("matchStart") or 0) < hi]
+    return [str(m["matchId"]) for m in sorted(ms, key=lambda m: m["matchStart"])]
+
+
+def winamax_boosts(state: dict) -> list[dict]:
+    """Cotes boostées Winamax (sport 100000) : libellé, cote boostée, cote d'origine, mise max."""
+    cats, bets, outs, odds = (state.get(k) or {} for k in ("categories", "bets", "outcomes", "odds"))
+    by_match = {}
+    for b in bets.values():
+        if isinstance(b, dict):
+            by_match.setdefault(str(b.get("matchId")), []).append(b)
+    rows = []
+    for m in (state.get("matches") or {}).values():
+        if not isinstance(m, dict) or m.get("sportId") != 100000 or m.get("status") not in ("PREMATCH", None):
+            continue
+        sport = (cats.get(str(m.get("categoryId"))) or {}).get("categoryName")
+        event = re.sub(r"^\s*Cote boost[ée]e\s*:\s*", "", str(m.get("title", "")), flags=re.I).strip()
+        start = _iso(datetime.fromtimestamp(m.get("matchStart") or 0, timezone.utc))
+        for b in by_match.get(str(m.get("matchId")), []):
+            if not b.get("available", True):
+                continue
+            mm = _MISE_MAX.search(str(b.get("betTitle", "")))
+            try:
+                orig = round(float(b["previousOdd"]), 2) if b.get("previousOdd") else None
+            except (TypeError, ValueError):
+                orig = None
+            for oid in b.get("outcomes") or []:
+                o = outs.get(str(oid)) or {}
+                try:
+                    od = float(odds.get(str(oid)))
+                except (TypeError, ValueError):
+                    continue
+                if o.get("label") and od > 1 and o.get("available", True):
+                    rows.append({"book": "Winamax", "sport": sport, "event": event, "start": start,
+                                 "text": str(o["label"]).strip(), "odds": od, "orig_odds": orig,
+                                 "max_stake": float(mm.group(1)) if mm else None})
     return rows
 
 
@@ -288,7 +339,7 @@ def _bc_reg_only(name: str, stat: str, line: float) -> bool:
     low = name.lower()
     if "prol" in low and "inc" in low:
         return False
-    if "tps r" in low:
+    if "tps r" in low or "t. r" in low:
         return True
     return not (stat == "Buts" and line == 0.5)       # « Buteur » seul : prolongation incluse
 
@@ -329,7 +380,8 @@ def parse_betclic_match(state: dict | None) -> list[dict]:
 
 
 def collecte(horizon_h: float = HORIZON_H, pause: float = 1.0) -> None:
-    """Cotes joueurs NHL Winamax + Betclic -> cotes_fr.json.gz sur la branche cotes-telephone."""
+    """Cotes joueurs NHL Winamax + Betclic, cotes boostées et buteurs football Winamax
+    -> cotes_fr.json.gz sur la branche cotes-telephone."""
     print("Vérification du jeton GitHub…")
     ensure_branch()
     now = datetime.now(timezone.utc)
@@ -376,7 +428,38 @@ def collecte(horizon_h: float = HORIZON_H, pause: float = 1.0) -> None:
     stats["betclic"] = {"matchs": len(paths), "avec_joueurs": n, "cotes": sum(x["book"] == "Betclic" for x in rows)}
     print(f"  Betclic : {len(paths)} matchs NHL, {n} avec cotes joueurs, {stats['betclic']['cotes']} cotes")
 
-    payload = {"version": 1, "at": _iso(now), "rows": rows, "stats": stats, "errors": errors}
+    boosts = []                          # cotes boostées et buteurs football : jamais bloquants
+    try:
+        time.sleep(pause)
+        st, _, data = http_get(f"{WINAMAX}/paris-sportifs/sports/100000")
+        s3 = extract_json_after(data.decode("utf-8", "ignore"), "PRELOADED_STATE") if st == 200 else None
+        boosts = winamax_boosts(s3 or {})
+        if s3 is None:
+            errors.append(f"winamax cotes boostées : {st}")
+    except Exception as e:  # noqa: BLE001
+        errors.append(f"winamax cotes boostées : {type(e).__name__}")
+    stats["boosts"] = {"winamax": len(boosts)}
+    print(f"  Cotes boostées : Winamax {len(boosts)}")
+    nf, foot = 0, []
+    try:
+        time.sleep(pause)
+        st, _, data = http_get(f"{WINAMAX}/paris-sportifs/sports/1")
+        s4 = extract_json_after(data.decode("utf-8", "ignore"), "PRELOADED_STATE") if st == 200 else None
+        fids = winamax_foot_upcoming(s4 or {}, now)
+        for mid in fids[:MAX_FOOT]:
+            time.sleep(pause)
+            st, _, data = http_get(f"{WINAMAX}/paris-sportifs/match/{mid}")
+            s5 = extract_json_after(data.decode("utf-8", "ignore"), "PRELOADED_STATE") if st == 200 else None
+            r = [dict(x, sport="football", reg_only=False) for x in parse_winamax_match(s5 or {}, mid)]
+            nf += bool(r)
+            foot += r
+        stats["foot"] = {"winamax": {"matchs": len(fids), "avec_joueurs": nf, "cotes": len(foot)}}
+        print(f"  Football Winamax : {len(fids)} matchs (5 grands championnats), {nf} avec buteurs, {len(foot)} cotes")
+    except Exception as e:  # noqa: BLE001
+        errors.append(f"winamax football : {type(e).__name__}")
+    rows += foot
+
+    payload = {"version": 1, "at": _iso(now), "rows": rows, "stats": stats, "errors": errors, "boosts": boosts}
     code = put_file("cotes_fr.json.gz", gzip.compress(json.dumps(payload, ensure_ascii=False).encode()),
                     f"Cotes téléphone {_iso(now)} : {len(rows)} cotes")
     print("Envoyé sur GitHub." if code in (200, 201) else "Échec de l'envoi sur GitHub.")
@@ -427,8 +510,10 @@ def liens_a_suivre(regle: dict, html: str, now: datetime) -> list[str]:
         state = extract_json_after(html, "PRELOADED_STATE") or {}
         tours = state.get("tournaments") or {}
         noms = [str(t).lower() for t in regle.get("tournois") or []]
+        ids = {str(i) for i in regle.get("tournois_ids") or []}
         ok_t = {str(k) for k, t in tours.items() if isinstance(t, dict)
-                and (not noms or any(n in str(t.get("tournamentName", "")).lower() for n in noms))}
+                and (not noms or any(n in str(t.get("tournamentName", "")).lower() for n in noms))
+                and (not ids or str(k) in ids)}
         ms = [m for m in (state.get("matches") or {}).values()
               if isinstance(m, dict) and str(m.get("sportId")) == str(regle.get("sport", 1))
               and str(m.get("tournamentId")) in ok_t and m.get("status") == "PREMATCH"
