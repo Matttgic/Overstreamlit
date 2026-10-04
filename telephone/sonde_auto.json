@@ -1,0 +1,19 @@
+{
+  "id": "2026-10-04-boosts-foot",
+  "but": "Cotes boostées Winamax / Betclic et pages de matchs de football (buteurs) pour régler leur lecture.",
+  "pages": [
+    {"name": "winamax_boosts", "url": "https://www.winamax.fr/paris-sportifs/sports/100000"},
+    {"name": "winamax_foot", "url": "https://www.winamax.fr/paris-sportifs/sports/1"},
+    {"name": "betclic_accueil", "url": "https://www.betclic.fr/"},
+    {"name": "betclic_boosts", "url": "https://www.betclic.fr/cotes-boostees"},
+    {"name": "betclic_foot", "url": "https://www.betclic.fr/football-s1"}
+  ],
+  "suivre": [
+    {"name": "winamax_boost_match", "depuis": "winamax_boosts", "site": "winamax", "sport": 100000, "n": 1},
+    {"name": "winamax_foot_match", "depuis": "winamax_foot", "site": "winamax", "sport": 1,
+     "tournois": ["Ligue 1", "Premier League"], "n": 2},
+    {"name": "betclic_foot_match", "depuis": "betclic_foot",
+     "regex": "href=\"(/football-s[a-z_]+/[a-z0-9\\-]+-c\\d+/[a-z0-9\\-]+-m\\d+)\"",
+     "prefere": ["ligue-1", "premier-league"], "n": 2}
+  ]
+}

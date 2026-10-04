@@ -850,3 +850,68 @@ def test_mixed_and_implausible_book_odds_are_dropped():
     c2, rej2 = L.drop_implausible(c)
     assert rej2 == {"Betclic": 1} and set(c2["book"]) == {"Winamax"} and len(c2) == 5
     assert L.drop_implausible(c2)[1] == {}
+
+
+def test_phone_sonde_auto_offline(monkeypatch, tmp_path):
+    """Sonde pilotée par le dépôt : pages Winamax/Betclic seulement, liens suivis, une fois par id."""
+    import base64
+    import json
+    from datetime import datetime, timezone
+    T = _phone_module()
+    cfg = {"id": "t1", "pages": [{"name": "wm_foot", "url": "https://www.winamax.fr/paris-sportifs/sports/1"},
+                                 {"name": "bc_foot", "url": "https://www.betclic.fr/football-s1"},
+                                 {"name": "Pirate!", "url": "https://exemple.com/x"},
+                                 {"name": "http", "url": "http://www.winamax.fr/"}],
+           "suivre": [{"name": "wm_m", "depuis": "wm_foot", "site": "winamax", "sport": 1, "tournois": ["Ligue 1"], "n": 3},
+                      {"name": "bc_m", "depuis": "bc_foot", "regex": 'href="(/football-s[a-z_]+/[a-z0-9\\-]+-c\\d+/[a-z0-9\\-]+-m\\d+)"',
+                       "prefere": ["ligue-1"], "n": 1}]}
+    state = {"tournaments": {"4": {"tournamentName": "Ligue 1 McDonald's"}, "9": {"tournamentName": "Liga"}},
+             "matches": {"1": {"matchId": 11, "sportId": 1, "tournamentId": 4, "status": "PREMATCH", "matchStart": 2e9},
+                         "2": {"matchId": 12, "sportId": 1, "tournamentId": 4, "status": "LIVE", "matchStart": 1e9},
+                         "3": {"matchId": 13, "sportId": 1, "tournamentId": 9, "status": "PREMATCH", "matchStart": 2e9},
+                         "4": {"matchId": 14, "sportId": 1, "tournamentId": 4, "status": "PREMATCH", "matchStart": 1.9e9}}}
+    pages = {T.SONDE_AUTO: json.dumps(cfg),
+             "https://www.winamax.fr/paris-sportifs/sports/1": "var PRELOADED_STATE = " + json.dumps(state) + ";",
+             "https://www.betclic.fr/football-s1":
+                 '<a href="/football-sfootball/liga-c7/a-b-m1">x</a><a href="/football-sfootball/ligue-1-mcdonald-s-c4/c-d-m2">y</a>'}
+    asked = []
+
+    def fake_get(url, timeout=30):
+        asked.append(url)
+        final = "https://m.betclic.fr/football-sfootball" if url.endswith("football-s1") else url
+        return (200, final, pages.get(url, "<html>match</html>").encode())
+    sent = {}
+
+    def fake_gh(method, path, body=None):
+        if method == "PUT":
+            sent[path.split("/contents/")[1]] = body
+        return (404, {}) if method == "GET" else (201, {})
+    monkeypatch.setattr(T, "http_get", fake_get)
+    monkeypatch.setattr(T, "gh", fake_gh)
+    monkeypatch.setattr(T.time, "sleep", lambda s: None)
+    monkeypatch.setattr(T, "SONDE_ETAT", tmp_path / "etat")
+
+    class FixedDT(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 10, 4, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(T, "datetime", FixedDT)
+    T.sonde_auto()
+    assert not any("exemple.com" in u or u.startswith("http://") for u in asked)          # domaines autorisés seulement
+    assert [u for u in asked if "/match/" in u] == ["https://www.winamax.fr/paris-sportifs/match/14",
+                                                    "https://www.winamax.fr/paris-sportifs/match/11"]
+    assert "https://m.betclic.fr/football-sfootball/ligue-1-mcdonald-s-c4/c-d-m2" in asked            # préféré
+    assert all(b["branch"] == "cotes-telephone" for b in sent.values())
+    rep = json.loads(base64.b64decode(sent["sonde/auto/rapport.json"]["content"]))
+    assert [p["status"] for p in rep["pages"] if p["name"] in ("pirate", "http")] == ["refusée", "refusée"]
+    assert "sonde/auto/wm_m_0.gz" in sent and "sonde/auto/bc_m_0.gz" in sent
+    assert (tmp_path / "etat").read_text() == "t1"
+    n = len(asked)
+    T.sonde_auto()                                      # même identifiant : rien de plus
+    assert len(asked) == n + 1                          # seulement la lecture de sonde_auto.json
+    assert T.site_autorise("https://m.betclic.fr/x") and not T.site_autorise("https://winamax.fr.evil.com/")
+    import re
+    real = json.load(open("telephone/sonde_auto.json"))                 # fichier lu par le téléphone
+    assert real["id"] and all(T.site_autorise(p["url"]) for p in real["pages"])
+    assert all(re.compile(r["regex"]) for r in real["suivre"] if "regex" in r)
+    assert {r["depuis"] for r in real["suivre"]} <= {T._nom(p["name"]) for p in real["pages"]}
