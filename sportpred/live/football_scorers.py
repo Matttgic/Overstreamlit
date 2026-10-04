@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MODEL_FILE = ROOT / "data" / "processed" / "football_scorer_model.json"
 LEAGUE_MAP = {"England - Premier League": "EPL", "Spain - La Liga": "La_liga", "Germany - Bundesliga": "Bundesliga",
               "Italy - Serie A": "Serie_A", "France - Ligue 1": "Ligue_1"}
-MODEL_MIN_EV = 0.12            # marge exigée face à la cote du modèle (plus large que Pinnacle : 3 %)
+MODEL_MIN_EV = 0.12            # marge exigée face à la cote du modèle (Pinnacle ne cote pas les buteurs de football)
 N_RECENT = 8                   # matchs récents de l'équipe pour la composition probable
 DECAY = 0.7                    # poids du match j (0 = le plus récent) : DECAY ** j
 MIN_P_START = 0.3

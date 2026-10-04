@@ -394,16 +394,16 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
       $("boost-note").textContent = "Cote juste : Pinnacle sans marge quand il cote le même pari, sinon grille des scores calée sur Pinnacle " +
         "et modèle buteurs. À jouer si la cote boostée dépasse la cote juste de 3 % (Pinnacle) ou 8 % (calcul), mise plafonnée par l'opérateur.";
       var vcls = { "à jouer": "hit", "limite": "muted", "à éviter": "muted" };
-      $("boost").innerHTML = '<div class="tablebox"><table><thead><tr><th>Boost</th><th class="num">Cote</th><th class="num">Cote juste</th>' +
-        '<th class="num">EV</th></tr></thead><tbody>' + br.map(function (r) {
+      $("boost").innerHTML = '<div class="tablebox"><table><thead><tr><th>Boost</th><th class="num">Cote</th>' +
+        '<th class="num">Valeur</th></tr></thead><tbody>' + br.map(function (r) {
           var verdict = r.verdict ? '<span class="' + (vcls[r.verdict] || "muted") + '">' + esc(r.verdict) + "</span>"
             : '<span class="muted" title="' + esc(r.reason || "") + '">non évaluable</span>';
           return "<tr><td>" + esc(r.text) + ' <span class="small muted">' + esc((r.book || "") + " · " + (r.event || "") +
             (r.start ? " · " + when(r.start) : "") + (r.max_stake ? " · mise max " + r.max_stake + " €" : "")) + "</span>" +
             (r.method ? '<br><span class="small muted">' + esc(r.method) + "</span>" : (r.reason ? '<br><span class="small muted">' + esc(r.reason) + "</span>" : "")) +
-            '</td><td class="num mono">' + (r.orig_odds ? '<span class="muted">' + n2(r.orig_odds) + "</span> → " : "") + n2(r.odds) +
-            '</td><td class="num mono">' + (r.fair_odds ? n2(r.fair_odds) : "–") + '</td><td class="num mono">' +
-            (r.ev != null ? pct(r.ev) + "<br>" : "") + verdict + "</td></tr>";
+            '</td><td class="num mono">' + (r.orig_odds ? '<span class="muted">' + n2(r.orig_odds) + "</span>→" : "") + "<b>" + n2(r.odds) + "</b>" +
+            (r.fair_odds ? '<br><span class="small muted">juste ' + n2(r.fair_odds) + "</span>" : "") + '</td><td class="num mono">' +
+            (r.ev != null ? pct(r.ev, 0) + "<br>" : "") + verdict + "</td></tr>";
         }).join("") + "</tbody></table></div>";
     }
 
@@ -434,7 +434,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
       var fsuTxt = fsu.n_model ? " Suivi : " + plural(fsu.n_model, "titulaire réglé", "titulaires réglés") + " sur " + plural(fsu.n_games, "match", "matchs") +
         ", réussite prédite " + q0(fsu.pred_mean) + ", observée " + q0(fsu.obs_mean) + "." : " Suivi : démarre avec les premiers matchs joués.";
       $("foot").innerHTML = '<div class="filters">' + chipsF + '</div><div class="tablebox"><table><thead><tr><th>Joueur</th>' +
-        '<th class="num" title="Titularisations récentes (les derniers matchs comptent davantage)">Titulaire</th><th class="num">Marque</th>' +
+        '<th class="num" title="Titularisations récentes (les derniers matchs comptent davantage)">Titulaire</th><th class="num hide-sm">Marque</th>' +
         '<th class="num hide-sm">Cote juste</th><th class="num">À prendre si ≥</th>' + (anyBook ? '<th class="num">Cotes</th>' : "") + "</tr></thead><tbody>" +
         (rowsF.map(function (r) {
           var first = r.event !== lastF; lastF = r.event;
@@ -445,7 +445,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
           return (first ? '<tr class="ev-first"><td colspan="' + ncol + '"><b>' + esc(r.event) + '</b> <span class="small muted mono">' + esc(when(r.start)) + "</span></td></tr>" : "") +
             '<tr data-fair="' + Number(r.fair_odds).toFixed(3) + '" data-what="' + esc(r.player + " — Buteur (si titulaire) · " + r.event) + '"><td>' + esc(r.player) +
             ' <span class="small muted">' + esc(r.team) + (posL[r.pos] ? " · " + posL[r.pos] : "") + "</span>" +
-            '</td><td class="num mono">' + q0(r.p_start) + '</td><td class="num mono">' + q0(r.model_prob) +
+            '</td><td class="num mono">' + q0(r.p_start) + '</td><td class="num mono hide-sm">' + q0(r.model_prob) +
             '</td><td class="num mono hide-sm">' + n2(r.fair_odds) + '</td><td class="num"><span class="take">' + n2(r.min_odds) + "</span></td>" +
             (anyBook ? '<td class="num mono">' + bk + "</td>" : "") + "</tr>";
         }).join("") || '<tr><td colspan="' + ncol + '" class="muted">Aucun joueur pour cette recherche.</td></tr>') +
