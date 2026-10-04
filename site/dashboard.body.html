@@ -172,10 +172,22 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
     <div id="props"></div>
   </section>
 
+  <section class="sec" aria-labelledby="h-boost" id="boost-sec" hidden>
+    <div class="sec-head"><h2 id="h-boost">Cotes boostées : valent-elles le coup ?</h2>
+      <span class="small muted" id="boost-note"></span></div>
+    <div id="boost"></div>
+  </section>
+
   <section class="sec" aria-labelledby="h-nhl" id="nhl-sec" hidden>
     <div class="sec-head"><h2 id="h-nhl">Buteurs NHL : tous les joueurs</h2>
       <span class="small muted" id="nhl-note"></span></div>
     <div id="nhl"></div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-foot" id="foot-sec" hidden>
+    <div class="sec-head"><h2 id="h-foot">Buteurs football : cote si titulaire</h2>
+      <span class="small muted" id="foot-note"></span></div>
+    <div id="foot"></div>
   </section>
 
   <section class="sec" aria-labelledby="h-track">
@@ -207,7 +219,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
   "use strict";
   var SPORTS = { football: "Football", tennis: "Tennis", basket: "Basket", hockey: "Hockey", football_americain: "Foot US",
     baseball: "Baseball", handball: "Handball", rugby: "Rugby", mma: "MMA", volley: "Volley" };
-  var state = { data: null, sport: "all", market: "all", stat: "all", nhlEv: "all", q: "", limit: 120, origin: "" };
+  var state = { data: null, sport: "all", market: "all", stat: "all", nhlEv: "all", footEv: "all", q: "", limit: 120, origin: "" };
   var $ = function (id) { return document.getElementById(id); };
   var plural = function (n, one, many) { return n + " " + (n <= 1 ? one : many); };
   var tf = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", weekday: "short", hour: "2-digit", minute: "2-digit" });
@@ -372,6 +384,76 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
         '<p class="small muted">' + esc(ubTxt + suivi) + " Composition estimée (dernier match ou effectif) : vérifiez que le joueur joue.</p>";
       Array.prototype.forEach.call(document.querySelectorAll("[data-nhlev]"), function (b) {
         b.onclick = function () { state.nhlEv = b.getAttribute("data-nhlev"); render(); };
+      });
+    }
+
+    // cotes boostées : cote juste (Pinnacle, grille des scores, modèle buteurs) et verdict
+    var bo = d.boosts || {}, br = bo.rows || [];
+    $("boost-sec").hidden = !br.length;
+    if (br.length) {
+      $("boost-note").textContent = "Cote juste : Pinnacle sans marge quand il cote le même pari, sinon grille des scores calée sur Pinnacle " +
+        "et modèle buteurs. À jouer si la cote boostée dépasse la cote juste de 3 % (Pinnacle) ou 8 % (calcul), mise plafonnée par l'opérateur.";
+      var vcls = { "à jouer": "hit", "limite": "muted", "à éviter": "muted" };
+      $("boost").innerHTML = '<div class="tablebox"><table><thead><tr><th>Boost</th><th class="num">Cote</th><th class="num">Cote juste</th>' +
+        '<th class="num">EV</th></tr></thead><tbody>' + br.map(function (r) {
+          var verdict = r.verdict ? '<span class="' + (vcls[r.verdict] || "muted") + '">' + esc(r.verdict) + "</span>"
+            : '<span class="muted" title="' + esc(r.reason || "") + '">non évaluable</span>';
+          return "<tr><td>" + esc(r.text) + ' <span class="small muted">' + esc((r.book || "") + " · " + (r.event || "") +
+            (r.start ? " · " + when(r.start) : "") + (r.max_stake ? " · mise max " + r.max_stake + " €" : "")) + "</span>" +
+            (r.method ? '<br><span class="small muted">' + esc(r.method) + "</span>" : (r.reason ? '<br><span class="small muted">' + esc(r.reason) + "</span>" : "")) +
+            '</td><td class="num mono">' + (r.orig_odds ? '<span class="muted">' + n2(r.orig_odds) + "</span> → " : "") + n2(r.odds) +
+            '</td><td class="num mono">' + (r.fair_odds ? n2(r.fair_odds) : "–") + '</td><td class="num mono">' +
+            (r.ev != null ? pct(r.ev) + "<br>" : "") + verdict + "</td></tr>";
+        }).join("") + "</tbody></table></div>";
+    }
+
+    // buteurs football : cote du modèle si le joueur est titulaire
+    var fb = d.foot_buteurs || {}, fr2 = fb.rows || [], fsu = fb.suivi || {};
+    $("foot-sec").hidden = !fr2.length && !fsu.n_model;
+    if (fr2.length || fsu.n_model) {
+      var q0 = function (x) { return x == null ? "–" : Math.round(100 * x) + " %"; };
+      var posL = { D: "déf.", M: "milieu", A: "ailier / m. off.", F: "attaquant" };
+      $("foot-note").textContent = "Cote juste si le joueur est titulaire (composition officielle ~1 h avant le match). " +
+        "Modèle (xG Understat) calé sur Pinnacle : à prendre si ≥ +" + Math.round(100 * (fb.model_min_ev || 0.12)) + " %.";
+      var fLabel = {}, fOrder = [];
+      fr2.forEach(function (r) { if (!fLabel[r.event]) { fLabel[r.event] = r.event; fOrder.push(r.event); } });
+      if (state.footEv !== "all" && !fLabel[state.footEv]) state.footEv = "all";
+      var chipsF = ["all"].concat(fOrder).map(function (k) {
+        return '<button class="chipbtn" type="button" data-footev="' + esc(k) + '" aria-pressed="' + String(state.footEv === k) + '">' +
+          (k === "all" ? "Tous les matchs" : esc(k)) + "</button>";
+      }).join("");
+      var rowsF = fr2.filter(function (r) {
+        if (state.footEv !== "all" && r.event !== state.footEv) return false;
+        if (state.q) { var h = (r.event + " " + r.player + " " + r.team).toLowerCase(); if (h.indexOf(state.q) < 0) return false; }
+        return true;
+      });
+      var capF = state.footEv === "all" && !state.q ? 60 : 400, moreF = rowsF.length - capF;
+      rowsF = rowsF.slice(0, capF);
+      var anyBook = fr2.some(function (r) { return (r.books || []).length; });
+      var lastF = null, ncol = anyBook ? 6 : 5;
+      var fsuTxt = fsu.n_model ? " Suivi : " + plural(fsu.n_model, "titulaire réglé", "titulaires réglés") + " sur " + plural(fsu.n_games, "match", "matchs") +
+        ", réussite prédite " + q0(fsu.pred_mean) + ", observée " + q0(fsu.obs_mean) + "." : " Suivi : démarre avec les premiers matchs joués.";
+      $("foot").innerHTML = '<div class="filters">' + chipsF + '</div><div class="tablebox"><table><thead><tr><th>Joueur</th>' +
+        '<th class="num" title="Titularisations récentes (les derniers matchs comptent davantage)">Titulaire</th><th class="num">Marque</th>' +
+        '<th class="num hide-sm">Cote juste</th><th class="num">À prendre si ≥</th>' + (anyBook ? '<th class="num">Cotes</th>' : "") + "</tr></thead><tbody>" +
+        (rowsF.map(function (r) {
+          var first = r.event !== lastF; lastF = r.event;
+          var short = { Unibet: "Uni", Winamax: "Wmx", Betclic: "Btc" };
+          var bk = (r.books || []).map(function (x) {
+            return '<span class="' + (x.hit ? "hit" : "muted") + '">' + esc(short[x.b] || x.b) + "&nbsp;" + n2(x.o) + "</span>";
+          }).join("<br>") || '<span class="muted">–</span>';
+          return (first ? '<tr class="ev-first"><td colspan="' + ncol + '"><b>' + esc(r.event) + '</b> <span class="small muted mono">' + esc(when(r.start)) + "</span></td></tr>" : "") +
+            '<tr data-fair="' + Number(r.fair_odds).toFixed(3) + '" data-what="' + esc(r.player + " — Buteur (si titulaire) · " + r.event) + '"><td>' + esc(r.player) +
+            ' <span class="small muted">' + esc(r.team) + (posL[r.pos] ? " · " + posL[r.pos] : "") + "</span>" +
+            '</td><td class="num mono">' + q0(r.p_start) + '</td><td class="num mono">' + q0(r.model_prob) +
+            '</td><td class="num mono hide-sm">' + n2(r.fair_odds) + '</td><td class="num"><span class="take">' + n2(r.min_odds) + "</span></td>" +
+            (anyBook ? '<td class="num mono">' + bk + "</td>" : "") + "</tr>";
+        }).join("") || '<tr><td colspan="' + ncol + '" class="muted">Aucun joueur pour cette recherche.</td></tr>') +
+        "</tbody></table></div>" + (moreF > 0 ? '<p class="small muted">' + moreF + " autres joueurs : choisissez un match ou cherchez un nom.</p>" : "") +
+        '<p class="small muted">Composition probable d\'après les derniers matchs : ne jouez qu\'une fois la composition officielle connue. ' +
+        "Un joueur absent rend le pari remboursé ; un remplaçant qui entre en jeu, non." + esc(fsuTxt) + "</p>";
+      Array.prototype.forEach.call(document.querySelectorAll("[data-footev]"), function (b) {
+        b.onclick = function () { state.footEv = b.getAttribute("data-footev"); render(); };
       });
     }
 

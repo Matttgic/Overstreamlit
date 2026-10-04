@@ -915,3 +915,152 @@ def test_phone_sonde_auto_offline(monkeypatch, tmp_path):
     assert real["id"] and all(T.site_autorise(p["url"]) for p in real["pages"])
     assert all(re.compile(r["regex"]) for r in real["suivre"] if "regex" in r)
     assert {r["depuis"] for r in real["suivre"]} <= {T._nom(p["name"]) for p in real["pages"]}
+
+
+def test_score_grid_matches_inputs_and_player_legs():
+    """Grille calée sur 1N2 + total ; joueurs : formule de Poisson retrouvée, combinés cohérents."""
+    import numpy as np
+    from sportpred.models import score_grid as G
+    g, info = G.fit_grid(0.55, 0.24, 0.55)
+    h, d, a = G.outcome_probs(g)
+    assert abs(h - 0.55) < 1e-4 and abs(d - 0.24) < 1e-4 and abs(G.p_over(g, 2.5) - 0.55) < 1e-4
+    p1 = G.players_prob(g, [("h", 0.3, 1)], og=0.03)
+    assert abs(p1 - (1 - np.exp(-info["lam_h"] * 0.97 * 0.3))) < 0.01          # ρ ne touche que les petits scores
+    win_and = G.players_prob(g, [("h", 0.3, 1)], og=0.03, cond=lambda x, y: x > y)
+    assert win_and < min(p1, h) and win_and > p1 * h                           # corrélation positive
+    assert G.players_prob(g, [("h", 0.3, 2)], og=0.03) < p1
+    both = G.players_prob(g, [("h", 0.3, 1), ("a", 0.4, 1)], og=0.03)
+    assert both < p1
+
+
+def test_football_scorer_features_no_leak_and_prediction():
+    """Variables du modèle football : seulement les matchs antérieurs ; part des penaltys par club."""
+    import numpy as np
+    from sportpred.models import football_scorers as M
+    rows = []
+    for k in range(6):                                  # 6 matchs, le joueur 1 marque au dernier
+        for pid, pos in ((1, "FW"), (2, "MC"), (3, "DC")):
+            rows.append({"match_id": k, "date": pd.Timestamp("2026-08-01") + pd.Timedelta(days=7 * k), "league": "Ligue_1",
+                         "season": 2026, "team_id": 10 if k < 4 or pid != 1 else 20, "team": "A", "opp": "B", "home": True,
+                         "team_goals": 1, "opp_goals": 0, "player_id": pid, "player": f"J{pid}", "position": pos,
+                         "pos_order": 1, "time": 90, "goals": int(pid == 1 and k == 5), "own_goals": 0, "shots": 1,
+                         "xg": 0.3, "npxg": 0.3 if pid == 1 else 0.05, "pen_att": int(pid == 1 and k == 1),
+                         "pen_goals": 0, "pen_xg": 0.76 * (pid == 1 and k == 1), "assists": 0, "xa": 0.0,
+                         "key_passes": 0, "starter": True})
+    p = M.Params()
+    P = M.prepare(pd.DataFrame(rows), p)
+    last = P[(P["player_id"] == 1) & (P["match_id"] == 5)].iloc[0]
+    assert last["S_npg"] == 0                            # le but du match n'entre pas dans ses variables
+    assert last["S_pen"] == 0                            # nouveau club (transfert) : part des penaltys repart de 0
+    early = P[(P["player_id"] == 1) & (P["match_id"] == 3)].iloc[0]
+    assert early["S_pen"] > 0
+    p.priors = M.fit_priors(P)
+    p.beta = np.array([1.0, 1.0, 0, 0, 0, 0, 0])
+    X = M.features(P, p)
+    s = M.predict_shares(X, p.beta)
+    assert np.allclose(pd.Series(s).groupby([X["match_id"].to_numpy(), X["home"].to_numpy()]).sum(), 1.0)
+    assert X.loc[X["player_id"] == 1, "rate90"].min() > X.loc[X["player_id"] == 3, "rate90"].max()
+
+
+def test_football_link_pinnacle_provisional_times():
+    """Understat met des heures provisoires (13 h pour toute la journée) : appariement par noms."""
+    from sportpred.live import football_scorers as L
+    pin = pd.DataFrame([
+        {"event": "Paris Saint-Germain - Le Mans", "home": "Paris Saint-Germain", "away": "Le Mans", "league": "France - Ligue 1",
+         "start": pd.Timestamp("2026-10-10 18:45", tz="UTC"), "market": "moneyline", "selection": s, "line": None, "fair_prob": p}
+        for s, p in (("Paris Saint-Germain", 0.80), ("Nul", 0.13), ("Le Mans", 0.07))] + [
+        {"event": "Paris Saint-Germain - Le Mans", "home": "Paris Saint-Germain", "away": "Le Mans", "league": "France - Ligue 1",
+         "start": pd.Timestamp("2026-10-10 18:45", tz="UTC"), "market": "total", "selection": "Plus", "line": 3.5, "fair_prob": 0.5}])
+    fx = pd.DataFrame([{"match_id": 7, "date": pd.Timestamp("2026-10-10 13:00", tz="UTC"), "league": "Ligue_1", "season": 2026,
+                        "played": False, "home_id": 1, "home": "Paris Saint Germain", "away_id": 2, "away": "Le Mans"},
+                       {"match_id": 8, "date": pd.Timestamp("2026-10-10 13:00", tz="UTC"), "league": "Ligue_1", "season": 2026,
+                        "played": False, "home_id": 3, "home": "Lens", "away_id": 4, "away": "Lyon"}])
+    g = L.link_pinnacle(pin, fx)
+    assert len(g) == 1 and g["match_id"].iloc[0] == 7 and g["lam_h"].iloc[0] > 2 * g["lam_a"].iloc[0]
+
+
+def _pin_match(home="Lens", away="Lyon", start="2026-10-09T18:45:00Z"):
+    t = pd.Timestamp(start)
+    rows = [("moneyline", home, None, 0.45), ("moneyline", "Nul", None, 0.27), ("moneyline", away, None, 0.28),
+            ("total", "Plus", 2.5, 0.52), ("total", "Moins", 2.5, 0.48),
+            ("Team Props: Both Teams To Score?", "Yes", None, 0.55), ("Team Props: Both Teams To Score?", "No", None, 0.45),
+            ("Team Props: Both Teams To Score/Winner", f"Yes & {home}", None, 0.24),
+            ("Team Props: Winner/Total Goals", f"{home} & Over 2.5", None, 0.27)]
+    return pd.DataFrame([{"event": f"{home} - {away}", "home": home, "away": away, "start": t, "sport": "football",
+                          "league": "France - Ligue 1", "market": m, "selection": s, "line": ln, "fair_prob": p}
+                         for m, s, ln, p in rows])
+
+
+def test_boost_labels_and_pricing():
+    """Libellés de boosts -> jambes ; prix Pinnacle direct, combinés Pinnacle, grille, joueur."""
+    from sportpred.live import boosts as B
+    assert B.clean_text("CB - Lens gagne et Wesley Saïd marque (2,10 -> 2,50 / Mise max 25€) - 90 Mins") == "Lens gagne et Wesley Saïd marque"
+    assert B.parse_legs("Le PSG gagne et Dembélé marque") == [{"kind": "win", "who": "psg"}, {"kind": "scores", "who": "dembele"}]
+    assert B.parse_legs("Plus de 2,5 buts dans le match") == [{"kind": "over", "who": "", "line": 2.5}]
+    assert B.parse_legs("Leclerc termine sur le podium") is None
+    pin = _pin_match()
+    players = pd.DataFrame([{"event": "Lens - Lyon", "team": "Lens", "player": "Wesley Saïd", "k": "wesley said", "share": 0.25}])
+    boosts = pd.DataFrame([
+        {"book": "Unibet", "event": "Lens vs Lyon", "start": pd.Timestamp("2026-10-09T18:45:00Z"), "text": t, "odds": o}
+        for t, o in (("Victoire de Lens", 2.5), ("Lens gagne et les deux équipes marquent", 4.0),
+                     ("L'OL gagne avec 2 buts d'écart ou plus", 9.0), ("Lens gagne et Wesley Saïd marque", 5.0),
+                     ("Mbappé marque", 3.0))])
+    r = B.evaluate(boosts, pin, players).set_index("text")
+    assert r.loc["Victoire de Lens", "method"] == "Pinnacle" and abs(r.loc["Victoire de Lens", "fair_prob"] - 0.45) < 1e-9
+    assert r.loc["Victoire de Lens", "verdict"] == "à jouer"                          # 0,45 × 2,5 = +12,5 %
+    assert abs(r.loc["Lens gagne et les deux équipes marquent", "fair_prob"] - 0.24) < 1e-9    # combiné publié
+    assert r.loc["L'OL gagne avec 2 buts d'écart ou plus", "method"] == "grille Pinnacle"
+    j = r.loc["Lens gagne et Wesley Saïd marque"]
+    assert "buteurs" in j["method"] and 0.05 < j["fair_prob"] < 0.45
+    assert pd.isna(r.loc["Mbappé marque", "fair_prob"]) and r.loc["Mbappé marque", "reason"]
+
+
+def test_boost_and_football_scorer_settlement(monkeypatch):
+    """Cotes boostées réglées avec le score (ESPN) et les buteurs (Understat) ; buteurs football
+    « si titulaire » : remplaçant -> non joué ; NHL ne touche pas aux paris football."""
+    from sportpred.live import boosts as B
+    from sportpred.live import football_scorers as F
+    from sportpred.live import nhl_scorers as N
+    from sportpred.live import results as R
+    now = pd.Timestamp("2026-10-11T12:00:00Z")
+    start = "2026-10-09T18:45:00+00:00"
+    monkeypatch.setattr(R, "league_path", lambda lg: "soccer/fra.1")
+    monkeypatch.setattr(R, "scoreboard", lambda path, day: [
+        {"event_id": "1", "start": pd.Timestamp(start), "home": "Lens", "away": "Lyon", "completed": True,
+         "home_score": 2, "away_score": 1, "winner": "home"}])
+    uh = pd.DataFrame([{"player_id": 7, "player": "Wesley Saïd", "date": pd.Timestamp("2026-10-09 18:45"), "goals": 1, "starter": True},
+                       {"player_id": 8, "player": "Remplaçant X", "date": pd.Timestamp("2026-10-09 18:45"), "goals": 1, "starter": False}])
+    hist = [
+        {"sport": "football", "league": "France - Ligue 1", "event": "Lens - Lyon", "start": start, "odds": 5.0, "status": "clôturé",
+         "legs": [{"kind": "win", "side": "h"}, {"kind": "scores", "side": "h", "player_id": 7, "k": 1}]},
+        {"sport": "football", "league": "France - Ligue 1", "event": "Lens - Lyon", "start": start, "odds": 3.0, "status": "clôturé",
+         "legs": [{"kind": "btts"}, {"kind": "over", "line": 3.5}]},
+        {"sport": "football", "event": "Lens - Lyon", "start": start, "odds": 4.0, "stat": "Buts", "line": 0.5, "player_id": 7, "player": "Wesley Saïd"},
+        {"sport": "football", "event": "Lens - Lyon", "start": start, "odds": 4.0, "stat": "Buts", "line": 0.5, "player_id": 8, "player": "Remplaçant X"},
+    ]
+    hist = N.settle_player_props(hist, pd.DataFrame({"name": ["x"], "date": [pd.Timestamp("2026-10-09")], "player_id": [7], "goals": [0]}), now)
+    assert all("result" not in h for h in hist)                     # le NHL ignore le football
+    hist = F.settle(hist, now, uh)
+    hist = B.settle(hist, now, uh)
+    assert hist[0]["result"] == "gagné" and hist[0]["profit_units"] == 4.0          # Lens gagne 2-1 et Saïd marque
+    assert hist[1]["result"] == "perdu"                                             # 3 buts : pas plus de 3,5
+    assert hist[2]["result"] == "gagné" and hist[3]["result"] == "non joué (pas titulaire)"
+
+
+def test_football_compare_books_lines():
+    """Cotes Unibet « Buteur », « Buteur 2+ » face au modèle (Poisson pour 2+)."""
+    import numpy as np
+    from sportpred.live import football_scorers as F
+    from sportpred.live import unibet as U
+    assert U._player_name("Guseynov, Aykhan") == "Aykhan Guseynov"
+    t = pd.Timestamp("2026-10-09T18:45:00Z")
+    pred = pd.DataFrame([{"event": "Lens - Lyon", "start": t, "team": "Lens", "player": "Wesley Saïd", "k": "wesley said",
+                          "player_id": 7, "p_start": 0.95, "model_prob": 0.40}])
+    books = pd.DataFrame([{"book": "Unibet", "ub_event_id": 1, "ub_event": "Lens vs Lyon", "start": t, "player": "Wesley Said",
+                           "stat": "Buts", "line": ln, "odds": o} for ln, o in ((0.5, 3.0), (1.5, 9.0))])
+    c = F.compare_books(pred, books).set_index("line")
+    assert abs(c.loc[0.5, "fair_prob"] - 0.40) < 1e-9 and abs(c.loc[0.5, "ev"] - 0.20) < 1e-9
+    mu = -np.log(0.6)
+    assert abs(c.loc[1.5, "fair_prob"] - (1 - np.exp(-mu) * (1 + mu))) < 1e-9
+    vb = F.book_value_bets(c.reset_index())
+    assert list(vb["selection"]) == ["Wesley Said marque (si titulaire)"]          # orthographe du bookmaker

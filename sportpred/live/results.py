@@ -96,8 +96,8 @@ def _pick_side(h: dict, home: str, away: str) -> str | None:
 def settle(hist: list[dict], now: pd.Timestamp, cache: dict | None = None) -> list[dict]:
     cache = {} if cache is None else cache
     for h in hist:
-        if h.get("result") or h.get("status") == "en attente" or h.get("stat"):
-            continue                    # paris joueurs : réglés avec les feuilles de match NHL
+        if h.get("result") or h.get("status") == "en attente" or h.get("stat") or h.get("legs"):
+            continue                    # paris joueurs / cotes boostées : règlements dédiés
         start = pd.Timestamp(h["start"])
         if now < start + pd.Timedelta(hours=3):
             continue

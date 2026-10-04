@@ -512,7 +512,7 @@ def settle_player_props(hist: list[dict], nhl: pd.DataFrame, now: pd.Timestamp) 
         return hist
     nhl = nhl.assign(k=nhl["name"].map(norm))
     for h in hist:
-        if not h.get("stat") or h.get("result"):
+        if not h.get("stat") or h.get("result") or h.get("sport") == "football":
             continue
         start = pd.Timestamp(h["start"])
         start = start.tz_localize("UTC") if start.tzinfo is None else start

@@ -51,3 +51,33 @@ EV = p × S × (o − 1) − (1 − p) × S + (1 − p) × v × S
   fermer les comptes « chasseurs de bonus ».
 - Jouer de façon responsable : l'intérêt d'un bonus ne justifie pas d'augmenter ses
   mises habituelles.
+
+## 5. Évaluation automatique des cotes boostées (tableau de bord, section « Cotes boostées »)
+
+Code : `sportpred/live/boosts.py`, grille des scores `sportpred/models/score_grid.py`.
+
+1. **Lecture des boosts** : Unibet.fr (page publique `/cotes-boostees`, lue par GitHub : cote
+   d'origine, cote boostée et mise maximale sont dans le libellé, ex. « Roosters gagne et X
+   marque un essai (2,10 -> 2,50 / Mise max 25 €) ») ; Winamax et Betclic lus par le téléphone.
+2. **Libellé → jambes** : « X gagne », « victoire de X », « match nul », « X ne perd pas »,
+   « les deux équipes marquent », « plus / moins de N,5 buts », « au moins k buts », « X gagne
+   avec k buts d'écart », « X gagne sans encaisser de but », « X marque » (équipe ou joueur),
+   « X marque k buts ou + », « doublé », reliées par « et » / « & ». Surnoms courants reconnus
+   (OM, OL, LOSC, PSG, Barça, Juve…). Libellé non reconnu → « non évaluable » (jamais deviné).
+3. **Probabilité juste**, dans cet ordre :
+   - le même pari chez Pinnacle (vainqueur, nul, total, les deux marquent) ;
+   - un combiné que Pinnacle publie lui-même (victoire + les deux marquent, victoire / nul +
+     plus ou moins de 2,5, les deux marquent + plus de 2,5, écart, victoire sans encaisser,
+     buts d'une équipe) ;
+   - sinon la **grille des scores** : deux lois de Poisson avec correction de Dixon-Coles,
+     calées sur P(dom), P(nul) et les totaux Pinnacle ; avec un joueur, sa part des buts de
+     l'équipe vient du modèle buteurs ([S12](S12_buteurs_football.md), « si titulaire ») et
+     P(joueur marque | l'équipe marque k buts) = 1 − (1 − 0,97·s)^k.
+4. **Verdict** : « à jouer » si cote boostée ≥ cote juste × 1,03 (Pinnacle) ou × 1,08 (grille
+   ou modèle) ; ajouté à « À jouer maintenant » avec une mise Kelly ¼ plafonnée à 2 % de la
+   bankroll **et** à la mise maximale du boost.
+
+Contrôle de la grille (03/10/2026, 16 matchs des 5 grands championnats) : face aux combinés
+publiés par Pinnacle, écart absolu moyen 0,4 à 1,7 point de probabilité (score exact, victoire
++ total, écart, nombre de buts) ; « les deux équipes marquent » sous-estimé de 1,8 point en
+moyenne, d'où la priorité donnée aux prix Pinnacle quand ils existent.
