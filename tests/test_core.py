@@ -998,6 +998,8 @@ def test_boost_labels_and_pricing():
     assert B.parse_legs("Le PSG gagne et Dembélé marque") == [{"kind": "win", "who": "psg"}, {"kind": "scores", "who": "dembele"}]
     assert B.parse_legs("Plus de 2,5 buts dans le match") == [{"kind": "over", "who": "", "line": 2.5}]
     assert B.parse_legs("Leclerc termine sur le podium") is None
+    assert B.parse_legs("Plus de 220,5 points dans le match") == [{"kind": "over", "who": "", "line": 220.5}]
+    assert B.parse_legs("Moins de 21,5 jeux") == [{"kind": "under", "who": "", "line": 21.5}]
     pin = _pin_match()
     players = pd.DataFrame([{"event": "Lens - Lyon", "team": "Lens", "player": "Wesley Saïd", "k": "wesley said", "share": 0.25}])
     boosts = pd.DataFrame([
