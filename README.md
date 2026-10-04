@@ -44,6 +44,12 @@ Actions, après activation de GitHub Pages — voir [docs/12](docs/12_plan_autom
   les cotes joueurs d'Unibet.fr, et de Winamax et Betclic (lues par le téléphone Android,
   voir [telephone/](telephone/README.md)), sont comparées automatiquement et celles qui
   passent le seuil s'ajoutent aux paris à jouer.
+- **Buteurs football** (5 grands championnats) : cote juste « si titulaire » de chaque joueur
+  probable, modèle xG (Understat) calé sur Pinnacle ([S12](docs/strategies/S12_buteurs_football.md)) ;
+  cotes buteurs d'Unibet.fr comparées automatiquement.
+- **Cotes boostées** : chaque boost Unibet / Winamax / Betclic traduit en paris élémentaires et
+  comparé à sa cote juste (Pinnacle, grille des scores, modèle buteurs) : « à jouer », « limite »
+  ou « à éviter » ([S09](docs/strategies/S09_bonus_freebets_cotes_boostees.md)).
 - **Suivi** : CLV de chaque pari proposé. Notifications Telegram en option.
 
 ## Ce que contient le dépôt

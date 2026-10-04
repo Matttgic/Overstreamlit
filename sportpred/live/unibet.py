@@ -116,3 +116,70 @@ def nhl_player_odds(now: pd.Timestamp, horizon_hours: float = 36, max_events: in
         time.sleep(pause)
     frames = [f for f in frames if not f.empty]
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
+# ------------------------------------------------------------------ buteurs football
+FOOT_PATHS = {"Ligue_1": "/paris-football/france/ligue-1-mcdonalds", "EPL": "/paris-football/angleterre/premier-league",
+              "La_liga": "/paris-football/espagne/laliga", "Bundesliga": "/paris-football/allemagne/bundesliga-1",
+              "Serie_A": "/paris-football/italie/serie-a"}
+_FOOT_MK = {"Buteur": 0.5, "Buteur 2+": 1.5, "Buteur 3+": 2.5}
+
+
+def _player_name(s: str) -> str:
+    """« Guseynov, Aykhan » -> « Aykhan Guseynov »."""
+    s = str(s).strip()
+    if "," in s:
+        last, first = [x.strip() for x in s.split(",", 1)]
+        return f"{first} {last}".strip()
+    return s
+
+
+def parse_football_scorers(state: dict) -> pd.DataFrame:
+    """Cotes « Buteur » (à tout moment), « Buteur 2+ », « Buteur 3+ » d'une page de match."""
+    rows = []
+    for ev in (state or {}).get("EventsDetail", {}).get("events", []):
+        for g in ev.get("groupedMarkets", []):
+            if not str(g.get("description", "")).startswith(("Buteurs - 90", "Buteurs Multiples - 90")):
+                continue
+            for mk in g.get("markets", []):
+                line = _FOOT_MK.get(str(mk.get("description", "")).strip())
+                if line is None or mk.get("suspended"):
+                    continue
+                for o in mk.get("outcomes", []):
+                    if o.get("suspended") or o.get("hidden") or o.get("price") in (None, ""):
+                        continue
+                    try:
+                        odds = float(str(o["price"]).replace(",", "."))
+                    except ValueError:
+                        continue
+                    if odds > 1:
+                        rows.append({"ub_event_id": int(ev["id"]), "ub_event": ev.get("description", ""),
+                                     "start": pd.Timestamp(ev.get("parsedStart")), "stat": "Buts", "line": line,
+                                     "player": _player_name(o.get("description", "")), "odds": odds, "book": "Unibet"})
+    return pd.DataFrame(rows)
+
+
+def football_scorer_odds(now: pd.Timestamp, horizon_hours: float = 36, leagues=None, max_events: int = 40,
+                         pause: float = 1.0) -> pd.DataFrame:
+    """Cotes buteurs Unibet.fr des matchs des 5 grands championnats dans les `horizon_hours` heures."""
+    frames = []
+    n = 0
+    for lg, path in FOOT_PATHS.items():
+        if leagues and lg not in leagues:
+            continue
+        ev = list_events(path)
+        if ev.empty:
+            continue
+        ev = ev[(ev["start"] > now) & (ev["start"] < now + pd.Timedelta(hours=horizon_hours))]
+        for url in ev.sort_values("start")["url"]:
+            if n >= max_events:
+                break
+            html = _get(url)
+            st = _state(html) if html else None
+            if st:
+                f = parse_football_scorers(st)
+                if not f.empty:
+                    frames.append(f.assign(league=lg))
+            n += 1
+            time.sleep(pause)
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()

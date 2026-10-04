@@ -37,6 +37,14 @@ jobs:
           key: nhl-players-${{ github.run_id }}
           restore-keys: nhl-players-
 
+      # historique joueur-match football (Understat, buteurs) : saison passée gardée en cache,
+      # seuls les nouveaux matchs de la saison en cours sont téléchargés
+      - uses: actions/cache@v4
+        with:
+          path: data/raw/understat
+          key: understat-${{ github.run_id }}
+          restore-keys: understat-
+
       - name: Récupérer l'historique (branche dashboard-data)
         run: |
           if git fetch --depth=1 origin dashboard-data; then

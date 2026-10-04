@@ -53,4 +53,38 @@ def load(now: pd.Timestamp, url: str = RAW, max_age_hours: float = 4.0) -> tuple
         payload = json.loads(gzip.decompress(r.content))
     except (OSError, ValueError):
         return pd.DataFrame(), {"status": "fichier illisible"}
-    return parse(payload, now, max_age_hours)
+    rows = [x for x in payload.get("rows") or [] if x.get("sport", "hockey") == "hockey"]   # NHL seulement
+    return parse({**payload, "rows": rows}, now, max_age_hours)
+
+
+def load_boosts(now: pd.Timestamp, url: str = RAW, max_age_hours: float = 6.0) -> pd.DataFrame:
+    """Cotes boostées Winamax / Betclic envoyées par le téléphone (champ « boosts » du fichier)."""
+    try:
+        r = requests.get(url, timeout=20)
+        payload = json.loads(gzip.decompress(r.content)) if r.status_code == 200 else {}
+    except (requests.RequestException, OSError, ValueError):
+        return pd.DataFrame()
+    try:
+        at = pd.Timestamp(payload.get("at"))
+        at = at.tz_localize("UTC") if at.tzinfo is None else at.tz_convert("UTC")
+    except (TypeError, ValueError):
+        return pd.DataFrame()
+    b = pd.DataFrame(payload.get("boosts") or [])
+    if b.empty or now - at > pd.Timedelta(hours=max_age_hours) or not {"book", "text", "odds"} <= set(b.columns):
+        return pd.DataFrame()
+    b["start"] = pd.to_datetime(b.get("start"), utc=True, errors="coerce")
+    return b[(b["start"].isna()) | (b["start"] > now)].reset_index(drop=True)
+
+
+def load_football(now: pd.Timestamp, url: str = RAW, max_age_hours: float = 6.0) -> pd.DataFrame:
+    """Cotes buteurs football Winamax / Betclic du téléphone (lignes « sport » = football)."""
+    try:
+        r = requests.get(url, timeout=20)
+        payload = json.loads(gzip.decompress(r.content)) if r.status_code == 200 else {}
+    except (requests.RequestException, OSError, ValueError):
+        return pd.DataFrame()
+    rows = [x for x in payload.get("rows") or [] if x.get("sport") == "football"]
+    if not rows:
+        return pd.DataFrame()
+    df, meta = parse({**payload, "rows": rows}, now, max_age_hours)
+    return df

@@ -21,6 +21,8 @@ import numpy as np
 import pandas as pd
 
 from ..betting.kelly import kelly_fraction
+from . import boosts as boosts_mod
+from . import football_scorers as foot_mod
 from . import nhl_scorers as nhl_mod
 from . import fr_phone, oddsapi, pinnacle, unibet
 from . import results as results_mod
@@ -252,6 +254,9 @@ def update_history(hist: list[dict], picks: pd.DataFrame, pin: pd.DataFrame,
             if v is not None and not (isinstance(v, float) and np.isnan(v)):
                 hist[-1][k] = (int(v) if k == "player_id" else float(v) if k == "line"
                                else bool(v) if k == "reg_only" else v)
+        legs = getattr(r, "legs", None)
+        if isinstance(legs, list) and legs:                            # cote boostée : jambes pour le règlement
+            hist[-1]["legs"] = legs
     latest = {}
     if not pin.empty:
         for r in pin.itertuples():
@@ -468,7 +473,20 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
     except Exception as e:  # noqa: BLE001 — le bloc NHL ne doit jamais empêcher la mise à jour du site
         print("bloc NHL indisponible :", e)
         nhl, nhl_vb, nhl_hist = {}, pd.DataFrame(), pd.DataFrame()
-    frames = [value_from_oddsapi(pin, fr, cfg), value_from_football_data(cfg), nhl_vb]
+    try:
+        fbooks = [unibet.football_scorer_odds(now, cfg.horizon_hours), fr_phone.load_football(now)]
+        fbooks = pd.concat([b for b in fbooks if b is not None and not b.empty], ignore_index=True) \
+            if any(b is not None and not b.empty for b in fbooks) else pd.DataFrame()
+        foot, foot_pred, foot_vb = foot_mod.block(pin, out_dir, now, fbooks)
+    except Exception as e:  # noqa: BLE001 — Understat ou le modèle ne doivent pas bloquer le site
+        print("bloc buteurs football indisponible :", e)
+        foot, foot_pred, foot_vb = {}, pd.DataFrame(), pd.DataFrame()
+    try:
+        boosts, boost_vb = boosts_mod.block(pin, foot_pred, fr_phone.load_boosts(now))
+    except Exception as e:  # noqa: BLE001
+        print("cotes boostées indisponibles :", e)
+        boosts, boost_vb = {}, pd.DataFrame()
+    frames = [value_from_oddsapi(pin, fr, cfg), value_from_football_data(cfg), nhl_vb, boost_vb, foot_vb]
     vb = pd.concat([f for f in frames if not f.empty], ignore_index=True) if any(
         not f.empty for f in frames) else pd.DataFrame()
     if not vb.empty:
@@ -477,6 +495,9 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
         vb = vb.sort_values("ev", ascending=False).drop_duplicates(["event", "market"])
         vb["stake_pct"] = [_stake(p, o, cfg) for p, o in zip(vb["fair_prob"], vb["odds"])]
         vb["stake_eur"] = (vb["stake_pct"] / 100 * cfg.bankroll).round(2)
+        if "max_stake" in vb:                          # cote boostée : mise plafonnée par l'opérateur
+            cap = pd.to_numeric(vb["max_stake"], errors="coerce")
+            vb["stake_eur"] = np.where(cap.notna(), np.minimum(vb["stake_eur"], cap), vb["stake_eur"])
         vb = vb.sort_values("start")
     wl = watchlist(pin, cfg)
     pr = watchlist(pin, cfg, props=True)
@@ -493,6 +514,13 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
         hist = nhl_mod.settle_player_props(hist, nhl_hist, now)
     except Exception as e:  # noqa: BLE001
         print("règlement des paris joueurs impossible :", e)
+    if any(h.get("sport") == "football" and (h.get("stat") or h.get("legs")) and not h.get("result") for h in hist):
+        try:
+            uhist = foot_mod.load_hist(now)
+            hist = foot_mod.settle(hist, now, uhist)
+            hist = boosts_mod.settle(hist, now, uhist)
+        except Exception as e:  # noqa: BLE001
+            print("règlement buteurs football / cotes boostées impossible :", e)
     hist = json_safe(hist)
     hist_path.write_text(json.dumps(hist, ensure_ascii=False, indent=0, allow_nan=False), encoding="utf-8")
 
@@ -520,6 +548,8 @@ def build(out_dir: Path, cfg: DashConfig | None = None, now: pd.Timestamp | None
         "props": rec(pr, ["sport", "league", "start", "event", "market_label", "selection_label",
                           "fair_odds", "min_odds", "pin_odds"]),
         "nhl_buteurs": nhl,
+        "foot_buteurs": foot,
+        "boosts": boosts,
         "tracking": {"n_picks": len(hist), "n_closed": len(clvs), "n_with_clv": len(clv_any),
                      "n_settled": len(settled), "profit_units": round(sum(settled), 2) if settled else None,
                      "roi_flat": round(sum(settled) / len(settled), 4) if settled else None,
