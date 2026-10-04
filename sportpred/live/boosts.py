@@ -77,8 +77,8 @@ def clean_text(txt: str) -> str:
 _LEGS = [
     ("btts", re.compile(r"^(?:les )?(?:deux|2) equipes (?:marquent|ont marque)(?: dans le match)?$")),
     ("draw", re.compile(r"^(?:match )?nul$")),
-    ("over", re.compile(r"^(?:plus de|\+ ?de|\+) ?(?P<n>\d+(?:[,.]5)?) buts?(?: dans le match)?$")),
-    ("under", re.compile(r"^(?:moins de|\- ?de) ?(?P<n>\d+(?:[,.]5)?) buts?(?: dans le match)?$")),
+    ("over", re.compile(r"^(?:plus de|\+ ?de|\+) ?(?P<n>\d+(?:[,.]5)?) (?:buts?|points?|jeux|sets?|essais?)(?: dans le match)?$")),
+    ("under", re.compile(r"^(?:moins de|\- ?de) ?(?P<n>\d+(?:[,.]5)?) (?:buts?|points?|jeux|sets?|essais?)(?: dans le match)?$")),
     ("atleast", re.compile(r"^au moins (?P<k>\d+) buts?(?: dans le match)?$")),
     ("win_nil", re.compile(r"^(?P<who>.+?) (?:gagne|s'impose|l'emporte) sans encaisser de buts?$")),
     ("margin", re.compile(r"^(?P<who>.+?) (?:gagne|s'impose|l'emporte) (?:avec|par) (?:au moins )?(?P<k>\d+) buts? d'ecart(?: ou (?:plus|\+))?$")),

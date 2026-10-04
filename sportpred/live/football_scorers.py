@@ -89,6 +89,59 @@ def link_pinnacle(pin: pd.DataFrame, fx: pd.DataFrame, max_hours: float = 60.0) 
     return pd.DataFrame(rows)
 
 
+ESPN_LEAGUE = {"EPL": "England - Premier League", "La_liga": "Spain - La Liga", "Bundesliga": "Germany - Bundesliga",
+               "Serie_A": "Italy - Serie A", "Ligue_1": "France - Ligue 1"}
+
+
+def espn_lineups(league: str, start: pd.Timestamp, home: str, away: str) -> dict | None:
+    """Compositions officielles ESPN (publiées ~1 h avant le match) : {'home': [noms], 'away': [noms]}
+    des titulaires, ou None si pas encore publiées / match introuvable."""
+    import requests
+
+    from . import results as R
+    from .matching import match_events
+    path = R.league_path(ESPN_LEAGUE.get(league, league))
+    if not path:
+        return None
+    rows = []
+    for dd in (-1, 0):
+        rows += R.scoreboard(path, (start + pd.Timedelta(days=dd)).normalize())
+    res = pd.DataFrame(rows).drop_duplicates("event_id") if rows else pd.DataFrame()
+    if res.empty:
+        return None
+    m = match_events(pd.DataFrame({"event_id": ["p"], "start": [start], "home": [home], "away": [away]}), res, max_hours=3)
+    if m.empty:
+        return None
+    try:
+        s = requests.get(f"{R.ESPN}/{path}/summary", params={"event": m.iloc[0]["right_id"]}, timeout=20).json()
+    except (requests.RequestException, ValueError):
+        return None
+    out = {}
+    for t in s.get("rosters") or []:
+        st = [(x.get("athlete") or {}).get("displayName") for x in t.get("roster") or [] if x.get("starter")]
+        side = t.get("homeAway")
+        if bool(m.iloc[0]["swapped"]):
+            side = {"home": "away", "away": "home"}.get(side, side)
+        if len(st) >= 11 and side in ("home", "away"):
+            out[side] = [x for x in st if x]
+    return out if len(out) == 2 else None
+
+
+def _match_names(names: list[str], cands: pd.DataFrame) -> set[int]:
+    """player_id des candidats correspondant aux noms ESPN (nom exact, sinon nom de famille unique)."""
+    ids = set()
+    k = cands["player"].map(norm)
+    for n in names:
+        nn = norm(n)
+        hit = cands[k == nn]
+        if hit.empty:
+            last = nn.split()[-1] if nn else ""
+            hit = cands[k.str.split().str[-1] == last] if last else hit
+        if len(hit) == 1:
+            ids.add(int(hit["player_id"].iloc[0]))
+    return ids
+
+
 def probable_players(hist: pd.DataFrame, team_id: int) -> pd.DataFrame:
     """Joueurs de l'équipe avec P(titulaire) d'après les N_RECENT derniers matchs."""
     h = hist[hist["team_id"] == team_id]
@@ -109,8 +162,11 @@ def probable_players(hist: pd.DataFrame, team_id: int) -> pd.DataFrame:
 
 
 def predict(pin: pd.DataFrame, now: pd.Timestamp, hist: pd.DataFrame | None = None,
-            fx: pd.DataFrame | None = None) -> pd.DataFrame:
-    """Une ligne par joueur probable des matchs à venir couverts par Pinnacle."""
+            fx: pd.DataFrame | None = None, lineups=None, lineup_hours: float = 2.5) -> pd.DataFrame:
+    """Une ligne par joueur probable des matchs à venir couverts par Pinnacle.
+    Compositions officielles (ESPN) lues pour les matchs des `lineup_hours` prochaines heures :
+    titulaire annoncé -> P(titulaire) = 1, sinon 0 ; `lineups` = fonction de remplacement (tests)."""
+    lineups = espn_lineups if lineups is None else lineups
     p, bench = load_model()
     hist = load_hist(now) if hist is None else hist
     if fx is None:                                   # calendrier sur la même fenêtre que les cotes Pinnacle
@@ -122,10 +178,22 @@ def predict(pin: pd.DataFrame, now: pd.Timestamp, hist: pd.DataFrame | None = No
     fut, meta = [], []
     names = hist.drop_duplicates("player_id", keep="last").set_index("player_id")["player"]
     for g in games.itertuples():
+        official = None
+        if pd.Timestamp(g.start) - now <= pd.Timedelta(hours=lineup_hours):
+            try:
+                official = lineups(g.league, pd.Timestamp(g.start), g.home, g.away)
+            except Exception as e:  # noqa: BLE001 — ESPN indisponible : composition probable
+                print("composition ESPN illisible :", e)
         for side, tid, lam in (("home", g.home_id, g.lam_h), ("away", g.away_id, g.lam_a)):
             pl = probable_players(hist, tid)
             if pl.empty:
                 continue
+            pl["lineup"] = "probable"
+            if official:
+                ids = _match_names(official[side], pl.assign(player=pl["player_id"].map(names)))
+                if len(ids) >= 9:                          # au moins 9 titulaires reconnus sur 11
+                    pl["p_start"] = pl["player_id"].isin(ids).astype(float)
+                    pl["lineup"] = "officielle"
             team = g.home if side == "home" else g.away
             for r in pl.itertuples():
                 fut.append({"match_id": -(g.match_id * 2 + (side == "home")), "date": g.start.tz_localize(None),
@@ -135,7 +203,7 @@ def predict(pin: pd.DataFrame, now: pd.Timestamp, hist: pd.DataFrame | None = No
                             "time": 0, "is_future": True, "starter": False})
                 meta.append({"player_id": r.player_id, "fid": -(g.match_id * 2 + (side == "home")),
                              "p_start": r.p_start, "n_starts": r.n_starts, "n_games": r.n_games,
-                             "event": g.event, "start": g.start, "lam": lam})
+                             "event": g.event, "start": g.start, "lam": lam, "lineup": r.lineup})
     if not fut:
         return pd.DataFrame()
     base = hist.assign(is_future=False)
@@ -159,7 +227,7 @@ def predict(pin: pd.DataFrame, now: pd.Timestamp, hist: pd.DataFrame | None = No
     X = X[X["p_start"] >= MIN_P_START].copy()
     X["k"] = X["player"].map(norm)
     cols = ["event", "start", "league", "team", "player", "player_id", "grp_use", "p_start", "n_starts", "n_games",
-            "lam", "share", "model_prob", "np90", "pen_share", "k"]
+            "lam", "share", "model_prob", "np90", "pen_share", "k", "lineup"]
     return X[cols].rename(columns={"grp_use": "pos"}).sort_values(["start", "event", "model_prob"],
                                                                      ascending=[True, True, False])
 
@@ -196,7 +264,8 @@ def compare_books(pred: pd.DataFrame, books: pd.DataFrame, max_hours: float = 3.
             continue
         event = c["event"].iloc[int(np.argmax(sc))]
         pe = pred[pred["event"] == event]
-        x = g.assign(k=g["player"].map(norm)).merge(pe[["k", "player_id", "team", "p_start", "model_prob"]], on="k", how="inner")
+        pcols = ["k", "player_id", "team", "p_start", "model_prob"] + (["lineup"] if "lineup" in pe else [])
+        x = g.assign(k=g["player"].map(norm)).merge(pe[pcols], on="k", how="inner")
         if x.empty:
             continue
         x["event"], x["start"] = event, t
@@ -215,8 +284,9 @@ def book_value_bets(cmp: pd.DataFrame, max_odds: float = 10.0, min_odds: float =
             (cmp["odds"] >= min_odds) & (cmp["p_start"] >= VB_MIN_P_START)].copy()
     if v.empty:
         return pd.DataFrame()
-    lab = np.where(v["line"] == 0.5, v["player"] + " marque (si titulaire)",
-                   v["player"] + " : " + (v["line"] + 0.5).astype(int).astype(str) + "+ buts (si titulaire)")
+    cond = np.where(v.get("lineup", pd.Series("probable", index=v.index)) == "officielle", " (titulaire confirmé)", " (si titulaire)")
+    lab = np.where(v["line"] == 0.5, v["player"] + " marque",
+                   v["player"] + " : " + (v["line"] + 0.5).astype(int).astype(str) + "+ buts") + cond
     return pd.DataFrame({"sport": "football", "league": "Buteurs", "start": v["start"], "event": v["event"],
                          "market": "Buteur (si titulaire)", "selection": lab, "book": v["book"], "odds": v["odds"],
                          "fair_prob": v["fair_prob"], "fair_odds": 1 / v["fair_prob"], "ev": v["ev"], "pin_margin": np.nan,
@@ -294,7 +364,10 @@ def block(pin: pd.DataFrame, out_dir: Path, now: pd.Timestamp,
             bmap.setdefault((x.event, int(x.player_id)), []).append(
                 {"b": x.book, "o": float(x.odds), "hit": bool(x.ev >= x.threshold)})
     r["books"] = [bmap.get((e, int(p)), []) for e, p in zip(r["event"], r["player_id"])]
-    cols = ["event", "start", "league", "team", "player", "pos", "p_start", "model_prob", "fair_odds", "min_odds", "books"]
+    if "lineup" not in r:
+        r["lineup"] = "probable"
+    cols = ["event", "start", "league", "team", "player", "pos", "p_start", "model_prob", "fair_odds", "min_odds", "books",
+            "lineup"]
     summary = {"compared": int(len(cmp)), "value": int((cmp["ev"] >= cmp["threshold"]).sum()) if not cmp.empty else 0,
                "by_book": {bk: int(len(g)) for bk, g in cmp.groupby("book")} if not cmp.empty else {},
                "rejected": {k: int(v) for k, v in rejected.items()}}

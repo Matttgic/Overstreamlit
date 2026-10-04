@@ -442,15 +442,17 @@ footer { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; ga
           var bk = (r.books || []).map(function (x) {
             return '<span class="' + (x.hit ? "hit" : "muted") + '">' + esc(short[x.b] || x.b) + "&nbsp;" + n2(x.o) + "</span>";
           }).join("<br>") || '<span class="muted">–</span>';
-          return (first ? '<tr class="ev-first"><td colspan="' + ncol + '"><b>' + esc(r.event) + '</b> <span class="small muted mono">' + esc(when(r.start)) + "</span></td></tr>" : "") +
+          var off = r.lineup === "officielle";
+          return (first ? '<tr class="ev-first"><td colspan="' + ncol + '"><b>' + esc(r.event) + '</b> <span class="small muted mono">' + esc(when(r.start)) + "</span>" +
+              (off ? ' <span class="hit">compo officielle</span>' : "") + "</td></tr>" : "") +
             '<tr data-fair="' + Number(r.fair_odds).toFixed(3) + '" data-what="' + esc(r.player + " — Buteur (si titulaire) · " + r.event) + '"><td>' + esc(r.player) +
             ' <span class="small muted">' + esc(r.team) + (posL[r.pos] ? " · " + posL[r.pos] : "") + "</span>" +
-            '</td><td class="num mono">' + q0(r.p_start) + '</td><td class="num mono hide-sm">' + q0(r.model_prob) +
+            '</td><td class="num mono">' + (off ? "oui" : q0(r.p_start)) + '</td><td class="num mono hide-sm">' + q0(r.model_prob) +
             '</td><td class="num mono hide-sm">' + n2(r.fair_odds) + '</td><td class="num"><span class="take">' + n2(r.min_odds) + "</span></td>" +
             (anyBook ? '<td class="num mono">' + bk + "</td>" : "") + "</tr>";
         }).join("") || '<tr><td colspan="' + ncol + '" class="muted">Aucun joueur pour cette recherche.</td></tr>') +
         "</tbody></table></div>" + (moreF > 0 ? '<p class="small muted">' + moreF + " autres joueurs : choisissez un match ou cherchez un nom.</p>" : "") +
-        '<p class="small muted">Composition probable d\'après les derniers matchs : ne jouez qu\'une fois la composition officielle connue. ' +
+        '<p class="small muted">Composition probable d\'après les derniers matchs, remplacée par la composition officielle (ESPN) dès sa publication, ~1 h avant le match : ne jouez qu\'une fois les titulaires connus. ' +
         "Un joueur absent rend le pari remboursé ; un remplaçant qui entre en jeu, non." + esc(fsuTxt) + "</p>";
       Array.prototype.forEach.call(document.querySelectorAll("[data-footev]"), function (b) {
         b.onclick = function () { state.footEv = b.getAttribute("data-footev"); render(); };

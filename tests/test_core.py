@@ -998,6 +998,8 @@ def test_boost_labels_and_pricing():
     assert B.parse_legs("Le PSG gagne et Dembélé marque") == [{"kind": "win", "who": "psg"}, {"kind": "scores", "who": "dembele"}]
     assert B.parse_legs("Plus de 2,5 buts dans le match") == [{"kind": "over", "who": "", "line": 2.5}]
     assert B.parse_legs("Leclerc termine sur le podium") is None
+    assert B.parse_legs("Plus de 220,5 points dans le match") == [{"kind": "over", "who": "", "line": 220.5}]
+    assert B.parse_legs("Moins de 21,5 jeux") == [{"kind": "under", "who": "", "line": 21.5}]
     pin = _pin_match()
     players = pd.DataFrame([{"event": "Lens - Lyon", "team": "Lens", "player": "Wesley Saïd", "k": "wesley said", "share": 0.25}])
     boosts = pd.DataFrame([
@@ -1064,3 +1066,37 @@ def test_football_compare_books_lines():
     assert abs(c.loc[1.5, "fair_prob"] - (1 - np.exp(-mu) * (1 + mu))) < 1e-9
     vb = F.book_value_bets(c.reset_index())
     assert list(vb["selection"]) == ["Wesley Said marque (si titulaire)"]          # orthographe du bookmaker
+
+
+def test_football_predict_with_official_lineup():
+    """Composition officielle : titulaires annoncés seuls (P = 1), parts recalculées sur le vrai onze."""
+    from sportpred.live import football_scorers as F
+    rows = []
+    for k in range(6):
+        for tid, team, opp, home in ((1, "Lens", "Lyon", True), (2, "Lyon", "Lens", False)):
+            for j in range(13):                                   # 13 joueurs de champ, les 10 premiers titulaires
+                rows.append({"match_id": 100 + k, "date": pd.Timestamp("2026-08-01") + pd.Timedelta(days=7 * k),
+                             "league": "Ligue_1", "season": 2026, "team_id": tid, "team": team, "opp": opp, "home": home,
+                             "team_goals": 1, "opp_goals": 1, "player_id": tid * 100 + j, "player": f"{team} Joueur{j}",
+                             "position": ("FW" if j < 2 else "MC" if j < 6 else "DC") if j < 10 else "Sub",
+                             "pos_order": j, "time": 90 if j < 10 else 20, "goals": int(j == 0 and k % 2 == 0),
+                             "own_goals": 0, "shots": 2 if j < 2 else 0, "xg": 0.4 if j < 2 else 0.05,
+                             "npxg": 0.4 if j < 2 else 0.05, "pen_att": 0, "pen_goals": 0, "pen_xg": 0.0,
+                             "assists": 0, "xa": 0.0, "key_passes": 0, "starter": j < 10})
+    hist = pd.DataFrame(rows)
+    t = pd.Timestamp("2026-10-09T18:45:00Z")
+    pin = pd.DataFrame([{"event": "Lens - Lyon", "home": "Lens", "away": "Lyon", "league": "France - Ligue 1", "start": t,
+                         "market": m, "selection": s, "line": ln, "fair_prob": p}
+                        for m, s, ln, p in (("moneyline", "Lens", None, 0.45), ("moneyline", "Nul", None, 0.27),
+                                            ("moneyline", "Lyon", None, 0.28), ("total", "Plus", 2.5, 0.5))])
+    fx = pd.DataFrame([{"match_id": 999, "date": t, "league": "Ligue_1", "season": 2026, "played": False,
+                        "home_id": 1, "home": "Lens", "away_id": 2, "away": "Lyon"}])
+    # sans composition : 10 titulaires habituels, P(titulaire) ≈ 1 ; remplaçants à 0
+    base = F.predict(pin, t - pd.Timedelta(days=2), hist=hist, fx=fx, lineups=lambda *a: None)
+    assert set(base["lineup"]) == {"probable"} and len(base) == 20
+    # composition officielle : le remplaçant « Joueur10 » de Lens titularisé à la place de « Joueur0 »
+    lu = {"home": [f"Lens Joueur{j}" for j in range(1, 11)] + ["Gardien"], "away": [f"Lyon Joueur{j}" for j in range(10)] + ["G"]}
+    off = F.predict(pin, t - pd.Timedelta(hours=1), hist=hist, fx=fx, lineups=lambda *a: lu)
+    lens = off[off["team"] == "Lens"].set_index("player")
+    assert set(off["lineup"]) == {"officielle"} and "Lens Joueur0" not in lens.index and lens.loc["Lens Joueur10", "p_start"] == 1.0
+    assert abs(off.groupby("team")["share"].sum() - 1 / (1 + F.load_model()[1])).max() < 1e-6   # onze réel + banc moyen

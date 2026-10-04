@@ -52,7 +52,9 @@ Léger excès de 0,3 à 0,5 point en moyenne : prudent pour l'usage (cote juste 
 
 1. **Attendre la composition officielle** (~1 h avant le match). La cote juste ne vaut que si
    le joueur est titulaire. Un joueur absent rend le pari remboursé, mais un remplaçant qui
-   entre en jeu, non.
+   entre en jeu, non. Dès qu'ESPN publie les compositions (matchs des 2 h 30 suivantes), le site
+   les lit : badge « compo officielle », colonne « Titulaire » = oui, non-titulaires retirés,
+   parts recalculées sur le vrai onze, paris marqués « titulaire confirmé ».
 2. Jouer si la cote de l'opérateur est **≥ cote juste × 1,12** (colonne « À prendre si ≥ »).
    La marge est plus large que pour Pinnacle : erreur du modèle, compositions et blessures
    de dernière minute non modélisées.
@@ -66,8 +68,9 @@ Léger excès de 0,3 à 0,5 point en moyenne : prudent pour l'usage (cote juste 
 
 ## 5. Limites
 
-- Composition estimée, pas lue sur la feuille de match ; blessures et rotations de coupe
-  d'Europe non modélisées ; transferts récents : le joueur garde son taux xG mais sa part des
+- Composition estimée tant qu'ESPN ne l'a pas publiée (les mises à jour du site ne tombent pas
+  toujours dans l'heure qui précède le match) ; blessures et rotations de coupe d'Europe non
+  modélisées ; transferts récents : le joueur garde son taux xG mais sa part des
   penaltys repart de zéro dans son nouveau club.
 - Gardien adverse, contexte tactique, rôle exact (ailier gauche vs droit) non modélisés.
 - Pas de référence sharp : la calibration historique est la seule garantie. Si le suivi
