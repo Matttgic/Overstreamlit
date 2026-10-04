@@ -1,0 +1,76 @@
+{
+ "id": "2026-10-04-boosts-foot",
+ "at": "2026-10-04T18:08:39Z",
+ "pages": [
+  {
+   "name": "winamax_boosts",
+   "url": "https://www.winamax.fr/paris-sportifs/sports/100000",
+   "final_url": "https://www.winamax.fr/paris-sportifs/sports/100000",
+   "status": 200,
+   "bytes": 243372
+  },
+  {
+   "name": "winamax_foot",
+   "url": "https://www.winamax.fr/paris-sportifs/sports/1",
+   "final_url": "https://www.winamax.fr/paris-sportifs/sports/1",
+   "status": 200,
+   "bytes": 1811376
+  },
+  {
+   "name": "betclic_accueil",
+   "url": "https://www.betclic.fr/",
+   "final_url": "https://m.betclic.fr/",
+   "status": 200,
+   "bytes": 626777
+  },
+  {
+   "name": "betclic_boosts",
+   "url": "https://www.betclic.fr/cotes-boostees",
+   "final_url": "https://m.betclic.fr/cotes-boostees",
+   "status": 200,
+   "bytes": 626693
+  },
+  {
+   "name": "betclic_foot",
+   "url": "https://www.betclic.fr/football-s1",
+   "final_url": "https://m.betclic.fr/football-sfootball",
+   "status": 200,
+   "bytes": 402113
+  },
+  {
+   "name": "winamax_boost_match_0",
+   "url": "https://www.winamax.fr/paris-sportifs/match/1000243078",
+   "final_url": "https://www.winamax.fr/paris-sportifs/match/1000243078",
+   "status": 200,
+   "bytes": 228631
+  },
+  {
+   "name": "winamax_foot_match_0",
+   "url": "https://www.winamax.fr/paris-sportifs/match/68686138",
+   "final_url": "https://www.winamax.fr/paris-sportifs/match/68686138",
+   "status": 200,
+   "bytes": 771167
+  },
+  {
+   "name": "winamax_foot_match_1",
+   "url": "https://www.winamax.fr/paris-sportifs/match/68686140",
+   "final_url": "https://www.winamax.fr/paris-sportifs/match/68686140",
+   "status": 200,
+   "bytes": 312334
+  },
+  {
+   "name": "betclic_foot_match_0",
+   "url": "https://m.betclic.fr/football-sfootball/canada-premier-league-c24551/fc-supra-du-quebec-pacific-fc-m1237974041763840",
+   "final_url": "https://m.betclic.fr/football-sfootball/canada-premier-league-c24551/fc-supra-du-quebec-pacific-fc-m1237974041763840",
+   "status": 200,
+   "bytes": 327167
+  },
+  {
+   "name": "betclic_foot_match_1",
+   "url": "https://m.betclic.fr/football-sfootball/matchs-amicaux-c79/egypte-afrique-du-sud-m1241801850642456",
+   "final_url": "https://m.betclic.fr/football-sfootball/matchs-amicaux-c79/egypte-afrique-du-sud-m1241801850642456",
+   "status": 200,
+   "bytes": 105406
+  }
+ ]
+}
