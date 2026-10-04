@@ -129,8 +129,17 @@ _WM_BETS = [(re.compile(r"^Buteur$"), "Buts", None),
             (re.compile(r"^Marque (\d+) buts? ou plus$"), "Buts", 1),
             (re.compile(r"^Points du joueur : (\d+) ou plus$"), "Points", 1),
             (re.compile(r"^Passes décisives du joueur : (\d+) ou plus$"), "Passes décisives", 1)]
-_BC_BETS = [(re.compile(r"^Buteur$"), "Buts", None),
-            (re.compile(r"^Le joueur inscrit (\d+) buts? ou \+"), "Buts", 1)]
+# Betclic : marché « feuille » (sélections = joueurs, rangés par équipe) repéré par son nom de
+# ticket (betslipName). Avant-match, « Buteur » regroupe en fait « 2 buts ou + » et « 3 buts ou + »
+# (lus à tort comme « marque » jusqu'au 03/10/2026) ; « buteur à tout moment » = « Buteur (prol. inc.) ».
+# Combinés (« Buteur & son équipe gagne », « Double Chance Buteur ») ignorés.
+# Prolongation : « Buteur » / « Buteur (prol. inc.) » incluse (confirmé dans l'appli) ; marchés sans
+# mention (2 buts ou +, points, passes) comptés en temps réglementaire, par prudence.
+_BC_BETS = [(re.compile(r"^Buteur( \(prol\. inc\.\))?$"), "Buts", None),
+            (re.compile(r"^Buteur (\d+) fois ou \+"), "Buts", 1),
+            (re.compile(r"^Le joueur inscrit (\d+) buts? ou \+"), "Buts", 1),
+            (re.compile(r"^Le joueur inscrit (\d+) points? ou \+"), "Points", 1),
+            (re.compile(r"^Le joueur réalise (\d+) passes? décisives? ou \+"), "Passes décisives", 1)]
 
 
 def _iso(ts: datetime) -> str:
@@ -264,37 +273,56 @@ def _selections(o, out: list) -> list:
     return out
 
 
+def _betclic_leaves(markets: list) -> list[dict]:
+    """Marchés « feuilles » : un marché sans sous-marchés, ou chaque sous-marché (groupMarkets)."""
+    out = []
+    for mk in markets or []:
+        sub = mk.get("groupMarkets") or []
+        out += _betclic_leaves(sub) if sub else [mk]
+    return out
+
+
+def _bc_reg_only(name: str, stat: str, line: float) -> bool:
+    low = name.lower()
+    if "prol" in low and "inc" in low:
+        return False
+    if "tps r" in low:
+        return True
+    return not (stat == "Buts" and line == 0.5)       # « Buteur » seul : prolongation incluse
+
+
 def parse_betclic_match(state: dict | None) -> list[dict]:
-    """Cotes joueurs (onglet « Le Top » : Buteur, « Le joueur inscrit N buts ou + »)."""
+    """Cotes joueurs d'une page de match : buteur, N buts ou +, points N+, passes N+."""
     m = _betclic_payload(state).get("match") or {}
     if not m:
         return []
     names = [c.get("name") for c in m.get("contestants") or []]
     start = _iso(_betclic_date(m.get("matchDateUtc", "1970-01-01T00:00:00")))
     rows, seen = [], set()
-    for sc in m.get("subCategories") or []:
-        for mk in sc.get("markets") or []:
-            name = str(mk.get("name", "")).strip()
-            for pat, stat, grp in _BC_BETS:
-                mm = pat.match(name)
-                if not mm:
+    leaves = [lf for sc in m.get("subCategories") or [] for lf in _betclic_leaves(sc.get("markets"))]
+    for mk in leaves:
+        name = str(mk.get("betslipName") or mk.get("name") or "").strip()
+        for pat, stat, grp in _BC_BETS:
+            mm = pat.match(name)
+            if not mm:
+                continue
+            k = int(mm.group(grp)) if grp else 1
+            reg = _bc_reg_only(name, stat, k - 0.5)
+            for sel in _selections(mk.get("splitCardGroups") or [], []):     # joueurs, par équipe
+                key = (sel.get("id"), stat, k)
+                if sel.get("status") != 1 or key in seen:
                     continue
-                k = int(mm.group(grp)) if grp else 1
-                for sel in _selections(mk, []):
-                    key = (sel.get("id"), k)
-                    if sel.get("status") != 1 or key in seen:
-                        continue
-                    seen.add(key)
-                    try:
-                        od = float(sel["odds"])
-                    except (TypeError, ValueError):
-                        continue
-                    if od > 1:
-                        rows.append({"book": "Betclic", "event": m.get("name"),
-                                     "home": names[0] if names else None, "away": names[1] if len(names) > 1 else None,
-                                     "start": start, "stat": stat, "line": k - 0.5, "player": sel.get("name"),
-                                     "odds": od, "reg_only": "tps r" in name.lower()})   # buteur : prolongation incluse
-                break
+                seen.add(key)
+                try:
+                    od = float(sel["odds"])
+                except (TypeError, ValueError):
+                    continue
+                if od > 1:
+                    rows.append({"book": "Betclic", "event": m.get("name"),
+                                 "home": names[0] if names else None, "away": names[1] if len(names) > 1 else None,
+                                 "start": start, "stat": stat, "line": k - 0.5, "player": sel.get("name"),
+                                 "odds": od, "reg_only": reg})
+            break
     return rows
 
 
