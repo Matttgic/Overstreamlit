@@ -139,8 +139,15 @@ Vérifier que tout marche (le lendemain) : `tail -20 ~/collecte.log` affiche les
 collectes ; le site indique aussi « Winamax et Betclic reçus du téléphone (heure) » dans la
 section Buteurs NHL.
 
-Consommation : les pages sont demandées compressées, environ 2 Mo par collecte (≈ 10 Mo par
+Chaque collecte lit aussi les **cotes boostées Winamax** et les **buteurs football Winamax**
+(5 grands championnats, matchs des 30 h suivantes).
+
+Consommation : les pages sont demandées compressées, environ 3 Mo par collecte (≈ 15 Mo par
 jour, surtout en wifi à la maison).
+
+Si les collectes s'arrêtent (rien de nouveau dans `tail -20 ~/collecte.log`) : Android a fermé
+Termux. Rouvrir Termux, puis `sv-enable crond` et `termux-wake-lock`, et ne pas retirer la
+notification Termux (c'est elle qui le garde en vie).
 
 Arrêter : `crontab -r` (supprime la programmation). Le jeton peut être supprimé à tout moment
 sur https://github.com/settings/personal-access-tokens.

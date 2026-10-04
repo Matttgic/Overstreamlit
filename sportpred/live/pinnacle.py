@@ -31,7 +31,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (Overstreamlit research)", "Accept": "appl
 SPORTS = {
     29: ("football", r"^(?:France - Ligue [12]|England - Premier League|Spain - La Liga|Italy - Serie A|"
                      r"Germany - Bundesliga|Netherlands - Eredivisie|Portugal - Primeira Liga|"
-                     r"UEFA - (?:Champions|Europa|Conference) League|UEFA - Nations League A|"
+                     r"UEFA - (?:Champions|Europa|Conference) League|UEFA - Nations League [ABC]|"
                      r"FIFA - World Cup|UEFA - European Championship)$"),
     33: ("tennis", r"^(?:ATP|WTA) (?!Challenger|125K)(?!.*Doubles)"),
     4: ("basket", r"^(?:NBA|Europe - Euroleague|France - Championnat Pro A|Spain - ACB)$"),

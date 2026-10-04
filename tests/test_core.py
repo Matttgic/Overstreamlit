@@ -1100,3 +1100,43 @@ def test_football_predict_with_official_lineup():
     lens = off[off["team"] == "Lens"].set_index("player")
     assert set(off["lineup"]) == {"officielle"} and "Lens Joueur0" not in lens.index and lens.loc["Lens Joueur10", "p_start"] == 1.0
     assert abs(off.groupby("team")["share"].sum() - 1 / (1 + F.load_model()[1])).max() < 1e-6   # onze réel + banc moyen
+
+
+def test_phone_winamax_boosts_and_betclic_regular_time_scorer():
+    """Vraies pages du 04/10/2026 : 12 cotes boostées Winamax (libellé, cotes, mise max) ;
+    Betclic football « Buteur (t. rég) » ; football Winamax limité aux 5 grands championnats."""
+    from datetime import datetime, timezone
+    T = _phone_module()
+    b = T.winamax_boosts(_fixture("winamax_boosts.json.gz"))
+    assert len(b) == 12 and all(x["book"] == "Winamax" and x["max_stake"] == 20.0 for x in b)
+    nl = next(x for x in b if x["text"] == "Pays-Bas gagne et les deux équipes marquent")
+    assert (nl["event"], nl["sport"], nl["odds"], nl["orig_odds"], nl["start"]) == \
+        ("Pays-Bas - Serbie", "Football", 2.5, 2.35, "2026-10-04T18:45:00Z")
+    r = T.parse_betclic_match(_fixture("betclic_foot_match.json.gz"))
+    assert len(r) == 34 and {(x["stat"], x["line"], x["reg_only"]) for x in r} == {("Buts", 0.5, True)}
+    st = {"matches": {"1": {"matchId": 1, "sportId": 1, "tournamentId": 4, "status": "PREMATCH", "matchStart": 1791140000},
+                      "2": {"matchId": 2, "sportId": 1, "tournamentId": 2000, "status": "PREMATCH", "matchStart": 1791140000}}}
+    assert T.winamax_foot_upcoming(st, datetime(2026, 10, 4, 12, tzinfo=timezone.utc)) == ["1"]    # Ligue 1 seulement
+
+
+def test_boosts_half_time_legs_and_country_names():
+    """« X gagne à la mi-temps et à la fin du match » (mi-temps / fin de match Pinnacle),
+    « X marque dans les deux mi-temps » ; noms de pays français -> Pinnacle."""
+    import numpy as np
+    from sportpred.live import boosts as B
+    assert B.parse_legs("Allemagne gagne à la mi-temps et à la fin du match") == [{"kind": "ht_ft", "who": "allemagne"}]
+    t = pd.Timestamp("2026-10-04T18:45:00Z")
+    rows = [("moneyline", "Greece", 0.15), ("moneyline", "Nul", 0.25), ("moneyline", "Germany", 0.60),
+            ("Team Props: Half-Time/Full-Time", "Germany - Germany", 0.40),
+            ("Team Props: Germany To Score? 1st Half", "Yes", 0.60)] + \
+           [("Team Props: Germany Goals", str(k), p) for k, p in ((0, 0.15), (1, 0.30), (2, 0.30), (3, 0.25))]
+    pin = pd.DataFrame([{"event": "Greece - Germany", "home": "Greece", "away": "Germany", "start": t, "sport": "football",
+                         "league": "UEFA - Nations League B", "market": m, "selection": s, "line": None, "fair_prob": p}
+                        for m, s, p in rows])
+    b = pd.DataFrame([{"book": "Winamax", "event": "Grèce - Allemagne", "start": t, "text": x, "odds": 2.75}
+                      for x in ("Allemagne gagne à la mi-temps et à la fin du match", "Allemagne marque dans les deux mi-temps")])
+    r = B.evaluate(b, pin).set_index("text")
+    assert abs(r.loc["Allemagne gagne à la mi-temps et à la fin du match", "fair_prob"] - 0.40) < 1e-9
+    lam = 0.3 + 0.6 + 0.75                                   # buts attendus de l'Allemagne
+    lam1 = -np.log(0.40)
+    assert abs(r.loc["Allemagne marque dans les deux mi-temps", "fair_prob"] - 0.60 * (1 - np.exp(-(lam - lam1)))) < 1e-9

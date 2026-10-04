@@ -58,12 +58,17 @@ Code : `sportpred/live/boosts.py`, grille des scores `sportpred/models/score_gri
 
 1. **Lecture des boosts** : Unibet.fr (page publique `/cotes-boostees`, lue par GitHub : cote
    d'origine, cote boostée et mise maximale sont dans le libellé, ex. « Roosters gagne et X
-   marque un essai (2,10 -> 2,50 / Mise max 25 €) ») ; Winamax et Betclic lus par le téléphone.
+   marque un essai (2,10 -> 2,50 / Mise max 25 €) ») ; Winamax lu par le téléphone à chaque
+   collecte (rubrique « Cotes boostées », sport 100000 : libellé, cote d'origine `previousOdd`,
+   cote boostée, mise max dans le titre du pari, une douzaine de boosts par jour, tous sports).
+   Betclic : la page ne contient pas les boosts au chargement (04/10/2026), lecture à l'étude.
 2. **Libellé → jambes** : « X gagne », « victoire de X », « match nul », « X ne perd pas »,
+   « X gagne à la mi-temps et à la fin du match », « X marque dans les deux mi-temps »,
    « les deux équipes marquent », « plus / moins de N,5 buts », « au moins k buts », « X gagne
    avec k buts d'écart », « X gagne sans encaisser de but », « X marque » (équipe ou joueur),
    « X marque k buts ou + », « doublé », reliées par « et » / « & ». Surnoms courants reconnus
-   (OM, OL, LOSC, PSG, Barça, Juve…). Libellé non reconnu → « non évaluable » (jamais deviné).
+   (OM, OL, LOSC, PSG, Barça, Juve…) et noms de pays traduits (« Pays-Bas » → Netherlands).
+   Libellé non reconnu → « non évaluable » (jamais deviné).
 3. **Probabilité juste**, dans cet ordre :
    - le même pari chez Pinnacle (vainqueur, nul, total, les deux marquent) ;
    - un combiné que Pinnacle publie lui-même (victoire + les deux marquent, victoire / nul +
@@ -81,3 +86,10 @@ Contrôle de la grille (03/10/2026, 16 matchs des 5 grands championnats) : face 
 publiés par Pinnacle, écart absolu moyen 0,4 à 1,7 point de probabilité (score exact, victoire
 + total, écart, nombre de buts) ; « les deux équipes marquent » sous-estimé de 1,8 point en
 moyenne, d'où la priorité donnée aux prix Pinnacle quand ils existent.
+
+Premier relevé Winamax (04/10/2026, 12 boosts) : les deux boosts évaluables étaient **sous** la
+cote juste — « Pays-Bas gagne et les deux équipes marquent » 2,35 → 2,50 pour une cote juste
+Pinnacle de 2,73 (EV −8,5 %), « Allemagne marque dans les deux mi-temps » 2,35 → 2,65 pour 2,75
+(EV −3,8 %). Un boost n'est donc pas une valeur en soi : seule la comparaison à la cote juste
+compte. Les 10 autres (joueurs en NFL, MLB, rugby, WNBA, combinés multi-matchs, hockey)
+restent non évalués.
